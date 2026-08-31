@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "id": "evangelion.media",
+  "name": "MAGI Media",
+  "version": "1.0.0",
+  "author": "Evangelion Rice",
+  "description": "Compact MAGI now-playing status and multi-source controls.",
+  "kinds": ["bar-widget"],
+  "entryPoints": { "barWidget": "BarWidget.qml" },
+  "barWidget": {
+    "displayName": "MAGI Media",
+    "description": "Compact MPRIS now-playing controls",
+    "category": "Media",
+    "allowMultiple": false,
+    "defaultSection": "left"
+  }
+}

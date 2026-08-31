@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "id": "evangelion.communications",
+  "name": "NERV Communications",
+  "version": "1.0.0",
+  "author": "Evangelion Rice",
+  "description": "Unified network, Bluetooth, VPN, and Tailscale telemetry.",
+  "kinds": ["bar-widget"],
+  "entryPoints": { "barWidget": "BarWidget.qml" },
+  "barWidget": {
+    "displayName": "NERV Communications",
+    "description": "Compact communication-link status and controls",
+    "category": "Network",
+    "allowMultiple": false,
+    "defaultSection": "right"
+  }
+}

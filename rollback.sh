@@ -7,6 +7,7 @@ while IFS=$'\t' read -r action target; do
   [[ $action == \#* || -z ${target:-} ]] && continue
   case $action in
     restore) source=$snapshot/files/${target#/}; [[ -e $source || -L $source ]] || { echo "Missing backup: $source" >&2; exit 1; }; mkdir -p "$(dirname "$target")"; rm -f -- "$target"; cp -a "$source" "$target" ;;
+    restore-dir) source=$snapshot/legacy-plugins/${target##*/}; if [[ -d $source ]]; then [[ ! -e $target ]] || { echo "Cannot restore legacy plugin over existing path: $target" >&2; exit 1; }; mkdir -p "$(dirname "$target")"; mv -- "$source" "$target"; elif [[ ! -d $target ]]; then echo "Missing backup: $source" >&2; exit 1; fi ;;
     remove) [[ -f $target || -L $target ]] && rm -f -- "$target" ;;
     *) echo "Invalid manifest action: $action" >&2; exit 1 ;;
   esac

@@ -1,1 +1,0 @@
-{"schemaVersion":1,"id":"so1omon.update-operation","name":"MAGI Update Operation","version":"1.0.0","author":"So1omon","description":"Non-blocking phase telemetry for wrapped Omarchy updates.","kinds":["service"],"keepLoaded":true,"entryPoints":{"service":"Service.qml"}}

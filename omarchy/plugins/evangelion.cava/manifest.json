@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "id": "evangelion.cava",
+  "name": "MAGI Synchronization Spectrum",
+  "version": "1.0.0",
+  "author": "Evangelion Rice",
+  "description": "Evangelion-native Cava spectrum independent of external themes.",
+  "kinds": ["bar-widget"],
+  "entryPoints": { "barWidget": "BarWidget.qml" },
+  "barWidget": {
+    "displayName": "MAGI Spectrum",
+    "description": "Live audio synchronization spectrum; hides when Cava is unavailable",
+    "category": "Media",
+    "allowMultiple": false,
+    "defaultSection": "center"
+  }
+}

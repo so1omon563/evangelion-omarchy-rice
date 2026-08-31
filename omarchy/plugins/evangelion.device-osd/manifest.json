@@ -1,0 +1,11 @@
+{
+  "schemaVersion": 1,
+  "id": "evangelion.device-osd",
+  "name": "NERV External Device OSD",
+  "version": "1.0.0",
+  "author": "Evangelion Rice",
+  "description": "Event-driven display, dock, storage, and peripheral telemetry.",
+  "kinds": ["service"],
+  "keepLoaded": true,
+  "entryPoints": { "service": "Service.qml" }
+}

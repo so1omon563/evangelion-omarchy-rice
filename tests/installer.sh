@@ -47,8 +47,15 @@ run_install --apply --preset full --yes >/dev/null
 grep -qF 'source "$HOME/.config/omarchy/evangelion.bash"' "$test_root/home/.bashrc" || fail "full preset omitted shell integration"
 initial_full_snapshot=$(cat "$test_root/state/evangelion-rice/last-install-backup")
 sed -i 's#"project_dir": ""#"project_dir": "/tmp/custom-project"#' "$test_root/home/.config/omarchy/evangelion.json"
+mkdir -p "$test_root/home/.config/omarchy/plugins/so1omon.cava"
+printf 'legacy\n' >"$test_root/home/.config/omarchy/plugins/so1omon.cava/marker"
 run_install --apply --components shell --yes >/dev/null
 grep -qF '"project_dir": "/tmp/custom-project"' "$test_root/home/.config/omarchy/evangelion.json" || fail "repeat install replaced user configuration"
+[[ ! -e $test_root/home/.config/omarchy/plugins/so1omon.cava && -f $test_root/home/.config/omarchy/plugins/evangelion.cava/manifest.json ]] || fail "legacy plugin namespace migration failed"
+migration_snapshot=$(cat "$test_root/state/evangelion-rice/last-install-backup")
+run_rollback "$migration_snapshot" >/dev/null
+[[ -f $test_root/home/.config/omarchy/plugins/so1omon.cava/marker ]] || fail "legacy plugin migration rollback failed"
+run_install --apply --components shell --yes >/dev/null
 resolved=$(HOME=$test_root/home XDG_CONFIG_HOME=$test_root/home/.config PATH="$test_root/home/.local/bin:$PATH" eva-user-config get project_dir)
 [[ $resolved == /tmp/custom-project ]] || fail "user configuration resolver ignored project override"
 HOME=$test_root/home XDG_CONFIG_HOME=$test_root/home/.config PATH="$test_root/home/.local/bin:$PATH" eva-user-config terminal >/dev/null || fail "terminal auto-discovery failed"

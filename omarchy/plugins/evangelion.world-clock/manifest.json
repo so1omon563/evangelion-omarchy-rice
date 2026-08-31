@@ -1,0 +1,1 @@
+{"schemaVersion":1,"id":"evangelion.world-clock","name":"MAGI World Clock","version":"1.0.0","author":"Evangelion Rice","description":"World zones, session uptime, and mission elapsed time.","kinds":["bar-widget"],"entryPoints":{"barWidget":"BarWidget.qml"},"barWidget":{"displayName":"MAGI World Clock","category":"Time","allowMultiple":false,"defaultSection":"center"}}

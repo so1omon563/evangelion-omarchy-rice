@@ -5,6 +5,15 @@ state_root=${XDG_STATE_HOME:-$HOME/.local/state}/evangelion-rice
 dry_run=false apply=false assume_yes=false preset=default component_arg= shell_choice=auto shell_opt_out=false
 transaction_started=false backup_root= manifest=
 readonly all_components=(theme tools shell hypr start-page services extras shell-integration neon-overdrive)
+readonly legacy_plugin_ids=(
+  so1omon.angel-intrusion so1omon.atfield so1omon.battery so1omon.cava
+  so1omon.clipboard so1omon.communications so1omon.device-osd so1omon.health
+  so1omon.lock so1omon.magi-idle so1omon.media so1omon.mission
+  so1omon.notifications so1omon.operating-profile so1omon.power
+  so1omon.power-sequence so1omon.privacy so1omon.thermal
+  so1omon.update-operation so1omon.workspace-osd so1omon.workspaces
+  so1omon.world-clock
+)
 
 usage(){ cat <<'EOF'
 Usage: ./install.sh [--dry-run | --apply] [--preset minimal|default|full]
@@ -128,6 +137,15 @@ else rc_action=skip; fi
 components=$(printf '%s\n' "${!selected[@]}" | sort | paste -sd, -)
 printf 'EVANGELION INSTALL PLAN // %s\n' "$components"
 changes=0 replacements=0
+if [[ ${selected[shell]:-0} == 1 ]]; then
+  for legacy_id in "${legacy_plugin_ids[@]}"; do
+    legacy_target=$HOME/.config/omarchy/plugins/$legacy_id
+    if [[ -d $legacy_target ]]; then
+      printf '%-9s %-18s %s\n' MIGRATE shell "$legacy_target"
+      changes=$((changes+1))
+    fi
+  done
+fi
 for index in "${!plan_target[@]}"; do
   printf '%-9s %-18s %s\n' "${plan_action[$index]^^}" "${plan_component[$index]}" "${plan_target[$index]}"
   [[ ${plan_action[$index]} == unchanged || ${plan_action[$index]} == preserve || ${plan_action[$index]} == omit ]] || changes=$((changes+1))
@@ -165,6 +183,15 @@ transaction_failed(){
   exit "$code"
 }
 trap transaction_failed ERR
+if [[ ${selected[shell]:-0} == 1 ]]; then
+  for legacy_id in "${legacy_plugin_ids[@]}"; do
+    legacy_target=$HOME/.config/omarchy/plugins/$legacy_id
+    [[ -d $legacy_target ]] || continue
+    mkdir -p "$backup_root/legacy-plugins"
+    mv -- "$legacy_target" "$backup_root/legacy-plugins/$legacy_id"
+    printf 'restore-dir\t%s\n' "$legacy_target" >>"$manifest"
+  done
+fi
 for index in "${!plan_target[@]}"; do
   [[ ${plan_action[$index]} == unchanged || ${plan_action[$index]} == preserve || ${plan_action[$index]} == omit ]] && continue
   backup_target "${plan_target[$index]}"

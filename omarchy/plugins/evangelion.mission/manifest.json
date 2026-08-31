@@ -1,0 +1,11 @@
+{
+  "schemaVersion": 1,
+  "id": "evangelion.mission",
+  "name": "MAGI Mission Timer",
+  "version": "1.0.0",
+  "author": "Evangelion Rice",
+  "description": "Persistent NERV focus cycles and recovery timer.",
+  "kinds": ["bar-widget"],
+  "entryPoints": {"barWidget": "BarWidget.qml"},
+  "barWidget": {"displayName":"MAGI Mission Timer","category":"Productivity","allowMultiple":false,"defaultSection":"center"}
+}

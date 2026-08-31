@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "id": "evangelion.battery",
+  "name": "My Battery",
+  "version": "1.0.0",
+  "author": "Omarchy",
+  "description": "Low battery warning service",
+  "kinds": [
+    "service"
+  ],
+  "entryPoints": {
+    "service": "Service.qml"
+  },
+  "omarchy": {
+    "clonedFrom": "omarchy.battery"
+  }
+}

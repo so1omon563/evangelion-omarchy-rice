@@ -41,6 +41,13 @@ for file in "$root"/bin/*; do
   fi
 done
 for file in "$root"/omarchy/*.json "$root"/omarchy/plugins/*/manifest.json; do jq empty "$file" 2>/dev/null && pass "json ${file#$root/}" || fail "json ${file#$root/}"; done
+legacy_plugin_dirs=$(find "$root/omarchy/plugins" -mindepth 1 -maxdepth 1 -type d -name 'so1omon.*' -print)
+[[ -z $legacy_plugin_dirs ]] && pass "public plugin namespace" || fail "legacy personal plugin namespace remains"
+for manifest in "$root"/omarchy/plugins/evangelion.*/manifest.json; do
+  plugin_dir=${manifest%/manifest.json}; plugin_id=${plugin_dir##*/}
+  [[ $(jq -r '.id' "$manifest") == "$plugin_id" ]] || fail "plugin id does not match directory: $plugin_id"
+done
+pass "plugin ids match directories"
 lua -e "assert(loadfile('$root/hypr/bindings.lua')); assert(loadfile('$root/hypr/hyprland.lua')); assert(loadfile('$root/hypr/looknfeel.lua'))" 2>/dev/null && pass "Hyprland Lua parses" || fail "Hyprland Lua parse"
 sed '/^[[:space:]]*\/\//d' "$root/omarchy/extensions/omarchy-menu.jsonc" | jq empty 2>/dev/null && pass "MAGI menu JSONC parses" || fail "MAGI menu JSONC parse"
 (cd "$root/theme" && sha256sum --check --status backgrounds.sha256) && pass "wallpaper provenance hashes" || fail "wallpaper provenance hashes"
@@ -61,7 +68,7 @@ else pass "custom hotkey commands resolved"; fi
 
 widgets=$(jq -r '.bar.layout[][]|.id' "$root/omarchy/shell.json")
 while IFS= read -r id; do
-  [[ $id != so1omon.* && $id != neon.overdrive ]] && continue
+  [[ $id != evangelion.* && $id != neon.overdrive ]] && continue
   [[ -f $root/omarchy/plugins/$id/manifest.json ]] && pass "widget source $id" || fail "missing widget source $id"
 done <<<"$widgets"
 
@@ -70,7 +77,7 @@ elif [[ -d ${HOME}/.config/omarchy ]]; then
   hyprctl configerrors 2>/dev/null | grep -q . && fail "live Hyprland config errors" || pass "live Hyprland config clean"
   for file in "$root"/bin/*; do [[ -f $file ]] || continue; live=$HOME/.local/bin/${file##*/}; [[ -x $live ]] || fail "live binary missing: ${file##*/}"; done
   live_widgets=$(jq -r '.bar.layout[][]|.id' "$HOME/.config/omarchy/shell.json" 2>/dev/null || true)
-  while IFS= read -r id; do [[ $id != so1omon.* && $id != neon.overdrive ]] || grep -qxF "$id" <<<"$live_widgets" || fail "live widget absent: $id"; done <<<"$widgets"
+  while IFS= read -r id; do [[ $id != evangelion.* && $id != neon.overdrive ]] || grep -qxF "$id" <<<"$live_widgets" || fail "live widget absent: $id"; done <<<"$widgets"
   pass "live widget layout inspected"
 else warn "live Omarchy config unavailable; source-only validation"; fi
 
