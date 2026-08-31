@@ -98,6 +98,33 @@ do not run. Local IPC and sysfs are preferred, so there is no background polling
 loop. A transient failure retains a still-fresh cached observation; after
 `max_age_seconds` it is marked `stale` with an explicit reason.
 
+### Deterministic context policy
+
+Policy version 1 evaluates only fresh, allowlisted facts. Its precedence is
+fixed and inspectable: critical/high thermal or battery safety, elevated or
+conservation safety, explicit manual profile selection, offline connectivity,
+docked/mobile environment, active media, then nominal context. Higher-priority
+states suppress lower ones without deleting them: their stable reason codes are
+retained in `policy_state.suppressed_reason_codes`. The selected reason includes
+the exact contributing normalized facts and signal groups.
+
+Thermal bands enter at 75/85/95 °C and exit below 70/80/90 °C. Battery bands on
+internal power enter at 30/15/7 percent and exit above 35/20/10 percent. These
+separate entry and exit boundaries prevent oscillation around a threshold.
+Stale inputs never participate in policy; if no fresh facts remain, the result
+is explicitly `unknown` with reason `no-fresh-policy-inputs`.
+
+An auto-profile/environment mismatch must be observed twice consecutively
+before a recommendation is emitted. Contradictory or matching observations
+reset that candidate. Repeated profile recommendations have a five-minute
+cooldown. Recommendations always carry a reason, contributing facts, and
+`requires_confirmation: true`. A confirmed recommendation remains visible
+while the mismatch persists; cooldown prevents a contradictory target from
+being immediately reconfirmed. `automatic_actions` is a separate list and is
+always empty at this stage—even if the preserved automation preference is
+enabled. SO1-367 owns bounded opt-in execution; the policy engine itself never
+changes the system.
+
 ## Interface motion
 
 Choose `MAGI Command Interface → Interface Motion`, or use:

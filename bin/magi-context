@@ -17,6 +17,7 @@ for library in (Path(__file__).resolve().parents[1] / "lib",
         sys.path.insert(0, str(library))
 
 from magi_context_collectors import collect_all
+from magi_context_policy import POLICY_VERSION, evaluate
 
 CONFIG_HOME = Path(os.environ.get("XDG_CONFIG_HOME", Path.home() / ".config"))
 STATE_HOME = Path(os.environ.get("XDG_STATE_HOME", Path.home() / ".local/state"))
@@ -163,12 +164,12 @@ def facts_from(signals):
     facts = {}
     mappings = {
         "power": (("power_source", "source"), ("battery_percent", "battery_percent")),
-        "thermal": (("thermal_pressure", "pressure"),),
+        "thermal": (("thermal_pressure", "pressure"), ("temperature_c", "temperature_c")),
         "displays": (("display_mode", "docked"),),
         "connectivity": (("connectivity", "state"),),
         "media": (("media_state", "state"),),
         "time": (("time_band", "band"), ("weekend", "weekend")),
-        "operating_profile": (("operating_profile", "active"),),
+        "operating_profile": (("operating_profile", "active"), ("profile_selection", "selected")),
     }
     for signal, pairs in mappings.items():
         item = signals.get(signal, {})
@@ -208,7 +209,7 @@ def build_state(request_id, generation=0, observations=None, previous=None):
     elif available == 0 and observations:
         status, reason, summary = "unavailable", "collectors-unavailable", "Enabled context collectors are unavailable"
     elif available:
-        status, reason, summary = "unknown", "policy-pending", "Local observations available; context policy is not yet evaluated"
+        status, reason, summary = "unknown", "policy-evaluating", "Local observations are ready for policy evaluation"
     else:
         status, reason, summary = "unknown", "awaiting-observations", "No local observations have been published"
     reasons = [{"code": reason, "summary": summary, "signals": []}]
@@ -221,6 +222,11 @@ def build_state(request_id, generation=0, observations=None, previous=None):
     expires_at = [item["freshness"]["expires_at"] for item in signals.values()
                   if item["freshness"]["expires_at"]]
     derived_freshness = "disabled" if status == "disabled" else "stale" if stale else "fresh" if available else "unknown"
+    policy = None
+    if controller_enabled and enabled_collectors and available:
+        policy = evaluate(facts, signals, previous, now.timestamp())
+        status, summary = policy["status"], policy["summary"]
+        reasons[0] = policy["reason"]
     return {
         "schema_version": 1,
         "generation": generation,
@@ -228,7 +234,8 @@ def build_state(request_id, generation=0, observations=None, previous=None):
         "published_at": utc_now(),
         "controller": config,
         "contract": {"availability_values": list(AVAILABILITY),
-                     "freshness_values": list(FRESHNESS)},
+                     "freshness_values": list(FRESHNESS),
+                     "policy_version": POLICY_VERSION},
         "signals": signals,
         "facts": facts,
         "derived_state": {"status": status, "summary": summary,
@@ -237,7 +244,9 @@ def build_state(request_id, generation=0, observations=None, previous=None):
                                         "observed_at": max(observed_at) if observed_at else None,
                                         "expires_at": min(expires_at) if expires_at else None}},
         "reasons": reasons,
-        "recommendations": [],
+        "recommendations": policy["recommendations"] if policy else [],
+        "automatic_actions": policy["automatic_actions"] if policy else [],
+        "policy_state": policy["policy_state"] if policy else {"version": POLICY_VERSION},
     }
 
 
@@ -300,8 +309,14 @@ def explain(state):
              f"GENERATION // {state['generation']} · REQUEST // {state['request_id']}"]
     for reason in state["reasons"]:
         lines.append(f"REASON // {reason['code']} · {reason['summary']}")
+        if reason.get("facts"):
+            facts = " · ".join(f"{key}={value}" for key, value in sorted(reason["facts"].items()))
+            lines.append(f"FACTS // {facts}")
     lines.append(f"AUTOMATION // {'ENABLED' if state['controller']['automation_enabled'] else 'DISABLED'}")
     lines.append(f"RECOMMENDATIONS // {len(state['recommendations'])}")
+    for recommendation in state["recommendations"]:
+        lines.append(f"RECOMMEND // {recommendation['reason_code']} · {recommendation['summary']}")
+    lines.append(f"AUTOMATIC ACTIONS // {len(state.get('automatic_actions', []))}")
     return "\n".join(lines)
 
 

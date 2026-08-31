@@ -86,10 +86,20 @@ def main():
                                   "device_counts": {"keyboards": 2, "pointers": 1, "audio_outputs": 2, "audio_inputs": 1},
                                   "display_mode": "docked", "media_state": "playing",
                                   "operating_profile": "docked", "power_source": "battery",
+                                  "profile_selection": "auto", "temperature_c": 71.5,
                                   "thermal_pressure": "nominal", "time_band": "afternoon", "weekend": False}
         serialized = json.dumps(state).lower()
         for forbidden in ("title", "artist", "ssid", "ip_address", "clipboard", "browser_history", "process_name"):
             assert forbidden not in serialized
+
+        mismatch = full_fixture()
+        mismatch["operating_profile"]["value"]["active"] = "mobile"
+        fixture.write_text(json.dumps(mismatch))
+        first_mismatch = json.loads(cli(home, fixture, "refresh", "--json").stdout)
+        assert first_mismatch["recommendations"] == [], "profile mismatch was not debounced"
+        second_mismatch = json.loads(cli(home, fixture, "refresh", "--json").stdout)
+        assert second_mismatch["recommendations"][0]["target"] == "docked"
+        assert second_mismatch["automatic_actions"] == [], "policy executed a recommendation"
 
         unsafe = full_fixture()
         unsafe["media"]["value"]["title"] = "private title"

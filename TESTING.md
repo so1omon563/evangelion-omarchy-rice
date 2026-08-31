@@ -25,6 +25,7 @@ concurrency coverage:
 ```bash
 ./tests/context.py
 ./tests/context-collectors.py
+./tests/context-policy.py
 ```
 
 It uses a temporary home and asserts that read-only status creates no state,
@@ -34,6 +35,12 @@ imported, and a delayed older refresh cannot overwrite the latest request.
 fixtures to cover multi-battery power, thermal thresholds, missing commands,
 fresh-cache retention, stale transitions, strict privacy-schema rejection, and
 the exact normalized fact set without querying the live desktop.
+
+`context-policy.py` uses table-driven conflicts and exact boundary sequences to
+verify stable precedence, thermal and battery hysteresis, two-sample debounce,
+recommendation cooldown, contradictory-input convergence, stale-input
+exclusion, contributing facts, and the permanent separation of recommendations
+from automatic actions.
 
 `motion-regression.py` is portable CI coverage for rapid Full/Reduced/Off
 changes, persistence, interruption/coalescing contracts, critical-state

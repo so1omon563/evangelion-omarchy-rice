@@ -109,6 +109,7 @@ expect "uninstall-equivalent rollback removes shell" test ! -e "$test_root/home/
 expect "uninstall-equivalent rollback removes theme" test ! -e "$test_root/home/.config/omarchy/themes/evangelion/colors.toml"
 expect "uninstall-equivalent rollback removes tools" test ! -e "$test_root/home/.local/bin/magi-affinity"
 expect "uninstall-equivalent rollback removes context library" test ! -e "$test_root/home/.local/lib/evangelion-rice/magi_context_collectors.py"
+expect "uninstall-equivalent rollback removes context policy" test ! -e "$test_root/home/.local/lib/evangelion-rice/magi_context_policy.py"
 
 if rg -n '/home/so1omon|Work/evangelion-rice|ThinkPad T480' "$root/bin" "$root/lib" "$root/omarchy" "$root/install.sh" >/dev/null; then
   fail "no original-machine runtime assumptions"

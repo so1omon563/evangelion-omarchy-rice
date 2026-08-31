@@ -40,7 +40,8 @@ def main():
         assert initial["schema_version"] == 1 and initial["generation"] == 0
         assert initial["derived_state"]["status"] == "unknown"
         assert set(initial["signals"]) == COLLECTORS
-        assert initial["facts"] == {} and initial["recommendations"] == []
+        assert initial["facts"] == {} and initial["recommendations"] == [] and initial["automatic_actions"] == []
+        assert initial["contract"]["policy_version"] == 1
         assert initial["contract"]["availability_values"] == ["unknown", "available", "unavailable", "disabled"]
         assert initial["contract"]["freshness_values"] == ["unknown", "fresh", "stale", "disabled"]
         assert not (home / ".local/state/evangelion-rice/context/state.json").exists(), "status must be read-only"
@@ -52,7 +53,7 @@ def main():
         state_path = home / ".local/state/evangelion-rice/context/state.json"
         assert state_path.stat().st_mode & 0o777 == 0o600
         explanation = run(home, "explain").stdout
-        assert any(code in explanation for code in ("policy-pending", "collectors-unavailable"))
+        assert any(code in explanation for code in ("context-nominal", "environment-mobile", "collectors-unavailable"))
 
         disabled = json.loads(run(home, "disable", "--json").stdout)
         assert disabled["derived_state"]["status"] == "disabled"
@@ -68,6 +69,7 @@ def main():
         run(home, "collector", "media", "disable")
         current = json.loads(run(home, "refresh", "--json").stdout)
         assert current["controller"]["automation_enabled"] is True
+        assert current["automatic_actions"] == [], "SO1-366 must not execute recommendations"
         assert current["controller"]["decorative_enabled"] is False
         assert current["signals"]["media"]["availability"] == "disabled"
         assert current["signals"]["power"]["availability"] in {"available", "unavailable"}
