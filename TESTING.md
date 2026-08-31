@@ -30,6 +30,7 @@ concurrency coverage:
 ./tests/context-automation.py
 ./tests/operating-profile-transaction.py
 ./tests/ambient.py
+./tests/context-regression.py
 ```
 
 It uses a temporary home and asserts that read-only status creates no state,
@@ -72,6 +73,27 @@ the manual-selection hold.
 location-free bands, offline solar calculation and daily cache reuse, quiet and
 disable fallback contracts, prohibited geolocation/network primitives, and the
 absence of an ambient polling loop.
+
+`context-regression.py` adds incompatible-schema fallback and explicit
+migration, independent-process restart continuity, killed-refresh recovery,
+rapid latest-request convergence, unavailable capability handling, and private
+sentinel checks across stdout, stderr, persisted state, requests, surfaces,
+explanations, demos, and diagnostics. It also pins the existing precedence,
+stale-input, manual-hold, rollback, clean-user, and lock-safety coverage into one
+acceptance map.
+
+Optional reference-hardware context timing is separate from CI because it reads
+live local capabilities:
+
+```bash
+./tests/context-observe.py test-results/context-observation.json
+```
+
+It records aggregate refresh latency/child CPU and a three-second idle polling
+observation. It snapshots the live context state, request counter, and lock file
+before the run and atomically restores their exact bytes and modes in a
+`finally` block.
+The report contains no paths, signal values, process IDs, or machine identifiers.
 
 `motion-regression.py` is portable CI coverage for rapid Full/Reduced/Off
 changes, persistence, interruption/coalescing contracts, critical-state

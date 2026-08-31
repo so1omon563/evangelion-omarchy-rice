@@ -281,6 +281,11 @@ def publish_latest(request_id):
         if latest != request_id:
             return load_state(), False
         prior_state = read_object(STATE, {})
+        # An unknown schema is never policy input and cannot control the new
+        # generation counter. Preserve the file on read-only status, then start
+        # a clean v1 sequence only when an explicit refresh publishes it.
+        if prior_state.get("schema_version") != 1:
+            prior_state = {}
         previous = prior_state.get("generation", 0)
         generation = previous + 1 if isinstance(previous, int) and previous >= 0 else 1
         state = build_state(request_id, generation, observations, prior_state)
