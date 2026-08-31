@@ -39,9 +39,11 @@ The report separates three levels:
   installer stops before its first write if one is missing.
 - **Recommended** — Ghostty, Neovim, Fastfetch, and btop provide the complete
   reference experience, but are not required for the base theme.
-- **Optional** — feature-specific integrations such as media controls,
+- **Optional** — feature-specific integrations such as media controls, Cava,
   Tailscale, clipboard actions, power profiles, and multi-monitor screensaver
   IPC. A missing optional tool disables only its listed integration.
+- **Development** — tooling used to validate and contribute to the repository,
+  but not by the installed desktop at runtime.
 
 Every missing group includes an actionable Arch/Omarchy package command. The
 canonical machine-readable inventory is [dependencies.tsv](dependencies.tsv).

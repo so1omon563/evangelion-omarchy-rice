@@ -30,6 +30,7 @@ done
 required_missing=0
 recommended_missing=0
 optional_missing=0
+development_missing=0
 checked=0
 
 printf '%-12s %-22s %-9s %s\n' LEVEL FEATURE STATUS DETAIL
@@ -41,7 +42,7 @@ while IFS=$'\t' read -r level feature commands packages description extra; do
     printf 'Invalid dependency row for feature %s\n' "${feature:-unknown}" >&2
     exit 2
   fi
-  case $level in required|recommended|optional) ;; *) printf 'Invalid dependency level: %s\n' "$level" >&2; exit 2;; esac
+  case $level in required|recommended|optional|development) ;; *) printf 'Invalid dependency level: %s\n' "$level" >&2; exit 2;; esac
   if $source_only && [[ $feature != source-validation ]]; then continue; fi
 
   IFS=',' read -ra candidates <<<"$commands"
@@ -61,11 +62,12 @@ while IFS=$'\t' read -r level feature commands packages description extra; do
     required) required_missing=$((required_missing + 1)) ;;
     recommended) recommended_missing=$((recommended_missing + 1)) ;;
     optional) optional_missing=$((optional_missing + 1)) ;;
+    development) development_missing=$((development_missing + 1)) ;;
   esac
 done <"$manifest"
 
-printf '\nSUMMARY // %d feature groups · %d required missing · %d recommended missing · %d optional missing\n' \
-  "$checked" "$required_missing" "$recommended_missing" "$optional_missing"
+printf '\nSUMMARY // %d feature groups · %d required missing · %d recommended missing · %d optional missing · %d development missing\n' \
+  "$checked" "$required_missing" "$recommended_missing" "$optional_missing" "$development_missing"
 if ((required_missing)); then
   printf 'BLOCKED // install the required packages above, then rerun this check.\n' >&2
   exit 1

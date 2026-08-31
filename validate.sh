@@ -7,8 +7,13 @@ fail(){ checks=$((checks+1)); failures=$((failures+1)); printf 'FAIL  %s\n' "$*"
 warn(){ warnings=$((warnings+1)); printf 'WARN  %s\n' "$*"; }
 
 bash -n "$root/check-dependencies.sh" && pass "dependency checker parses" || fail "dependency checker parse"
-awk -F '\t' 'BEGIN { ok=1 } /^#/ || NF==0 { next } NF!=5 || $1 !~ /^(required|recommended|optional)$/ { ok=0 } END { exit !ok }' "$root/dependencies.tsv" \
+awk -F '\t' 'BEGIN { ok=1 } /^#/ || NF==0 { next } NF!=5 || $1 !~ /^(required|recommended|optional|development)$/ { ok=0 } END { exit !ok }' "$root/dependencies.tsv" \
   && pass "dependency manifest schema" || fail "dependency manifest schema"
+for documented in jq lua python3 ghostty nvim btop fastfetch cava playerctl nmcli sensors wpctl pactl busctl tailscale brightnessctl notify-send xdg-open; do
+  awk -F '\t' -v command="$documented" 'BEGIN { found=0 } /^#/ { next } { n=split($3,a,","); for(i=1;i<=n;i++) if(a[i]==command) found=1 } END { exit !found }' "$root/dependencies.tsv" \
+    || fail "dependency inventory missing $documented"
+done
+pass "documented executable inventory"
 "$root/check-dependencies.sh" --source-only --quiet >/dev/null && pass "source validation dependencies" || fail "source validation dependencies"
 dependency_fixture=$(mktemp)
 trap 'rm -f "$dependency_fixture"' EXIT

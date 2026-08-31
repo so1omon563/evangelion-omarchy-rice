@@ -4,6 +4,7 @@ required	omarchy-desktop	omarchy,omarchy-shell,hyprctl,systemctl	omarchy,hyprlan
 recommended	terminal	ghostty	ghostty	Default terminal used by deployment, presentation, and screensaver layouts
 recommended	editor	nvim	neovim	Editor pane used by the EVA deployment layout
 recommended	presentation	fastfetch,btop	fastfetch,btop	System telemetry panes in presentation mode
+optional	visualizer	cava	cava	Audio visualization in the Neon Overdrive compatibility widget
 optional	media	playerctl	playerctl	Media widget and playback controls
 optional	audio	wpctl,pactl	wireplumber,pulseaudio-utils	Privacy mute response and operating-profile audio routing
 optional	clipboard	wl-copy	wl-clipboard	Download intake clipboard actions
@@ -11,7 +12,10 @@ optional	capture	xdg-open,pgrep	xdg-utils,procps-ng	Capture destination actions 
 optional	communications	nmcli,busctl	NetworkManager,systemd	Network and Bluetooth status in communications telemetry
 optional	tailscale	tailscale	tailscale	Tailscale peer status in communications telemetry
 optional	power-profiles	powerprofilesctl	power-profiles-daemon	Docked/mobile power-profile switching
+optional	thermal-sensors	sensors	lm_sensors	Additional hardware sensor diagnostics outside the built-in sysfs reader
+optional	brightness-controls	brightnessctl	brightnessctl	Portable display and keyboard brightness controls
 optional	screensaver	socat	socat	Multi-monitor screensaver IPC discovery
 optional	control-reference	bat,setsid,uwsm-app,xdg-terminal-exec	bat,util-linux,uwsm,xdg-terminal-exec	Formatted hotkey guide launched in the preferred terminal
 optional	desktop-notifications	notify-send	libnotify	Native notifications from standalone MAGI tools
 optional	developer-telemetry	git	git	Repository status in the deployment telemetry pane
+development	quality	awk,git	gawk,git	Manifest validation, source checks, and contribution workflow
