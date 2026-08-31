@@ -85,6 +85,12 @@ def main():
     if manifest.exists():
         gate = json.loads(manifest.read_text())
         assert gate["release"] == "v1.3.0"
+        assert gate["candidate"] == "v1.3.0-rc.1"
+        assert gate["candidate_commit"] == "d363835424b48989a0e16c8869672a9df56fe6fe"
+        assert gate["final_release_allowed"] is True
+        assert gate["gates"]["candidate_ci"] == "passed-run-33450358582"
+        assert gate["gates"]["context_regressions"].startswith("passed-")
+        assert gate["gates"]["context_performance"].startswith("passed-t480-")
         assert gate["community_testing"]["status"] == "optional-post-release"
         assert gate["community_testing"]["required_reports"] == 0
 
