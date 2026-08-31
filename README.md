@@ -97,6 +97,10 @@ profiles, audio, Cava, and Neon Overdrive. Intel `coretemp`, AMD `k10temp` or
 Battery-less systems report battery telemetry as unavailable; multiple
 batteries are aggregated safely.
 
+The default bar includes an independent `so1omon.cava` MAGI spectrum. It uses
+the active Evangelion palette and automatically collapses to zero width when
+Cava is unavailable; clicking it opens the full Cava terminal view.
+
 Neon Overdrive is not part of any preset and is absent from the default bar.
 Its menu appears only when that theme's `neon-control` integration is detected.
 Existing users can request the compatibility widget with
