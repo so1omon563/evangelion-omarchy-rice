@@ -2,9 +2,11 @@
 
 [![MAGI Integrity Check](https://github.com/so1omon563/evangelion-omarchy-rice/actions/workflows/validate.yml/badge.svg)](https://github.com/so1omon563/evangelion-omarchy-rice/actions/workflows/validate.yml)
 
-> **v1.2:** the dynamic interface release is validated by source CI, an isolated
-> clean-user lifecycle, transactional install/rollback tests, the responsive
-> display matrix, motion regression suites, and the reference T480. Community compatibility reports are
+> **v1.3:** the MAGI intelligence and context release adds local, explainable
+> context, advisory recommendations, separately opted-in bounded automation,
+> ambient presentation, and unified upstream bar icons. It is validated by source
+> CI, an isolated clean-user lifecycle, transactional install/rollback tests,
+> privacy/interruption regressions, the responsive display matrix, and the reference T480. Community compatibility reports are
 > welcome through [BETA_TESTING.md](BETA_TESTING.md), but are not a release gate.
 
 An unofficial *Neon Genesis Evangelion* desktop environment for Omarchy:
@@ -26,6 +28,8 @@ and overlays, terminal profiles, safety telemetry, sounds, and operator tools.
 | ![Full MAGI interface motion](media/motion-full.gif) | ![Reduced MAGI interface motion](media/motion-reduced.gif) |
 
 ![Seven included wallpapers](media/wallpaper-gallery.png)
+
+![Synthetic comparison of MAGI recommendation, automation, stale, and disabled context states](media/context-states.png)
 
 > This is an unofficial fan project, unaffiliated with the rights holders.
 > Software is MIT-licensed; artwork has separate terms. Read
@@ -93,7 +97,9 @@ installer creates once and preserves on upgrades. Terminal, editor, shell,
 project path, deployment, presentation, browser selection, weather, operating
 profiles, global motion level, local MAGI context controls, thermal thresholds,
 and optional integrations are documented in
-[CONFIGURATION.md](CONFIGURATION.md).
+[CONFIGURATION.md](CONFIGURATION.md). The complete context inputs, privacy
+boundary, precedence, reasons, recommendations, automation controls,
+accessibility behavior, and performance contract are in [CONTEXT.md](CONTEXT.md).
 
 The browser always follows `omarchy launch browser`; no browser executable is
 hard-coded. Cava is an independent `evangelion.cava` bar plugin and hides when
@@ -113,8 +119,9 @@ validation automatically rolls back the active transaction.
 ./rollback.sh /path/to/snapshot
 ```
 
-Users upgrading from v1.1 keep their selected motion mode and personal
-configuration. Users upgrading from the original v1.0-era installation receive an automatic,
+Users upgrading from v1.2 keep their selected motion mode and personal
+configuration; context automation and every individual rule remain off until
+explicitly enabled. Users upgrading from the original v1.0-era installation receive an automatic,
 rollback-safe migration from `so1omon.*` to `evangelion.*` plugin IDs. Read
 [UPGRADING.md](UPGRADING.md) before upgrading or removing a multi-transaction
 installation; a rollback reverses one transaction, not the entire history.
@@ -132,6 +139,8 @@ checks are:
 ./tests/responsive-layouts.py
 ./tests/motion-regression.py
 ./tests/motion-observe.py # optional live observation
+./tests/context-regression.py
+./tests/context-observe.py # optional live T480 observation; restores state
 ```
 
 CI retains machine-readable clean-user and responsive-layout artifacts. See

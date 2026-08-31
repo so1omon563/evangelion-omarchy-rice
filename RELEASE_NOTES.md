@@ -1,5 +1,41 @@
 # Release notes
 
+## v1.3.0 — MAGI intelligence and context
+
+v1.3 adds a local, capability-aware context contract for aggregate power,
+thermal, display, device-count, connectivity, media-state, time, and explicit
+operating-profile facts. A deterministic policy publishes stable reasons,
+contributing facts, freshness, suppressed alternatives, and recommendations.
+It does not collect content, names, addresses, identities, paths, titles, or
+browser/clipboard history, and it performs no network I/O.
+
+The new context inspector answers what MAGI concluded and why. Existing OSD,
+notification, start-page, and screensaver surfaces consume a fixed decorative
+projection and fall back exactly to the v1.2 presentation for stale, missing,
+unknown, unavailable, or disabled context. Local time and explicit mission/focus
+state can add restrained ambient copy without inferring location or intent.
+
+Recommendations remain advisory by default. Environment-profile automation is
+restricted to the existing docked/mobile actions and requires both a global and
+per-rule opt-in. Manual selection wins, while preview, dry-run, cooldown,
+transaction rollback, failed-subsystem reporting, undo, and a kill switch keep
+the operator authoritative.
+
+Agents, Bluetooth, Dropbox, and Tailscale retain their upstream implementation
+behind shared NERV icon chrome. The native tray continues to recolor symbolic
+icons while preserving full-color vendor identity.
+
+The v1.3 suite adds schema migration, process restart, killed-refresh,
+latest-request convergence, private-sentinel, and optional state-restoring live
+performance coverage. On the T480, 12 refreshes measured 158.75 ms mean,
+167.59 ms p95, and 168.35 ms maximum; a three-second idle observation saw no
+context process and no context-state writes.
+
+Upgrade and exact rollback steps are in [UPGRADING.md](UPGRADING.md). The
+synthetic context comparison in `media/context-states.png` contains no live
+telemetry. External hardware feedback remains welcome but optional after
+release.
+
 ## v1.2.0 — dynamic MAGI interface
 
 v1.2 adds one coordinated motion system without changing the stable v1.1

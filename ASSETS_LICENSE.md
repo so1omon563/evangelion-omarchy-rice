@@ -13,6 +13,10 @@ OpenAI's image-generation tool. Their provenance and audited hashes are recorded
 in `theme/ARTWORK.md`; no downloaded stock artwork or extracted animation frames
 are included.
 
+The `media/context-states.svg` documentation graphic and its PNG export are
+project-authored text and geometric composition, contain no generated or
+third-party artwork, and are covered by the repository's MIT license.
+
 To the extent the repository owner holds copyright or other licensable rights
 in the generated wallpaper files, those rights are licensed under
 [CC BY-NC 4.0](https://creativecommons.org/licenses/by-nc/4.0/). Attribution may

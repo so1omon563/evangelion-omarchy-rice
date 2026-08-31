@@ -1,5 +1,55 @@
 # Upgrade, rollback, and removal
 
+## Upgrade from v1.2 to v1.3
+
+Preserve local repository edits, update, and preview the same preset or explicit
+component selection used for v1.2:
+
+```bash
+git status --short
+git pull --ff-only
+./preflight.py
+./install.sh --dry-run --preset default
+./install.sh --apply --preset default
+omarchy theme set evangelion
+./validate.sh
+```
+
+Record the exact snapshot printed by `install.sh` before doing anything else:
+
+```bash
+snapshot=$(cat ~/.local/state/evangelion-rice/last-install-backup)
+test -f "$snapshot/manifest.tsv"
+```
+
+The transaction preserves `~/.config/omarchy/evangelion.json` and adds missing
+v1.3 context/ambient defaults in memory without silently opting into automation.
+The context controller ignores unknown persisted schemas until an explicit
+refresh publishes clean schema v1. Verify the new layer without enabling
+automation:
+
+```bash
+magi-context status --json
+magi-context refresh --json
+magi-context explain
+magi-context-automation preview
+```
+
+To return to the exact pre-v1.3 filesystem state, use the recorded snapshot:
+
+```bash
+./rollback.sh "$snapshot"
+omarchy restart shell
+hyprctl reload
+hyprctl configerrors
+```
+
+Rollback restores every replaced file and removes every file created by that
+single v1.3 transaction. It does not reverse older transactions or delete
+preserved personal configuration. If the shell component was not part of your
+v1.3 selection, omit the shell restart; if Hyprland was not selected, the reload
+is harmless but optional.
+
 ## Upgrade from v1.1
 
 Keep any local repository edits, update, and preview the same preset used for

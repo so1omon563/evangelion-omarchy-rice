@@ -46,6 +46,45 @@ that does not reach its final state is a functional bug. Run
 `./tests/motion-observe.py` in a live session for an optional observation
 report; it restores the mode it found.
 
+## MAGI context and recommendations
+
+```bash
+magi-context status --json | jq '{generation,controller,derived_state,reasons,recommendations,automatic_actions}'
+magi-context explain
+magi-context refresh --json
+magi-context-automation status --json
+./tests/context-regression.py
+```
+
+`unknown` means no policy conclusion is possible; `unavailable` means enabled
+collectors could not produce observations; `stale` means cached observations
+exceeded `context.max_age_seconds`; and `disabled` reflects an explicit kill
+switch. Missing capabilities degrade independently. Stale inputs do not drive
+policy or automation.
+
+Recommendations do not imply automation. If a recommendation is visible but
+no action occurs, confirm both opt-ins with `magi-context status --json`.
+`manual-profile-selection` in `magi-context-automation status --json` is an
+intentional hold; run `magi-operating-profile auto` only if you want to release
+manual authority. Use `magi-context automation disable` as the global kill
+switch and `magi-context-automation undo` to reverse the last successful
+automated profile transaction.
+
+To restore the exact v1.2 visual baseline while diagnosing the collector layer:
+
+```bash
+magi-context decorative disable
+# or disable the controller entirely:
+magi-context disable
+```
+
+The optional T480 timing check writes aggregate metrics only and restores the
+exact context state it found:
+
+```bash
+./tests/context-observe.py test-results/context-observation.json
+```
+
 ## Services and start page
 
 ```bash

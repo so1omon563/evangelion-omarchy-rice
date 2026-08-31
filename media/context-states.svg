@@ -1,0 +1,39 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="720" viewBox="0 0 1600 720" role="img" aria-labelledby="title desc">
+  <title id="title">MAGI context state comparison</title>
+  <desc id="desc">Four fictional examples show a recommendation, opted-in automation, stale or missing signals, and disabled context.</desc>
+  <rect width="1600" height="720" fill="#09070f"/>
+  <path d="M0 0h1600v8H0z" fill="#7c3aed"/><path d="M0 712h1600v8H0z" fill="#a3ff12"/>
+  <g font-family="DejaVu Sans Mono, monospace">
+    <text x="64" y="76" fill="#a3ff12" font-size="18" letter-spacing="4">NERV // MAGI CONTEXT</text>
+    <text x="64" y="126" fill="#f5f3ff" font-size="38" font-weight="700">EXPLAINABLE STATE, EXPLICIT AUTHORITY</text>
+    <text x="64" y="162" fill="#9992aa" font-size="17">SYNTHETIC RELEASE DEMONSTRATION · NO LIVE TELEMETRY</text>
+    <g transform="translate(64 218)">
+      <rect width="350" height="410" rx="8" fill="#12101b" stroke="#a3ff12" stroke-width="2"/><rect x="18" y="18" width="7" height="52" fill="#a3ff12"/>
+      <text x="42" y="42" fill="#a3ff12" font-size="15" letter-spacing="2">01 // RECOMMEND</text><text x="42" y="72" fill="#f5f3ff" font-size="22" font-weight="700">DOCK PROFILE?</text>
+      <text x="28" y="116" fill="#8f879f" font-size="14">REASON</text><text x="28" y="143" fill="#f5f3ff" font-size="15">PROFILE / ENVIRONMENT MISMATCH</text>
+      <text x="28" y="185" fill="#8f879f" font-size="14">FACTS</text><text x="28" y="212" fill="#f5f3ff" font-size="15">DISPLAY MODE  // DOCKED</text><text x="28" y="239" fill="#f5f3ff" font-size="15">ACTIVE PROFILE // MOBILE</text>
+      <rect x="28" y="286" width="294" height="54" rx="4" fill="#1c1828" stroke="#a3ff12"/><text x="175" y="320" text-anchor="middle" fill="#a3ff12" font-size="15" font-weight="700">CONFIRM // DOCKED</text><text x="28" y="379" fill="#8f879f" font-size="13">AUTOMATION // DISABLED</text>
+    </g>
+    <g transform="translate(438 218)">
+      <rect width="350" height="410" rx="8" fill="#12101b" stroke="#7c3aed" stroke-width="2"/><rect x="18" y="18" width="7" height="52" fill="#7c3aed"/>
+      <text x="42" y="42" fill="#b89cff" font-size="15" letter-spacing="2">02 // AUTOMATION</text><text x="42" y="72" fill="#f5f3ff" font-size="22" font-weight="700">ACTION QUEUED</text>
+      <text x="28" y="116" fill="#8f879f" font-size="14">DOUBLE OPT-IN</text><text x="28" y="143" fill="#f5f3ff" font-size="15">GLOBAL       // ENABLED</text><text x="28" y="170" fill="#f5f3ff" font-size="15">PROFILE RULE // ENABLED</text>
+      <text x="28" y="212" fill="#8f879f" font-size="14">BOUNDED ACTION</text><text x="28" y="239" fill="#f5f3ff" font-size="15">SELECT // DOCKED</text>
+      <rect x="28" y="286" width="294" height="54" rx="4" fill="#211a34" stroke="#7c3aed"/><text x="175" y="320" text-anchor="middle" fill="#b89cff" font-size="15" font-weight="700">UNDO AVAILABLE</text><text x="28" y="379" fill="#8f879f" font-size="13">MANUAL HOLD ALWAYS WINS</text>
+    </g>
+    <g transform="translate(812 218)">
+      <rect width="350" height="410" rx="8" fill="#12101b" stroke="#f6d447" stroke-width="2"/><rect x="18" y="18" width="7" height="52" fill="#f6d447"/>
+      <text x="42" y="42" fill="#f6d447" font-size="15" letter-spacing="2">03 // STALE / MISSING</text><text x="42" y="72" fill="#f5f3ff" font-size="22" font-weight="700">CONTEXT UNKNOWN</text>
+      <text x="28" y="116" fill="#8f879f" font-size="14">REASON</text><text x="28" y="143" fill="#f5f3ff" font-size="15">NO FRESH POLICY INPUTS</text>
+      <text x="28" y="185" fill="#8f879f" font-size="14">SIGNALS</text><text x="28" y="212" fill="#f5f3ff" font-size="15">THERMAL // STALE</text><text x="28" y="239" fill="#f5f3ff" font-size="15">DOCK     // UNAVAILABLE</text>
+      <rect x="28" y="286" width="294" height="54" rx="4" fill="#282315" stroke="#f6d447"/><text x="175" y="320" text-anchor="middle" fill="#f6d447" font-size="15" font-weight="700">NO ACTION</text><text x="28" y="379" fill="#8f879f" font-size="13">SURFACES // V1.2 BASELINE</text>
+    </g>
+    <g transform="translate(1186 218)">
+      <rect width="350" height="410" rx="8" fill="#12101b" stroke="#676071" stroke-width="2"/><rect x="18" y="18" width="7" height="52" fill="#676071"/>
+      <text x="42" y="42" fill="#aaa3b3" font-size="15" letter-spacing="2">04 // DISABLED</text><text x="42" y="72" fill="#f5f3ff" font-size="22" font-weight="700">CONTEXT DISABLED</text>
+      <text x="28" y="116" fill="#8f879f" font-size="14">COLLECTORS</text><text x="28" y="143" fill="#f5f3ff" font-size="15">ALL // DISABLED</text>
+      <text x="28" y="185" fill="#8f879f" font-size="14">PRESENTATION</text><text x="28" y="212" fill="#f5f3ff" font-size="15">DECORATION // BASELINE</text><text x="28" y="239" fill="#f5f3ff" font-size="15">INSPECTOR  // AVAILABLE</text>
+      <rect x="28" y="286" width="294" height="54" rx="4" fill="#19171d" stroke="#676071"/><text x="175" y="320" text-anchor="middle" fill="#aaa3b3" font-size="15" font-weight="700">USER AUTHORITY</text><text x="28" y="379" fill="#8f879f" font-size="13">NETWORK I/O // NONE</text>
+    </g>
+  </g>
+</svg>

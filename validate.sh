@@ -34,6 +34,7 @@ python3 "$root/tests/bar-motion.py" /tmp/evangelion-bar-motion.json >/dev/null &
 python3 "$root/tests/bar-icons.py" >/dev/null && pass "unified upstream and tray icon contracts" || fail "unified upstream and tray icon contracts"
 for mode in full reduced off; do lua "$root/tests/hypr-motion.lua" "$mode" >/dev/null && pass "Hyprland $mode motion profile" || fail "Hyprland $mode motion profile"; done
 python3 "$root/tests/documentation.py" >/dev/null && pass "public documentation contract" || fail "public documentation contract"
+python3 "$root/tests/release-v1.3.py" >/dev/null && pass "v1.3 release documentation and media contract" || fail "v1.3 release documentation and media contract"
 if rg -n 'Work/evangelion-rice' "$root/bin" "$root/lib" "$root/omarchy" >/dev/null; then fail "owner-specific project path remains"; else pass "no owner-specific project path"; fi
 python3 -m py_compile "$root/preflight.py" 2>/dev/null && pass "compatibility preflight parses" || fail "compatibility preflight parse"
 awk -F '\t' 'BEGIN { ok=1 } /^#/ || NF==0 { next } NF!=5 || $1 !~ /^(required|recommended|optional|development)$/ { ok=0 } END { exit !ok }' "$root/dependencies.tsv" \
