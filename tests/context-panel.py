@@ -32,6 +32,7 @@ def main():
     assert '["docked", "mobile"].indexOf(item.target) < 0' in SOURCE
     assert "safeRecommendations" in SOURCE and "model:root.safeRecommendations()" in SOURCE
     assert "automatic_actions" in SOURCE
+    assert "HELD // MANUAL PROFILE" in SOURCE and "ACTION QUEUED" in SOURCE
     assert '"magi.context.panel"' in MENU and '"magi.context.refresh"' in MENU
     assert "SUPER + ALT + G" in BINDINGS
     print("PASS  responsive privacy-bounded MAGI context inspector")

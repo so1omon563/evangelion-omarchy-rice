@@ -38,6 +38,7 @@ DEFAULT_CONTEXT = {
     "enabled": True,
     "automation_enabled": False,
     "decorative_enabled": True,
+    "automation_rules": {"environment_profile": False},
     "max_age_seconds": 300,
     "collectors": {name: True for name in COLLECTORS},
 }
@@ -97,6 +98,9 @@ def resolved_config(strict=False):
         for name in COLLECTORS:
             if name in configured_collectors:
                 result["collectors"][name] = configured_collectors[name]
+    configured_rules = supplied.get("automation_rules", {})
+    if isinstance(configured_rules, dict) and "environment_profile" in configured_rules:
+        result["automation_rules"]["environment_profile"] = configured_rules["environment_profile"]
 
     for key in ("enabled", "automation_enabled", "decorative_enabled"):
         if not isinstance(result[key], bool):
@@ -105,6 +109,8 @@ def resolved_config(strict=False):
         raise ValueError("context.max_age_seconds must be an integer from 1 to 86400")
     if not all(isinstance(value, bool) for value in result["collectors"].values()):
         raise ValueError("context.collectors values must be true or false")
+    if not all(isinstance(value, bool) for value in result["automation_rules"].values()):
+        raise ValueError("context.automation_rules values must be true or false")
     return root, result
 
 
@@ -230,6 +236,15 @@ def build_state(request_id, generation=0, observations=None, previous=None):
         policy = evaluate(facts, signals, previous, now.timestamp())
         status, summary = policy["status"], policy["summary"]
         reasons[0] = policy["reason"]
+    recommendations = policy["recommendations"] if policy else []
+    automatic_actions = []
+    if config["automation_enabled"] and config["automation_rules"]["environment_profile"]:
+        for item in recommendations:
+            if item.get("action") == "select-operating-profile" and item.get("target") in {"docked", "mobile"}:
+                automatic_actions.append({"id": item["id"], "rule": "environment_profile",
+                                          "action": item["action"], "target": item["target"],
+                                          "reason_code": item["reason_code"],
+                                          "requires_confirmation": False})
     return {
         "schema_version": 1,
         "generation": generation,
@@ -247,8 +262,8 @@ def build_state(request_id, generation=0, observations=None, previous=None):
                                         "observed_at": max(observed_at) if observed_at else None,
                                         "expires_at": min(expires_at) if expires_at else None}},
         "reasons": reasons,
-        "recommendations": policy["recommendations"] if policy else [],
-        "automatic_actions": policy["automatic_actions"] if policy else [],
+        "recommendations": recommendations,
+        "automatic_actions": automatic_actions,
         "policy_state": policy["policy_state"] if policy else {"version": POLICY_VERSION},
     }
 
@@ -292,6 +307,11 @@ def update_config(target, enabled):
         context["enabled"] = enabled
     elif target == "automation":
         context["automation_enabled"] = enabled
+    elif target.startswith("automation-rule:"):
+        name = target.split(":", 1)[1]
+        if name not in context["automation_rules"]:
+            raise ValueError(f"Unknown automation rule: {name}")
+        context["automation_rules"][name] = enabled
     elif target == "decorative":
         context["decorative_enabled"] = enabled
     elif target.startswith("collector:"):
@@ -345,7 +365,7 @@ def surface_projection(state):
 
 
 def usage():
-    print("Usage: magi-context [status|surface|explain|refresh|enable|disable|automation enable|disable|decorative enable|disable|collector NAME enable|disable] [--json] [--compact]", file=sys.stderr)
+    print("Usage: magi-context [status|surface|explain|refresh|enable|disable|automation enable|disable|automation-rule NAME enable|disable|decorative enable|disable|collector NAME enable|disable] [--json] [--compact]", file=sys.stderr)
     return 2
 
 
@@ -363,6 +383,8 @@ def main():
             state = update_config("context", command == "enable")
         elif command in ("automation", "decorative") and len(args) == 2 and args[1] in ("enable", "disable"):
             state = update_config(command, args[1] == "enable")
+        elif command == "automation-rule" and len(args) == 3 and args[2] in ("enable", "disable"):
+            state = update_config(f"automation-rule:{args[1]}", args[2] == "enable")
         elif command == "collector" and len(args) == 3 and args[2] in ("enable", "disable"):
             state = update_config(f"collector:{args[1]}", args[2] == "enable")
         else:

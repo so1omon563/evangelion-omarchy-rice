@@ -1,0 +1,153 @@
+#!/usr/bin/env python3
+"""Execute the small allowlisted MAGI context action surface."""
+
+import argparse
+import json
+import os
+import subprocess
+import tempfile
+import time
+from pathlib import Path
+
+STATE_HOME = Path(os.environ.get("XDG_STATE_HOME", Path.home() / ".local/state"))
+ROOT = STATE_HOME / "evangelion-rice"
+CONTEXT = ROOT / "context/state.json"
+PROFILE = ROOT / "operating-profile"
+AUTOMATION = ROOT / "context/automation.json"
+ALLOWED_RULES = {"environment_profile"}
+ALLOWED_TARGETS = {"docked", "mobile"}
+COOLDOWN_SECONDS = 300
+
+
+def read(path, fallback):
+    try:
+        value = json.loads(path.read_text())
+        return value if isinstance(value, dict) else fallback
+    except (OSError, json.JSONDecodeError):
+        return fallback
+
+
+def text(path, fallback=""):
+    try:
+        return path.read_text().strip()
+    except OSError:
+        return fallback
+
+
+def atomic(value):
+    AUTOMATION.parent.mkdir(parents=True, exist_ok=True)
+    descriptor, temporary = tempfile.mkstemp(prefix=".automation.", dir=AUTOMATION.parent)
+    try:
+        with os.fdopen(descriptor, "w") as stream:
+            json.dump(value, stream, indent=2, sort_keys=True)
+            stream.write("\n")
+        os.chmod(temporary, 0o600)
+        os.replace(temporary, AUTOMATION)
+    finally:
+        try:
+            os.unlink(temporary)
+        except FileNotFoundError:
+            pass
+
+
+def context_plan():
+    state = read(CONTEXT, {})
+    controller = state.get("controller", {})
+    generation = state.get("generation", 0)
+    mode = text(PROFILE / "mode", "auto")
+    runtime = read(AUTOMATION, {})
+    holds = sorted(set(runtime.get("holds", [])))
+    if mode != "auto":
+        holds = sorted(set(holds + ["manual-profile-selection"]))
+    actions = []
+    for item in state.get("automatic_actions", []):
+        if (item.get("rule") in ALLOWED_RULES and item.get("action") == "select-operating-profile"
+                and item.get("target") in ALLOWED_TARGETS):
+            actions.append({key: item[key] for key in ("id", "rule", "action", "target", "reason_code")})
+    enabled = bool(controller.get("enabled") and controller.get("automation_enabled"))
+    reason = "ready"
+    if not enabled:
+        reason = "global-kill-switch"
+    elif holds:
+        reason = "manual-hold" if "manual-profile-selection" in holds else "held"
+    elif not actions:
+        reason = "no-action"
+    elif runtime.get("last_generation") == generation:
+        reason = "already-applied"
+    elif time.time() - float(runtime.get("last_applied_at", 0)) < COOLDOWN_SECONDS:
+        reason = "cooldown"
+    return {"schema_version": 1, "enabled": enabled, "generation": generation,
+            "mode": mode, "holds": holds, "reason": reason, "actions": actions,
+            "cooldown_seconds": COOLDOWN_SECONDS,
+            "last_result": runtime.get("last_result", "none"),
+            "last_failed_subsystem": runtime.get("last_failed_subsystem", "")}
+
+
+def execute(dry_run=False):
+    plan = context_plan()
+    if dry_run or plan["reason"] != "ready":
+        return plan, 0
+    action = plan["actions"][0]
+    result = subprocess.run(["magi-operating-profile", "context", action["target"]],
+                            text=True, capture_output=True, timeout=45, check=False)
+    runtime = read(AUTOMATION, {})
+    runtime.update({"last_generation": plan["generation"], "last_applied_at": time.time(),
+                    "last_action": action, "last_result": "applied" if result.returncode == 0 else "failed"})
+    if result.returncode:
+        try:
+            failure = json.loads(result.stdout or result.stderr)
+            runtime["last_failed_subsystem"] = str(failure.get("failed_subsystem", "unknown"))[:40]
+        except json.JSONDecodeError:
+            runtime["last_failed_subsystem"] = "unknown"
+    else:
+        runtime["last_failed_subsystem"] = ""
+    atomic(runtime)
+    plan.update({"reason": runtime["last_result"], "result": (result.stdout or result.stderr).strip()})
+    return plan, result.returncode
+
+
+def update_hold(reason, enabled):
+    if not reason or len(reason) > 40 or not all(char.isalnum() or char in "-_" for char in reason):
+        raise ValueError("hold reason must use 1-40 letters, numbers, hyphens, or underscores")
+    runtime = read(AUTOMATION, {})
+    holds = set(runtime.get("holds", []))
+    (holds.add if enabled else holds.discard)(reason)
+    runtime["holds"] = sorted(holds)
+    atomic(runtime)
+
+
+def main():
+    parser = argparse.ArgumentParser()
+    sub = parser.add_subparsers(dest="command")
+    for name in ("status", "preview", "apply", "undo"):
+        item = sub.add_parser(name)
+        item.add_argument("--json", action="store_true")
+        if name == "apply":
+            item.add_argument("--dry-run", action="store_true")
+    for name in ("hold", "release"):
+        item = sub.add_parser(name)
+        item.add_argument("reason")
+    args = parser.parse_args()
+    command = args.command or "status"
+    try:
+        if command in {"status", "preview"}:
+            value, code = context_plan(), 0
+        elif command == "apply":
+            value, code = execute(args.dry_run)
+        elif command == "undo":
+            result = subprocess.run(["magi-operating-profile", "undo"], text=True,
+                                    capture_output=True, timeout=45, check=False)
+            value, code = {"result": (result.stdout or result.stderr).strip()}, result.returncode
+        else:
+            update_hold(args.reason, command == "hold")
+            value, code = context_plan(), 0
+        print(json.dumps(value, separators=(",", ":"), sort_keys=True) if getattr(args, "json", False)
+              else json.dumps(value, indent=2, sort_keys=True))
+        return code
+    except (OSError, ValueError, subprocess.SubprocessError) as error:
+        print(error, file=os.sys.stderr)
+        return 2
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

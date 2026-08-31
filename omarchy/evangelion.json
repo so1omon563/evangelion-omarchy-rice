@@ -11,6 +11,9 @@
     "enabled": true,
     "automation_enabled": false,
     "decorative_enabled": true,
+    "automation_rules": {
+      "environment_profile": false
+    },
     "max_age_seconds": 300,
     "collectors": {
       "power": true,

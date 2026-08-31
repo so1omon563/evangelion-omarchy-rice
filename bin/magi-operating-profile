@@ -7,6 +7,7 @@ shell_config="${XDG_CONFIG_HOME:-$HOME/.config}/omarchy/shell.toml"
 mode_file="$state_dir/mode"
 active_file="$state_dir/active"
 mobile_wallpaper_file="$state_dir/mobile-wallpaper"
+transaction_dir="$state_dir/last-transaction"
 mkdir -p "$state_dir"
 
 default_config='{"docked":{"power_profile":"performance","bar_size":30,"audio_target":"external","wallpaper":"3-magi-tokyo3.png","display_layout":"extend-right"},"mobile":{"power_profile":"balanced","bar_size":26,"audio_target":"internal","wallpaper":"restore","display_layout":"internal"}}'
@@ -86,7 +87,7 @@ set_audio_target() {
     keep|"") return 0 ;;
     *) chosen=$target ;;
   esac
-  [[ -z $chosen ]] || pactl set-default-sink "$chosen"
+  [[ -z $chosen ]] || pactl set-default-sink "$chosen" || return 1
   return 0
 }
 
@@ -106,7 +107,7 @@ set_wallpaper() {
     /*) target=$requested ;;
     *) target="${XDG_STATE_HOME:-$HOME/.local/state}/omarchy/current/theme/backgrounds/$requested" ;;
   esac
-  if [[ -f $target && $target != "$current" ]]; then omarchy-theme-bg-set "$target" >/dev/null; fi
+  if [[ -f $target && $target != "$current" ]]; then omarchy-theme-bg-set "$target" >/dev/null || return 1; fi
   [[ $profile == mobile ]] && rm -f "$mobile_wallpaper_file"
   return 0
 }
@@ -117,8 +118,8 @@ arrange_displays() {
   external=$(monitor_json | jq -r '[.[]|select(.name|test("^(eDP|LVDS|DSI)-")|not)][0].name // empty')
   [[ $profile == docked && $layout == extend-right && -n $internal && -n $external ]] || return 0
   width=$(monitor_json | jq -r --arg name "$internal" '.[]|select(.name==$name)|(.width/.scale|floor)')
-  hyprctl eval "hl.monitor({ output = \"$internal\", mode = \"preferred\", position = \"0x0\", scale = 1 })" >/dev/null
-  hyprctl eval "hl.monitor({ output = \"$external\", mode = \"preferred\", position = \"${width}x0\", scale = 1 })" >/dev/null
+  hyprctl eval "hl.monitor({ output = \"$internal\", mode = \"preferred\", position = \"0x0\", scale = 1 })" >/dev/null || return 1
+  hyprctl eval "hl.monitor({ output = \"$external\", mode = \"preferred\", position = \"${width}x0\", scale = 1 })" >/dev/null || return 1
 }
 
 rescue_windows() {
@@ -136,7 +137,7 @@ rescue_windows() {
 
 apply_profile() {
   local profile cfg power bar audio wallpaper layout prior
-  profile=$(effective_profile); cfg=$(read_config); prior=$(cat "$active_file" 2>/dev/null || true)
+  profile=${1:-$(effective_profile)}; cfg=$(read_config); prior=$(cat "$active_file" 2>/dev/null || true)
   omarchy-shell -q mode-transition show "$profile" entering "Synchronizing display, power, audio, and interface" >/dev/null 2>&1 || true
   power=$(jq -r --arg p "$profile" '.[$p].power_profile // empty' <<< "$cfg")
   bar=$(jq -r --arg p "$profile" '.[$p].bar_size // empty' <<< "$cfg")
@@ -155,6 +156,72 @@ apply_profile() {
   printf '%s\n' "$profile"
 }
 
+capture_transaction() {
+  local profile=$1 power audio wallpaper
+  rm -rf -- "$transaction_dir"
+  mkdir -p "$transaction_dir"
+  [[ -r $shell_config ]] && cp -- "$shell_config" "$transaction_dir/shell.toml"
+  [[ -r $active_file ]] && cp -- "$active_file" "$transaction_dir/active"
+  [[ -r $mobile_wallpaper_file ]] && cp -- "$mobile_wallpaper_file" "$transaction_dir/mobile-wallpaper"
+  power=$(command -v powerprofilesctl >/dev/null && powerprofilesctl get 2>/dev/null || true)
+  audio=$(command -v pactl >/dev/null && pactl get-default-sink 2>/dev/null || true)
+  wallpaper=$(current_wallpaper)
+  monitor_json > "$transaction_dir/monitors.json"
+  jq -n --arg target "$profile" --arg power "$power" --arg audio "$audio" --arg wallpaper "$wallpaper" \
+    '{schema_version:1,target:$target,power_profile:$power,audio_sink:$audio,wallpaper:$wallpaper}' > "$transaction_dir/state.json"
+  chmod 600 "$transaction_dir/state.json" "$transaction_dir/monitors.json"
+}
+
+restore_transaction() {
+  local snapshot="$transaction_dir/state.json" power audio wallpaper name width height x y scale
+  [[ -r $snapshot ]] || { echo 'No operating-profile transaction is available to undo.' >&2; return 2; }
+  [[ -r $transaction_dir/shell.toml ]] && install -m 0644 "$transaction_dir/shell.toml" "$shell_config"
+  if [[ -r $transaction_dir/active ]]; then install -m 0600 "$transaction_dir/active" "$active_file"; else rm -f -- "$active_file"; fi
+  if [[ -r $transaction_dir/mobile-wallpaper ]]; then install -m 0600 "$transaction_dir/mobile-wallpaper" "$mobile_wallpaper_file"; else rm -f -- "$mobile_wallpaper_file"; fi
+  power=$(jq -r '.power_profile // empty' "$snapshot")
+  audio=$(jq -r '.audio_sink // empty' "$snapshot")
+  wallpaper=$(jq -r '.wallpaper // empty' "$snapshot")
+  [[ -z $power ]] || ! command -v powerprofilesctl >/dev/null || powerprofilesctl set "$power" >/dev/null 2>&1 || true
+  [[ -z $audio ]] || ! command -v pactl >/dev/null || pactl set-default-sink "$audio" >/dev/null 2>&1 || true
+  [[ ! -f $wallpaper ]] || omarchy-theme-bg-set "$wallpaper" >/dev/null 2>&1 || true
+  if [[ -r $transaction_dir/monitors.json ]]; then
+    while IFS=$'\t' read -r name width height x y scale; do
+      [[ -n $name ]] || continue
+      hyprctl eval "hl.monitor({ output = \"$name\", mode = \"${width}x${height}\", position = \"${x}x${y}\", scale = $scale })" >/dev/null 2>&1 || true
+    done < <(jq -r '.[]|[.name,(.width|tostring),(.height|tostring),(.x|tostring),(.y|tostring),(.scale|tostring)]|@tsv' "$transaction_dir/monitors.json")
+  fi
+}
+
+context_transaction() {
+  local profile=$1 cfg prior power bar audio wallpaper layout failed=""
+  [[ $profile == docked || $profile == mobile ]] || { echo '{"status":"failed","failed_subsystem":"validation"}'; return 2; }
+  [[ $(mode) == auto ]] || { echo '{"status":"held","failed_subsystem":"manual-profile-selection"}'; return 3; }
+  cfg=$(read_config); prior=$(cat "$active_file" 2>/dev/null || true)
+  capture_transaction "$profile"
+  power=$(jq -r --arg p "$profile" '.[$p].power_profile // empty' <<< "$cfg")
+  bar=$(jq -r --arg p "$profile" '.[$p].bar_size // empty' <<< "$cfg")
+  audio=$(jq -r --arg p "$profile" '.[$p].audio_target // empty' <<< "$cfg")
+  wallpaper=$(jq -r --arg p "$profile" '.[$p].wallpaper // empty' <<< "$cfg")
+  layout=$(jq -r --arg p "$profile" '.[$p].display_layout // empty' <<< "$cfg")
+  omarchy-shell -q mode-transition show "$profile" entering "Context automation transaction" >/dev/null 2>&1 || true
+  arrange_displays "$profile" "$layout" || failed=displays
+  [[ -n $failed ]] || rescue_windows || failed=windows
+  [[ -n $failed ]] || set_power_profile "$power" || failed=power
+  [[ -n $failed ]] || set_audio_target "$audio" || failed=audio
+  [[ -n $failed ]] || set_bar_size "$bar" || failed=interface
+  if [[ -z $failed && $prior != "$profile" ]]; then set_wallpaper "$profile" "$wallpaper" || failed=wallpaper; fi
+  if [[ -n $failed ]]; then
+    restore_transaction || true
+    omarchy-shell -q mode-transition show "$profile" aborted "Rollback complete: $failed failed" >/dev/null 2>&1 || true
+    jq -cn --arg subsystem "$failed" '{status:"failed",rolled_back:true,failed_subsystem:$subsystem}'
+    return 1
+  fi
+  printf '%s\n' "$profile" > "$active_file"
+  omarchy-shell -q mode-transition show "$profile" active "Context-selected profile synchronized" >/dev/null 2>&1 || true
+  omarchy-notification-send -u low -g '󰑐' "CONTEXT AUTOMATION // ${profile^^}" "Profile synchronized · Undo available" 2>/dev/null || true
+  jq -cn --arg profile "$profile" '{status:"applied",profile:$profile,undo_available:true}'
+}
+
 show_status() {
   printf 'mode=%s\ndetected=%s\neffective=%s\nactive=%s\n' "$(mode)" "$(detected_profile)" "$(effective_profile)" "$(cat "$active_file" 2>/dev/null || echo none)"
 }
@@ -167,6 +234,15 @@ show_plan() {
 
 case ${1:-apply} in
   apply) apply_profile ;;
+  context)
+    [[ ${2:-} == docked || ${2:-} == mobile ]] || { echo 'Usage: magi-operating-profile context {docked|mobile}' >&2; exit 2; }
+    context_transaction "$2"
+    ;;
+  undo)
+    restore_transaction
+    omarchy-shell -q mode-transition show "$(cat "$active_file" 2>/dev/null || echo mobile)" active "Automated profile change undone" >/dev/null 2>&1 || true
+    printf '{"status":"undone"}\n'
+    ;;
   auto|docked|mobile)
     printf '%s\n' "$1" > "$mode_file"
     apply_profile >/dev/null
@@ -174,5 +250,5 @@ case ${1:-apply} in
     ;;
   status) show_status ;;
   plan) show_plan ;;
-  *) echo 'Usage: magi-operating-profile {apply|auto|docked|mobile|status|plan}' >&2; exit 2 ;;
+  *) echo 'Usage: magi-operating-profile {apply|auto|docked|mobile|status|plan|context PROFILE|undo}' >&2; exit 2 ;;
 esac

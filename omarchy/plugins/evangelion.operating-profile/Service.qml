@@ -10,6 +10,20 @@ Item {
   onScreenCountChanged: settle.restart()
   Component.onCompleted: settle.start()
 
+  FileView {
+    path: Quickshell.env("HOME") + "/.local/state/evangelion-rice/context/state.json"
+    watchChanges: true
+    printErrors: false
+    onFileChanged: automationSettle.restart()
+  }
+
+  Timer {
+    id: automationSettle
+    interval: 350
+    repeat: false
+    onTriggered: if (!automationApply.running) automationApply.running = true
+  }
+
   Timer {
     id: settle
     interval: 1400
@@ -21,11 +35,17 @@ Item {
 
   Process {
     id: apply
-    command: ["magi-operating-profile", "apply"]
+    command: ["magi-context", "refresh"]
+  }
+
+  Process {
+    id: automationApply
+    command: ["magi-context-automation", "apply"]
   }
 
   IpcHandler {
     target: "operating-profile"
-    function apply(): string { settle.restart(); return "queued" }
+    function apply(): string { settle.restart(); return "context refresh queued" }
+    function automate(): string { automationSettle.restart(); return "queued" }
   }
 }

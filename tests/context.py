@@ -70,10 +70,12 @@ def main():
 
         run(home, "enable")
         run(home, "automation", "enable")
+        run(home, "automation-rule", "environment_profile", "enable")
         run(home, "decorative", "disable")
         run(home, "collector", "media", "disable")
         current = json.loads(run(home, "refresh", "--json").stdout)
         assert current["controller"]["automation_enabled"] is True
+        assert current["controller"]["automation_rules"]["environment_profile"] is True
         assert current["automatic_actions"] == [], "SO1-366 must not execute recommendations"
         assert current["controller"]["decorative_enabled"] is False
         assert current["signals"]["media"]["availability"] == "disabled"
@@ -88,6 +90,8 @@ def main():
         assert saved["custom"] == {"keep": True}, "preference update replaced unrelated config"
 
         before = config_path.read_bytes()
+        bad = run(home, "automation-rule", "launch-anything", "enable", check=False)
+        assert bad.returncode == 2 and config_path.read_bytes() == before
         bad = run(home, "collector", "browser-history", "enable", check=False)
         assert bad.returncode == 2 and config_path.read_bytes() == before
         config_path.write_text("not json\n")

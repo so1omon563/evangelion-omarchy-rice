@@ -65,6 +65,12 @@ BarWidget {
     if (status === "disabled") return "CONTEXT DISABLED"
     return status.toUpperCase()
   }
+  function automationLabel() {
+    var selected = String(reason().facts?.profile_selection || "")
+    if (selected === "docked" || selected === "mobile") return "HELD // MANUAL PROFILE"
+    if (!context.controller?.automation_enabled) return "DISABLED"
+    return (context.automatic_actions || []).length ? "ACTION QUEUED" : "ARMED // NO ACTION"
+  }
 
   onPopupOpenChanged: if (popupOpen) Qt.callLater(function() { panelFocus.forceActiveFocus() })
   implicitWidth: Style.space(28)
@@ -153,7 +159,7 @@ BarWidget {
               Keys.onPressed:function(event){ if(event.key===Qt.Key_Return||event.key===Qt.Key_Enter||event.key===Qt.Key_Space){ root.close(); event.accepted=true } }
             }
           }
-          Text { text:"AUTOMATION // "+(root.context.controller?.automation_enabled?"OPTED IN":"DISABLED")+"     AUTOMATIC ACTIONS // "+String((root.context.automatic_actions || []).length); color:Qt.darker(root.bar.foreground,1.4); font.family:root.bar.fontFamily; font.pixelSize:Style.font.caption }
+          Text { text:"AUTOMATION // "+root.automationLabel()+"     AUTOMATIC ACTIONS // "+String((root.context.automatic_actions || []).length); color:Qt.darker(root.bar.foreground,1.4); font.family:root.bar.fontFamily; font.pixelSize:Style.font.caption }
         }
       }
     }

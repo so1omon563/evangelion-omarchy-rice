@@ -399,11 +399,19 @@ Use `MAGI Command Interface → Operating Profile`, or run:
 ```bash
 magi-operating-profile status   # Show mode, detection, and active profile
 magi-operating-profile plan     # Preview the effective preferences
-magi-operating-profile auto     # Resume event-driven dock detection
+magi-operating-profile auto     # Release manual hold; allow recommendations
 magi-operating-profile docked   # Persistent manual docked override
 magi-operating-profile mobile   # Persistent manual mobile override
 magi-operating-profile apply    # Reapply without changing the override
+magi-context-automation preview # Explain pending action, cooldown, or hold
+magi-context-automation apply --dry-run # Preview without changing anything
+magi-context-automation undo    # Restore the pre-automation snapshot
 ```
+
+Automation remains off until both `magi-context automation-rule
+environment_profile enable` and `magi-context automation enable` are selected.
+The Operating Profile → Context Automation menu exposes the same controls.
+Manual Docked/Mobile selection creates a visible hold; Auto releases it.
 
 Edit `~/.config/omarchy/operating-profiles.json` to change either profile's
 `power_profile`, `bar_size`, `audio_target`, `wallpaper`, or `display_layout`.

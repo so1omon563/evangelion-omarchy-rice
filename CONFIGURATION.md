@@ -15,6 +15,7 @@ The installer creates and then preserves `~/.config/omarchy/evangelion.json`:
   "context": {
     "enabled": true,
     "automation_enabled": false,
+    "automation_rules": { "environment_profile": false },
     "decorative_enabled": true,
     "max_age_seconds": 300,
     "collectors": {
@@ -48,8 +49,9 @@ The installer creates and then preserves `~/.config/omarchy/evangelion.json`:
   motion and removes blur, repeated movement, and most travel; `off` requests
   immediate state changes from participating v1.2 surfaces.
 - `context`: global v1.3 context processing, automation, decorative-surface,
-  freshness, and per-collector preferences. Automation defaults off. This
-  preserved configuration is authoritative across upgrades.
+  freshness, and per-collector preferences. Both global automation and every
+  individual rule default off. This preserved configuration is authoritative
+  across upgrades.
 - `deployment`: workspace, temporary terminal palette, and browser URL.
 - `presentation.workspace`: Fastfetch/btop presentation workspace.
 
@@ -121,10 +123,11 @@ reset that candidate. Repeated profile recommendations have a five-minute
 cooldown. Recommendations always carry a reason, contributing facts, and
 `requires_confirmation: true`. A confirmed recommendation remains visible
 while the mismatch persists; cooldown prevents a contradictory target from
-being immediately reconfirmed. `automatic_actions` is a separate list and is
-always empty at this stage—even if the preserved automation preference is
-enabled. SO1-367 owns bounded opt-in execution; the policy engine itself never
-changes the system.
+being immediately reconfirmed. `automatic_actions` is a separate fixed-schema
+list and remains empty unless both the global automation switch and the
+individual environment-profile rule are enabled. The policy engine itself
+never changes the system; the bounded executor accepts only existing `docked`
+and `mobile` profile actions.
 
 The bar's compact context glyph opens the responsive inspector. It reads the
 shared state rather than detecting anything itself and refreshes collectors only
@@ -284,10 +287,34 @@ Unsupported power/audio controls are skipped safely.
 
 ```bash
 magi-operating-profile plan
-magi-operating-profile auto
+magi-operating-profile auto     # Release manual hold; allow recommendations
 magi-operating-profile docked
 magi-operating-profile mobile
+magi-context-automation preview
+magi-context-automation apply --dry-run
+magi-context-automation undo
 ```
+
+Context automation is off by default and requires two explicit opt-ins:
+
+```bash
+magi-context automation-rule environment_profile enable
+magi-context automation enable
+```
+
+Recommendations remain visible while automation is disabled. With both
+switches enabled, the operating-profile shell service runs the allowlisted
+action after fresh context publication. A manual `docked` or `mobile` selection
+creates the visible `manual-profile-selection` hold; select `auto` to release
+it. Temporary holds use `magi-context-automation hold REASON` and `release
+REASON`.
+
+Each automated change captures power, audio, wallpaper, display, bar, and
+active-profile state first. A failed subsystem triggers best-effort rollback
+and is named in automation status. The executor deduplicates generations,
+enforces a five-minute cooldown, supports read-only preview/dry-run, and keeps
+one explicit undo snapshot. `magi-context automation disable` is the global
+kill switch and does not remove recommendations.
 
 Terminal rules live in `~/.config/omarchy/magi-terminal-context.json` and may
 select `eva-01`, `magi`, or `engineering` by path or marker file without

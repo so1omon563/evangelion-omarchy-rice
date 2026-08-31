@@ -94,9 +94,10 @@
   },
   "magi.operating-profile.auto": {
     "icon": "󰑐",
-    "label": "Automatic Dock Detection",
+    "label": "Context-Managed (Auto)",
     "action": "magi-operating-profile auto",
-    "checked": "[[ $(magi-operating-profile status | sed -n 's/^mode=//p') == auto ]]"
+    "checked": "[[ $(magi-operating-profile status | sed -n 's/^mode=//p') == auto ]]",
+    "description": "Release the manual hold; changes still require automation opt-in"
   },
   "magi.operating-profile.docked": {
     "icon": "󰍹",
@@ -114,6 +115,37 @@
     "icon": "󰑓",
     "label": "Reapply Current Profile",
     "action": "magi-operating-profile apply"
+  },
+  "magi.operating-profile.automation": {
+    "icon": "󰒓",
+    "label": "Context Automation",
+    "title": "MAGI // PROFILE AUTOMATION",
+    "description": "Preview or opt into bounded context-selected profiles"
+  },
+  "magi.operating-profile.automation-enable": {
+    "icon": "󰐕",
+    "label": "Enable Environment Rule",
+    "action": "magi-context automation-rule environment_profile enable && magi-context automation enable",
+    "checked": "magi-context status --json --compact | jq -e '.controller.automation_enabled and .controller.automation_rules.environment_profile' >/dev/null",
+    "description": "Opt in to dock/mobile profile changes; manual selection still wins"
+  },
+  "magi.operating-profile.automation-disable": {
+    "icon": "󰅖",
+    "label": "Disable All Automation",
+    "action": "magi-context automation disable",
+    "description": "Global kill switch; recommendations remain visible"
+  },
+  "magi.operating-profile.automation-preview": {
+    "icon": "󰋼",
+    "label": "Preview Pending Action",
+    "action": "omarchy-launch-terminal magi-context-automation preview",
+    "description": "Read-only plan, holds, cooldown, and reason"
+  },
+  "magi.operating-profile.automation-undo": {
+    "icon": "󰕌",
+    "label": "Undo Last Automated Change",
+    "action": "magi-context-automation undo",
+    "description": "Restore the transaction snapshot captured before automation"
   },
   "magi.deployment": {
     "icon": "󰚩",

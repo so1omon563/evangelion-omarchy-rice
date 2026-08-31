@@ -7,6 +7,7 @@ CONFIG = Path(os.environ.get("XDG_CONFIG_HOME", Path.home() / ".config")) / "oma
 DEFAULTS = {"terminal":"auto","editor":[],"shell":"auto","shell_integration":True,"project_dir":"",
             "motion":{"mode":"full"},
             "context":{"enabled":True,"automation_enabled":False,"decorative_enabled":True,
+                       "automation_rules":{"environment_profile":False},
                        "max_age_seconds":300,
                        "collectors":{name:True for name in ("power","thermal","displays","devices",
                                      "connectivity","media","time","operating_profile")}},
