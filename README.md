@@ -43,8 +43,8 @@ The report separates three levels:
 
 - **Required** — source-validation tools and the active Omarchy desktop. The
   installer stops before its first write if one is missing.
-- **Recommended** — Ghostty, Neovim, Fastfetch, and btop provide the complete
-  reference experience, but are not required for the base theme.
+- **Recommended** — a supported terminal plus Fastfetch and btop provide the
+  complete reference experience, but are not required for the base theme.
 - **Optional** — feature-specific integrations such as media controls, Cava,
   Tailscale, clipboard actions, power profiles, and multi-monitor screensaver
   IPC. A missing optional tool disables only its listed integration.
@@ -70,8 +70,23 @@ Choose a preset or an explicit component list, then apply it:
 
 `minimal` installs the theme and MAGI tools. `default` adds Omarchy shell,
 Hyprland, start-page, and service integration. `full` adds Fastfetch, Neovim,
-and Bash startup integration. Run `./install.sh --list-components` for the
+and detected-shell startup integration. Run `./install.sh --list-components` for the
 complete selectable list.
+
+### User configuration
+
+The default install creates `~/.config/omarchy/evangelion.json` once and never
+overwrites it on later runs. Set `terminal` to `ghostty`, `alacritty`, `foot`,
+or `kitty`, or leave it as `auto` to follow `xdg-terminal-exec`. Set `editor`
+as a JSON argument array such as `["code", "--wait"]`; an empty array follows
+`VISUAL`, `EDITOR`, then available console editors. `project_dir` defaults to
+the directory where deployment is invoked, and the browser always launches
+through `omarchy launch browser` so the current XDG default is honored.
+
+The full preset detects Bash, Zsh, or Fish. Override with `--shell fish`, or
+disable all startup-file integration explicitly with `--no-shell-integration`.
+Generated configuration and startup-file changes are included in the same
+transaction manifest and are preserved or removed by rollback.
 
 The installer completes preflight before its first backup or write, prints the
 exact change plan, and requires confirmation before replacing complete files.

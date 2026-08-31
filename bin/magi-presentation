@@ -1,8 +1,19 @@
 #!/bin/bash
 
-set -u
+set -euo pipefail
 
 presentation_prefix="org.omarchy.magi."
+
+launch_terminal() {
+  local terminal=$1 class=$2 title=$3; shift 3
+  case $terminal in
+    ghostty) setsid -f ghostty --gtk-single-instance=false --class="$class" --title="$title" -e "$@" ;;
+    alacritty) setsid -f alacritty --class "$class,$class" --title "$title" -e "$@" ;;
+    foot) setsid -f foot --app-id="$class" --title="$title" "$@" ;;
+    kitty) setsid -f kitty --class "$class" --title "$title" "$@" ;;
+    *) printf 'Unsupported terminal %s; configure ~/.config/omarchy/evangelion.json\n' "$terminal" >&2; return 1 ;;
+  esac >/dev/null 2>&1
+}
 
 current_background_path() {
   readlink -f "$HOME/.local/state/omarchy/current/background" 2>/dev/null || true
@@ -47,26 +58,20 @@ if (( ${#presentation_pids[@]} > 0 )); then
   exit 0
 fi
 
-hyprctl dispatch 'hl.dsp.focus({ workspace = "5" })' >/dev/null
+terminal=$(eva-user-config terminal) || exit 1
+login_shell=$(eva-user-config shell) || exit 1
+for required in fastfetch btop; do
+  command -v "$required" >/dev/null || { printf 'Presentation requires %s; install it with: omarchy pkg add %s\n' "$required" "$required" >&2; exit 1; }
+done
+workspace=$(eva-user-config get presentation.workspace 2>/dev/null || echo 5)
+hyprctl dispatch "hl.dsp.focus({ workspace = \"$workspace\" })" >/dev/null
 
 background_path=$(current_background_path)
 read -r side width_pct top_height_pct layout_name < <(layout_for_background "$background_path")
 
-setsid -f ghostty \
-  --gtk-single-instance=false \
-  --class=org.omarchy.magi.fastfetch \
-  --title="MAGI · SYSTEM STATUS" \
-  --font-size=9.5 \
-  --background-opacity=0.88 \
-  -e bash -lc 'fastfetch; printf "\n\033[38;2;156;242;58mMAGI console ready.\033[0m\n"; magi-media status; exec bash' &
-
-setsid -f ghostty \
-  --gtk-single-instance=false \
-  --class=org.omarchy.magi.btop \
-  --title="MAGI · RESOURCE MONITOR" \
-  --font-size=10.5 \
-  --background-opacity=0.88 \
-  -e btop &
+launch_terminal "$terminal" org.omarchy.magi.fastfetch "MAGI · SYSTEM STATUS" \
+  bash -lc 'fastfetch; printf "\n\033[38;2;156;242;58mMAGI console ready.\033[0m\n"; magi-media status; exec "$1" -l' bash "$login_shell"
+launch_terminal "$terminal" org.omarchy.magi.btop "MAGI · RESOURCE MONITOR" btop
 
 # The window rules establish floating/workspace behavior immediately. Once both
 # clients are mapped, refine their geometry for the active wallpaper and monitor.
@@ -106,4 +111,4 @@ if [[ -n ${fastfetch_address:-} && -n ${btop_address:-} ]]; then
   hyprctl dispatch movewindowpixel "exact $left $((top + top_height + gap)),address:$btop_address" >/dev/null
 fi
 
-omarchy-notification-send -g "󱚣" "MAGI PRESENTATION" "Workspace 05 · $layout_name layout initialized"
+omarchy-notification-send -g "󱚣" "MAGI PRESENTATION" "Workspace $(printf '%02d' "$workspace") · $layout_name layout initialized"

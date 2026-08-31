@@ -224,12 +224,20 @@ def main():
             print(json.dumps({"directory": str(directory), "profile": None, "action": "packaged default"}, separators=(",", ":")))
             return 0
         os.execv("/usr/share/omarchy/bin/omarchy-launch-terminal", ["omarchy-launch-terminal"])
-    context_rc = bashrc(profile)
-    command = f'cd -- {shlex.quote(str(directory))}; exec bash --rcfile {shlex.quote(str(context_rc))} -i'
+    try:
+        login_shell = subprocess.run(["eva-user-config", "shell"], text=True, capture_output=True, timeout=2, check=True).stdout.strip()
+    except (OSError, subprocess.SubprocessError):
+        print("No configured login shell is available; edit ~/.config/omarchy/evangelion.json", file=sys.stderr)
+        return 1
     if args.dry_run:
-        print(json.dumps({"directory": str(directory), "profile": profile, "action": "isolated context launch"}, separators=(",", ":")))
+        print(json.dumps({"directory": str(directory), "profile": profile, "shell": login_shell, "action": "isolated context launch"}, separators=(",", ":")))
         return 0
-    os.execv("/usr/share/omarchy/bin/omarchy-launch-terminal", ["omarchy-launch-terminal", "--", "bash", "-c", command])
+    environment = os.environ.copy()
+    environment["STARSHIP_CONFIG"] = str(starship(profile))
+    environment["EVA_TERMINAL_CONTEXT_PROFILE"] = profile
+    environment["EVA_TERMINAL_PROFILE_OVERRIDE"] = profile
+    os.chdir(directory)
+    os.execve("/usr/share/omarchy/bin/omarchy-launch-terminal", ["omarchy-launch-terminal", "--", login_shell, "-l"], environment)
 
 
 if __name__ == "__main__":

@@ -1,0 +1,70 @@
+#!/usr/bin/env python3
+"""Resolve portable Evangelion user preferences and application defaults."""
+import json, os, shutil, subprocess, sys
+from pathlib import Path
+
+CONFIG = Path(os.environ.get("XDG_CONFIG_HOME", Path.home() / ".config")) / "omarchy/evangelion.json"
+DEFAULTS = {"terminal":"auto","editor":[],"shell":"auto","shell_integration":True,"project_dir":"",
+            "deployment":{"workspace":4,"terminal_profile":"engineering","browser_url":"about:blank"},
+            "presentation":{"workspace":5}}
+
+def merge(base, override):
+    result = dict(base)
+    for key, value in override.items():
+        result[key] = merge(result[key], value) if isinstance(value, dict) and isinstance(result.get(key), dict) else value
+    return result
+
+def config():
+    try:
+        value=json.loads(CONFIG.read_text())
+        return merge(DEFAULTS, value) if isinstance(value,dict) else DEFAULTS
+    except (OSError,json.JSONDecodeError): return DEFAULTS
+
+def terminal(cfg):
+    requested=cfg["terminal"]
+    if requested != "auto":
+        return requested if shutil.which(requested) else ""
+    try:
+        desktop=subprocess.run(["xdg-terminal-exec","--print-id"],text=True,capture_output=True,timeout=2).stdout.lower()
+    except (OSError,subprocess.SubprocessError): desktop=""
+    for name in ("ghostty","alacritty","foot","kitty"):
+        if name in desktop and shutil.which(name): return name
+    return next((name for name in ("ghostty","alacritty","foot","kitty") if shutil.which(name)), "")
+
+def editor(cfg):
+    value=cfg["editor"]
+    if isinstance(value,str) and value: value=[value]
+    if isinstance(value,list) and value and shutil.which(str(value[0])): return [str(item) for item in value]
+    for variable in ("VISUAL","EDITOR"):
+        candidate=os.environ.get(variable,"").split()
+        if candidate and shutil.which(candidate[0]): return candidate
+    for name in ("nvim","vim","vi","nano"):
+        if shutil.which(name): return [name]
+    return []
+
+def shell(cfg):
+    value=cfg["shell"]
+    candidate=os.environ.get("SHELL","") if value == "auto" else value
+    return candidate if candidate and (Path(candidate).exists() or shutil.which(candidate)) else ""
+
+def main():
+    cfg=config(); command=sys.argv[1] if len(sys.argv)>1 else "show"
+    if command=="show": print(json.dumps(cfg,indent=2)); return 0
+    if command=="terminal":
+        value=terminal(cfg)
+        if not value: print("No supported terminal found; set terminal in ~/.config/omarchy/evangelion.json",file=sys.stderr); return 1
+        print(value); return 0
+    if command=="editor":
+        value=editor(cfg)
+        if not value: print("No editor found; set editor as a JSON argument array in ~/.config/omarchy/evangelion.json",file=sys.stderr); return 1
+        print("\n".join(value)); return 0
+    if command=="shell":
+        value=shell(cfg)
+        if not value: print("No login shell found; set shell in ~/.config/omarchy/evangelion.json",file=sys.stderr); return 1
+        print(value); return 0
+    if command=="get":
+        value=cfg
+        for part in sys.argv[2].split("."): value=value[part]
+        print(json.dumps(value) if isinstance(value,(dict,list,bool)) else value); return 0
+    print("Usage: eva-user-config [show|terminal|editor|shell|get KEY]",file=sys.stderr); return 2
+if __name__=="__main__": raise SystemExit(main())

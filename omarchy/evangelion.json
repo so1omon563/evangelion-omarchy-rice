@@ -1,0 +1,15 @@
+{
+  "terminal": "auto",
+  "editor": [],
+  "shell": "auto",
+  "shell_integration": true,
+  "project_dir": "",
+  "deployment": {
+    "workspace": 4,
+    "terminal_profile": "engineering",
+    "browser_url": "about:blank"
+  },
+  "presentation": {
+    "workspace": 5
+  }
+}

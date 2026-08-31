@@ -7,16 +7,19 @@ state_file="$state_dir/session.json"
 config_file="${XDG_CONFIG_HOME:-$HOME/.config}/omarchy/eva-deployment.json"
 
 config_json() {
-  local default_project="$HOME/Work/evangelion-rice"
+  local default_project user_config
+  default_project=$(eva-user-config get project_dir 2>/dev/null || true)
+  [[ -n $default_project ]] || default_project=$PWD
+  user_config=$(eva-user-config show 2>/dev/null || printf '{}')
   if [[ -r $config_file ]] && jq -e 'type == "object"' "$config_file" >/dev/null 2>&1; then
-    jq -c --arg project "$default_project" '{
-      workspace: ((.workspace // 4) | tonumber),
+    jq -c --arg project "$default_project" --argjson user "$user_config" '{
+      workspace: ((.workspace // $user.deployment.workspace // 4) | tonumber),
       project_dir: (.project_dir // $project),
-      terminal_profile: (.terminal_profile // "engineering"),
-      browser_url: (.browser_url // "about:blank")
+      terminal_profile: (.terminal_profile // $user.deployment.terminal_profile // "engineering"),
+      browser_url: (.browser_url // $user.deployment.browser_url // "about:blank")
     }' "$config_file"
   else
-    jq -cn --arg project "$default_project" '{workspace:4, project_dir:$project, terminal_profile:"engineering", browser_url:"about:blank"}'
+    jq -cn --arg project "$default_project" --argjson user "$user_config" '{workspace:($user.deployment.workspace // 4), project_dir:$project, terminal_profile:($user.deployment.terminal_profile // "engineering"), browser_url:($user.deployment.browser_url // "about:blank")}'
   fi
 }
 
@@ -47,25 +50,41 @@ wait_for_class() {
   return 1
 }
 
+launch_terminal() {
+  local terminal=$1 class=$2 title=$3; shift 3
+  case $terminal in
+    ghostty) setsid -f ghostty --gtk-single-instance=false --class="$class" --title="$title" -e "$@" ;;
+    alacritty) setsid -f alacritty --class "$class,$class" --title "$title" -e "$@" ;;
+    foot) setsid -f foot --app-id="$class" --title="$title" "$@" ;;
+    kitty) setsid -f kitty --class "$class" --title "$title" "$@" ;;
+    *) printf 'Unsupported terminal %s; choose ghostty, alacritty, foot, or kitty in ~/.config/omarchy/evangelion.json\n' "$terminal" >&2; return 1 ;;
+  esac >/dev/null 2>&1
+}
+
 launch_role() {
-  local role=$1 class=$2 project=$3 browser_url=$4 existing launched=false client
+  local role=$1 class=$2 project=$3 browser_url=$4 existing launched=false client terminal login_shell
+  local -a editor_command
   existing=$(client_for_class "$class")
   if [[ -n $existing ]]; then
     client=$existing
   else
     launched=true
+    terminal=$(eva-user-config terminal) || return 1
+    login_shell=$(eva-user-config shell) || return 1
     case "$role" in
       editor)
-        setsid -f ghostty --gtk-single-instance=false --class="$class" \
-          --title="ENTRY PLUG · EDITOR" -e bash -lc 'cd -- "$1"; exec nvim .' bash "$project" >/dev/null 2>&1
+        mapfile -t editor_command < <(eva-user-config editor) || return 1
+        ((${#editor_command[@]})) || { echo "No configured editor is available" >&2; return 1; }
+        launch_terminal "$terminal" "$class" "ENTRY PLUG · EDITOR" \
+          bash -lc 'cd -- "$1"; shift; exec "$@" .' bash "$project" "${editor_command[@]}"
         ;;
       terminal)
-        setsid -f ghostty --gtk-single-instance=false --class="$class" \
-          --title="ENTRY PLUG · COMMAND" -e bash -lc 'cd -- "$1"; printf "\033[38;2;246;165;47mNERV BUILD CHANNEL // READY\033[0m\n"; exec bash' bash "$project" >/dev/null 2>&1
+        launch_terminal "$terminal" "$class" "ENTRY PLUG · COMMAND" \
+          bash -lc 'cd -- "$1"; printf "\033[38;2;246;165;47mNERV BUILD CHANNEL // READY\033[0m\n"; exec "$2" -l' bash "$project" "$login_shell"
         ;;
       logs)
-        setsid -f ghostty --gtk-single-instance=false --class="$class" \
-          --title="ENTRY PLUG · TELEMETRY" -e bash -lc 'cd -- "$1"; printf "\033[38;2;156;242;58mMAGI PROJECT TELEMETRY\033[0m\n\n"; git status --short --branch 2>/dev/null || true; printf "\nTelemetry console ready.\n"; exec bash' bash "$project" >/dev/null 2>&1
+        launch_terminal "$terminal" "$class" "ENTRY PLUG · TELEMETRY" \
+          bash -lc 'cd -- "$1"; printf "\033[38;2;156;242;58mMAGI PROJECT TELEMETRY\033[0m\n\n"; command -v git >/dev/null && git status --short --branch 2>/dev/null || true; printf "\nTelemetry console ready.\n"; exec "$2" -l' bash "$project" "$login_shell"
         ;;
     esac
     client=$(wait_for_class "$class") || {
@@ -193,13 +212,18 @@ deploy() {
     return
   fi
 
-  mkdir -p "$state_dir"
   config=$(config_json)
   workspace=$(jq -r '.workspace' <<<"$config")
   project=$(jq -r '.project_dir' <<<"$config")
   profile=$(jq -r '.terminal_profile' <<<"$config")
   browser_url=$(jq -r '.browser_url' <<<"$config")
   [[ -d $project ]] || { printf 'Configured project directory does not exist: %s\n' "$project" >&2; return 1; }
+  eva-user-config terminal >/dev/null || return 1
+  eva-user-config editor >/dev/null || return 1
+  eva-user-config shell >/dev/null || return 1
+  command -v omarchy >/dev/null || { echo "Omarchy browser launcher is unavailable" >&2; return 1; }
+
+  mkdir -p "$state_dir"
 
   original_workspace=$(hyprctl activeworkspace -j | jq -r '.id')
   original_profile=$(eva-terminal-profile status)

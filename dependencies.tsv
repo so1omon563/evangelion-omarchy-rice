@@ -1,8 +1,9 @@
 # level	feature	commands	arch_packages	description
 required	source-validation	bash,python3,jq,lua,sha256sum	bash,python,jq,lua,coreutils	Validates scripts, configuration, Lua, and wallpaper hashes
 required	omarchy-desktop	omarchy,omarchy-shell,hyprctl,systemctl	omarchy,hyprland,systemd	Installs and activates the theme inside a running Omarchy session
-recommended	terminal	ghostty	ghostty	Default terminal used by deployment, presentation, and screensaver layouts
-recommended	editor	nvim	neovim	Editor pane used by the EVA deployment layout
+recommended	terminal	xdg-terminal-exec	xdg-terminal-exec	Discovers Ghostty, Alacritty, Foot, or Kitty for terminal workflows
+optional	ghostty-terminal	ghostty	ghostty	One supported terminal adapter; Alacritty, Foot, and Kitty are also supported
+optional	neovim-editor	nvim	neovim	Reference editor integration and EVA highlight synchronization
 recommended	presentation	fastfetch,btop	fastfetch,btop	System telemetry panes in presentation mode
 optional	visualizer	cava	cava	Audio visualization in the Neon Overdrive compatibility widget
 optional	media	playerctl	playerctl	Media widget and playback controls
