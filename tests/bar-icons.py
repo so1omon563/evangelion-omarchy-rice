@@ -7,6 +7,7 @@ plugins = root / "omarchy/plugins"
 shell = json.loads((root / "omarchy/shell.json").read_text())
 frame = (plugins / "evangelion.icon-theme/UpstreamIconFrame.qml").read_text()
 docs = (root / "BAR_ICONS.md").read_text()
+bar_theme = (root / "theme/shell.bar.toml").read_text()
 
 adapters = {
     "evangelion.agents": ("omarchy.agents", "/shell/plugins/agents/Panel.qml"),
@@ -40,17 +41,21 @@ for contract in (
     'typeof nativeItem.close === "function"',
     'typeof nativeItem.toggle === "function"',
     'implicitWidth: Math.max',
-    'attentionColor: "#F6D447"',
-    'errorColor: bar ? bar.urgent',
-    'HoverHandler',
 ):
     assert contract in frame, contract
+
+for forbidden_chrome in ("Rectangle {", "HoverHandler", "border.color", "stateColor"):
+    assert forbidden_chrome not in frame, forbidden_chrome
+
+assert 'text             = "#B79ACB"' in bar_theme
 
 for forbidden in ("/home/", "so1omon", "Screen.name"):
     assert forbidden not in frame
 
 assert "full-color" in docs
 assert "Symbolic icons" in docs
+assert "#B79ACB" in docs
+assert "no per-widget frames" in docs
 assert "fallback" in docs.lower()
 
 print("bar icon unification contracts passed")

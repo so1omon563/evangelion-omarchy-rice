@@ -356,8 +356,9 @@ changing existing terminals. See [HOTKEYS.md](HOTKEYS.md).
 
 Agents, Bluetooth, Dropbox, and Tailscale use thin adapters around their native
 Omarchy widgets. Their original click actions, menus, tooltips, and state logic
-remain authoritative; only the fixed NERV frame and shared state palette are
-added. The StatusNotifier tray remains native so symbolic icons follow the bar
+remain authoritative. The adapters add no visible chrome: the shared
+violet-grey bar foreground integrates their glyphs with symbolic tray icons,
+while native state colors remain authoritative. The StatusNotifier tray remains native so symbolic icons follow the bar
 foreground while full-color vendor icons retain their identity. See
 [BAR_ICONS.md](BAR_ICONS.md) for the inventory, implementation paths, and the
 per-widget stock fallback procedure.

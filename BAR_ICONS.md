@@ -1,23 +1,24 @@
 # Bar icon unification
 
-The Evangelion bar keeps Omarchy's upstream implementations and wraps selected
-widgets in shared NERV chrome. The adapter loads from `$OMARCHY_PATH`, forwards
+The Evangelion bar keeps Omarchy's upstream implementations behind transparent
+adapters. The adapter loads from `$OMARCHY_PATH`, forwards
 the bar and settings objects, and delegates `open`, `close`, and `toggle` to the
 native widget. This retains upstream click bindings, panels, tooltips, IPC, and
 live status behavior without copying vendor code into this repository.
 
 | Surface | Installed ID | Native implementation | Treatment |
 | --- | --- | --- | --- |
-| Agents | `evangelion.agents` | `omarchy.agents` | NERV frame; native agent glyph and panel |
-| Bluetooth | `evangelion.bluetooth` | `omarchy.bluetooth` | NERV frame; native radio states and panel |
-| Dropbox | `evangelion.dropbox` | `omarchy.dropbox` | NERV frame; vendor mark remains recognizable |
-| Tailscale | `evangelion.tailscale` | `omarchy.tailscale` | NERV frame; vendor mark remains recognizable |
+| Agents | `evangelion.agents` | `omarchy.agents` | Tinted native agent glyph and panel |
+| Bluetooth | `evangelion.bluetooth` | `omarchy.bluetooth` | Tinted native radio states and panel |
+| Dropbox | `evangelion.dropbox` | `omarchy.dropbox` | Tinted recognizable vendor mark |
+| Tailscale | `evangelion.tailscale` | `omarchy.tailscale` | Tinted recognizable vendor mark |
 | StatusNotifier tray | `omarchy.tray` | Omarchy tray | Symbolic icons inherit bar foreground; full-color vendor artwork is preserved |
 
-The shared palette uses accent for normal/hover/active, amber for attention,
-and the bar urgent color for errors. Frames have fixed minimum geometry; color
-and opacity change without moving neighboring widgets. The stock tray already
-recolors symbolic icons and deliberately leaves full-color StatusNotifier
+The resting bar foreground is EVA violet-grey `#B79ACB`, shared by native
+widget glyphs and symbolic StatusNotifier icons. There are no per-widget frames
+or decorative halos. Native widgets remain responsible for active, disabled,
+warning, and urgent colors, while green, amber, and red stay reserved for real
+state changes. The stock tray deliberately leaves full-color StatusNotifier
 artwork intact, so it stays upstream rather than being forked or recolored.
 
 ## Compatibility and fallback

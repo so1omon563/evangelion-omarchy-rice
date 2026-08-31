@@ -4,7 +4,7 @@
   "name": "NERV Icon Theme Components",
   "version": "1.0.0",
   "author": "Evangelion Rice",
-  "description": "Shared state palette and chrome for themed upstream bar widgets.",
+  "description": "Native-behavior adapters for themed upstream bar widgets.",
   "kinds": ["service"],
   "entryPoints": { "service": "Service.qml" }
 }

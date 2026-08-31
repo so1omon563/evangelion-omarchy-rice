@@ -1,6 +1,8 @@
 background       = "#0B0810"
 background-alpha = 0.82
-text             = "#E8E1EF"
+# A violet-grey resting foreground integrates upstream glyphs and symbolic
+# StatusNotifier icons without competing with green/amber/red state colors.
+text             = "#B79ACB"
 active           = "#FF4055"
 scale-with-font  = true
 size-horizontal  = 30
