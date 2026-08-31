@@ -7,6 +7,7 @@ fail(){ checks=$((checks+1)); failures=$((failures+1)); printf 'FAIL  %s\n' "$*"
 warn(){ warnings=$((warnings+1)); printf 'WARN  %s\n' "$*"; }
 
 bash -n "$root/check-dependencies.sh" && pass "dependency checker parses" || fail "dependency checker parse"
+python3 -m py_compile "$root/preflight.py" 2>/dev/null && pass "compatibility preflight parses" || fail "compatibility preflight parse"
 awk -F '\t' 'BEGIN { ok=1 } /^#/ || NF==0 { next } NF!=5 || $1 !~ /^(required|recommended|optional|development)$/ { ok=0 } END { exit !ok }' "$root/dependencies.tsv" \
   && pass "dependency manifest schema" || fail "dependency manifest schema"
 for documented in jq lua python3 ghostty nvim btop fastfetch cava playerctl nmcli sensors wpctl pactl busctl tailscale brightnessctl notify-send xdg-open; do
@@ -26,6 +27,8 @@ if EVANGELION_DEPENDENCIES_FILE=$dependency_fixture "$root/check-dependencies.sh
 else
   pass "required dependency gaps block"
 fi
+"$root/preflight.py" --source-only --json | jq -e '.schema_version == 1 and (.compatible|type)=="boolean" and (.capabilities|type)=="object"' >/dev/null \
+  && pass "compatibility preflight JSON schema" || fail "compatibility preflight JSON schema"
 
 for file in "$root"/bin/*; do
   [[ -f $file ]] || continue

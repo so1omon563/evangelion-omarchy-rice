@@ -27,11 +27,17 @@ workspace identities, terminal profiles, menus, sounds, and operational tools.
 ## Install
 
 This release targets Omarchy with Hyprland. Before changing any configuration,
-run the read-only dependency check:
+run the read-only compatibility preflight:
 
 ```bash
-./check-dependencies.sh
+./preflight.py
 ```
+
+Use `./preflight.py --json` for machine-readable results. The preflight does
+not create probes or modify configuration; it inspects versions, session state,
+dependencies, target permissions, backup capacity, services, port 8765,
+hotkeys, displays, terminals, browser, battery, thermal, audio, and networking.
+It exits non-zero only when installation would be unsafe or unsupported.
 
 The report separates three levels:
 
@@ -68,6 +74,23 @@ Validation is non-destructive. It checks scripts, JSON, Lua, custom hotkeys,
 the dependency manifest, widget sources, live binaries, the bar layout, and
 Hyprland configuration. CI can check only repository tooling with
 `./check-dependencies.sh --source-only`.
+
+## Compatibility
+
+| Component | Supported | Currently verified |
+|---|---|---|
+| Omarchy | `>=4.0.0, <5.0.0` | 4.0.1-1 |
+| Hyprland | `>=0.56.0, <0.57.0` | 0.56.2-1 |
+| Architecture | x86_64 | ThinkPad T480, x86_64 |
+| Session | Wayland + active Hyprland IPC | Omarchy/Hyprland |
+| Display | Reported dynamically; responsive-layout work remains | 1920×1080 at 1× |
+| Terminal | Ghostty reference; Alacritty, Foot, and Kitty detected | Ghostty |
+| Browser | XDG default via `omarchy launch browser` | Zen |
+| Shell | Bash integration currently provided | Bash |
+
+“Supported” describes the preflight gate, not a claim that every hardware and
+display combination has been tested. Verified environments will be added here
+as clean-user and external beta testing expands the matrix.
 
 ## Roll back
 

@@ -7,9 +7,9 @@ if [[ ${1:-} != --apply && ${EVANGELION_SKIP_ACTIVATE:-0} != 1 ]]; then
   exit 2
 fi
 if [[ ${EVANGELION_SKIP_ACTIVATE:-0} == 1 ]]; then
-  "$root/check-dependencies.sh" --source-only
+  "$root/preflight.py" --source-only
 else
-  "$root/check-dependencies.sh"
+  "$root/preflight.py"
 fi
 stamp=$(date +%Y%m%d-%H%M%S)
 backup_root=${XDG_STATE_HOME:-$HOME/.local/state}/evangelion-rice/install-backups/$stamp
