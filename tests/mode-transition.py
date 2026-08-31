@@ -16,6 +16,7 @@ modes=("presentation","deployment","at-field","angel","docked","mobile","termina
 checks={
  "all_mode_families":all(f'"{m}"' in service for m in modes),
  "service_enabled":any(p["id"]=="evangelion.mode-transition" for p in shell["plugins"]),
+ "ipc_module_imported":'import Quickshell.Io' in service,
  "never_takes_focus":'WlrKeyboardFocus.None' in service and 'mask:Region{}' in service,
  "does_not_obscure_desktop":'height:104' in service and 'anchors.bottom' in service,
  "all_motion_modes":all(x in service for x in ('motion.full','motion.reduced','motion.off')),
