@@ -225,6 +225,7 @@ apply_hypr() {
 
 command=${1:-status}
 case "$command" in
+  detect) detect "${2:-}" ;;
   status) mode=$(cat "$mode_file" 2>/dev/null || echo auto); active=$(cat "$active_file" 2>/dev/null || detect "$(readlink -f "$background_link" 2>/dev/null || true)"); printf 'mode=%s\nactive=%s\nbackground=%s\n' "$mode" "$active" "$(readlink -f "$background_link" 2>/dev/null || echo unknown)" ;;
   list) printf '%s\n' neutral unit-00-prototype unit-00-refit unit-01 unit-02 ;;
   auto|reset)
@@ -252,5 +253,5 @@ case "$command" in
     fi
     ;;
   apply) mode=$(cat "$mode_file" 2>/dev/null || echo auto); if [[ $mode == manual && -r $manual_file ]]; then profile=$(cat "$manual_file"); else profile=$(detect "${2:-$(readlink -f "$background_link" 2>/dev/null || true)}"); fi; apply_profile "$profile" ;;
-  *) echo 'Usage: magi-affinity {status|list|auto|reset|set PROFILE|apply [BACKGROUND]}' >&2; exit 2 ;;
+  *) echo 'Usage: magi-affinity {status|list|detect BACKGROUND|auto|reset|set PROFILE|apply [BACKGROUND]}' >&2; exit 2 ;;
 esac
