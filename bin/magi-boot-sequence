@@ -1,0 +1,69 @@
+#!/usr/bin/env bash
+
+set -u
+
+state_dir="${XDG_STATE_HOME:-$HOME/.local/state}/omarchy"
+disabled_file="$state_dir/evangelion-boot-sequence.disabled"
+
+show_sequence() {
+  local icon message payload
+  local -a icons=("󰚩" "󰚩" "󰚩" "󰢮")
+  local -a messages=(
+    "MELCHIOR-1 // ONLINE"
+    "BALTHASAR-2 // ONLINE"
+    "CASPER-3 // ONLINE"
+    "MAGI SYSTEM // NOMINAL"
+  )
+
+  # The post-boot hook already waits two seconds. Allow a little more time for
+  # the shell IPC endpoint without ever delaying desktop startup.
+  for _ in {1..20}; do
+    omarchy-shell osd ping >/dev/null 2>&1 && break
+    sleep 0.2
+  done
+  omarchy-shell osd ping >/dev/null 2>&1 || exit 0
+
+  for index in "${!messages[@]}"; do
+    icon=${icons[index]}
+    message=${messages[index]}
+    payload=$(jq -cn --arg icon "$icon" --arg message "$message" \
+      '{icon:$icon,message:$message,duration:850}')
+    omarchy-shell -q osd show "$payload"
+    sleep 0.72
+  done
+  magi-sound nominal >/dev/null 2>&1 || true
+}
+
+case "${1:-run}" in
+  enable)
+    mkdir -p "$state_dir"
+    rm -f "$disabled_file"
+    echo "MAGI login sequence enabled"
+    ;;
+  disable)
+    mkdir -p "$state_dir"
+    touch "$disabled_file"
+    echo "MAGI login sequence disabled"
+    ;;
+  status)
+    [[ -e $disabled_file ]] && echo disabled || echo enabled
+    ;;
+  preview)
+    show_sequence
+    ;;
+  run)
+    [[ -e $disabled_file ]] && exit 0
+    session=${HYPRLAND_INSTANCE_SIGNATURE:-${WAYLAND_DISPLAY:-graphical}}
+    session=${session//[^[:alnum:]_.-]/_}
+    runtime_dir=${XDG_RUNTIME_DIR:-/tmp}
+    [[ -d $runtime_dir ]] || runtime_dir=/tmp
+    marker="$runtime_dir/magi-boot-sequence-$session"
+    # Atomic noclobber prevents duplicate hook invocations racing each other.
+    (set -C; : >"$marker") 2>/dev/null || exit 0
+    show_sequence
+    ;;
+  *)
+    echo "Usage: magi-boot-sequence [enable|disable|status|preview]" >&2
+    exit 2
+    ;;
+esac

@@ -1,0 +1,4 @@
+#!/usr/bin/env bash
+set -euo pipefail
+case ${1:-open} in
+serve)exec python3 "$HOME/.local/share/evangelion-rice/start-page/server.py";;open)systemctl --user start magi-start-page.service;omarchy launch browser http://127.0.0.1:8765/;;status)systemctl --user --no-pager status magi-start-page.service;;*)echo 'Usage: magi-start-page {open|serve|status}' >&2;exit 2;;esac

@@ -1,0 +1,313 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+profile=${1:-status}
+reload=true
+if [[ ${2:-} == "--no-reload" ]]; then
+  reload=false
+fi
+
+state_dir="${XDG_STATE_HOME:-$HOME/.local/state}/evangelion-rice"
+theme_dir="${XDG_STATE_HOME:-$HOME/.local/state}/omarchy/current/theme"
+state_file="$state_dir/terminal-profile"
+
+case "$profile" in
+  status)
+    if [[ -r $state_file ]]; then
+      read -r current < "$state_file"
+      printf '%s\n' "$current"
+    else
+      printf '%s\n' "eva-01"
+    fi
+    exit 0
+    ;;
+  list)
+    printf '%s\n' "eva-01" "magi" "engineering" "unit-00-prototype" "unit-00-refit" "unit-02"
+    exit 0
+    ;;
+  eva-01|purple)
+    profile="eva-01"
+    prompt_tag="EVA-01"
+    background="120D18"
+    foreground="E8E1EF"
+    muted="665577"
+    selection="4B286D"
+    accent="B76CFF"
+    ;;
+  magi|green)
+    profile="magi"
+    prompt_tag="MAGI"
+    background="07110B"
+    foreground="DCE8D8"
+    muted="58705D"
+    selection="244D2E"
+    accent="9CF23A"
+    ;;
+  engineering|orange)
+    profile="engineering"
+    prompt_tag="ENG"
+    background="160D07"
+    foreground="F1E4D6"
+    muted="806752"
+    selection="633417"
+    accent="F28C28"
+    ;;
+  unit-00-prototype|prototype|yellow)
+    profile="unit-00-prototype"
+    prompt_tag="EVA-00P"
+    background="120F08"
+    foreground="F2E9D2"
+    muted="756843"
+    selection="5B4215"
+    accent="F6C744"
+    ;;
+  unit-00-refit|refit|blue)
+    profile="unit-00-refit"
+    prompt_tag="EVA-00R"
+    background="08121E"
+    foreground="E8F1FF"
+    muted="526B83"
+    selection="173D68"
+    accent="55D9FF"
+    ;;
+  unit-02|red)
+    profile="unit-02"
+    prompt_tag="EVA-02"
+    background="160907"
+    foreground="F5E5DF"
+    muted="7D5148"
+    selection="61251C"
+    accent="FF5A36"
+    ;;
+  *)
+    printf 'Usage: eva-terminal-profile {eva-01|magi|engineering|unit-00-prototype|unit-00-refit|unit-02|status|list} [--no-reload]\n' >&2
+    exit 2
+    ;;
+esac
+
+mkdir -p "$state_dir" "$theme_dir"
+tools_dir="$state_dir/tools"
+mkdir -p "$tools_dir"
+tmp_dir=$(mktemp -d "$state_dir/profile.XXXXXX")
+trap 'rm -rf "$tmp_dir"' EXIT
+
+printf '%s\n' \
+  "background = #$background" \
+  "foreground = #$foreground" \
+  "cursor-color = #$accent" \
+  "selection-background = #$selection" \
+  "selection-foreground = #FFFFFF" \
+  "" \
+  "palette = 0=#$background" \
+  "palette = 1=#D52032" \
+  "palette = 2=#75C936" \
+  "palette = 3=#F6D447" \
+  "palette = 4=#5577CC" \
+  "palette = 5=#A855D4" \
+  "palette = 6=#4FD6C8" \
+  "palette = 7=#$foreground" \
+  "palette = 8=#$muted" \
+  "palette = 9=#FF4055" \
+  "palette = 10=#A8FF3E" \
+  "palette = 11=#FFE36A" \
+  "palette = 12=#7799FF" \
+  "palette = 13=#D477FF" \
+  "palette = 14=#75F2E4" \
+  "palette = 15=#FFFFFF" > "$tmp_dir/ghostty.conf"
+
+printf '%s\n' \
+  "[colors.primary]" \
+  "background = \"#$background\"" \
+  "foreground = \"#$foreground\"" \
+  "" \
+  "[colors.cursor]" \
+  "text = \"#$background\"" \
+  "cursor = \"#$accent\"" \
+  "" \
+  "[colors.vi_mode_cursor]" \
+  "text = \"#$background\"" \
+  "cursor = \"#$accent\"" \
+  "" \
+  "[colors.search.matches]" \
+  "foreground = \"#$background\"" \
+  "background = \"#F6D447\"" \
+  "" \
+  "[colors.search.focused_match]" \
+  "foreground = \"#$background\"" \
+  "background = \"#$accent\"" \
+  "" \
+  "[colors.footer_bar]" \
+  "foreground = \"#$background\"" \
+  "background = \"#$foreground\"" \
+  "" \
+  "[colors.selection]" \
+  "text = \"#FFFFFF\"" \
+  "background = \"#$selection\"" \
+  "" \
+  "[colors.normal]" \
+  "black = \"#$background\"" \
+  "red = \"#D52032\"" \
+  "green = \"#75C936\"" \
+  "yellow = \"#F6D447\"" \
+  "blue = \"#5577CC\"" \
+  "magenta = \"#A855D4\"" \
+  "cyan = \"#4FD6C8\"" \
+  "white = \"#$foreground\"" \
+  "" \
+  "[colors.bright]" \
+  "black = \"#$muted\"" \
+  "red = \"#FF4055\"" \
+  "green = \"#A8FF3E\"" \
+  "yellow = \"#FFE36A\"" \
+  "blue = \"#7799FF\"" \
+  "magenta = \"#D477FF\"" \
+  "cyan = \"#75F2E4\"" \
+  "white = \"#FFFFFF\"" > "$tmp_dir/alacritty.toml"
+
+printf '%s\n' \
+  "foreground #$foreground" \
+  "background #$background" \
+  "selection_foreground #FFFFFF" \
+  "selection_background #$selection" \
+  "" \
+  "cursor #$accent" \
+  "cursor_text_color #$background" \
+  "" \
+  "active_border_color #$accent" \
+  "active_tab_background #$accent" \
+  "active_tab_foreground #$background" \
+  "" \
+  "color0 #$background" \
+  "color1 #D52032" \
+  "color2 #75C936" \
+  "color3 #F6D447" \
+  "color4 #5577CC" \
+  "color5 #A855D4" \
+  "color6 #4FD6C8" \
+  "color7 #$foreground" \
+  "color8 #$muted" \
+  "color9 #FF4055" \
+  "color10 #A8FF3E" \
+  "color11 #FFE36A" \
+  "color12 #7799FF" \
+  "color13 #D477FF" \
+  "color14 #75F2E4" \
+  "color15 #FFFFFF" > "$tmp_dir/kitty.conf"
+
+printf '%s\n' \
+  "[colors-dark]" \
+  "foreground=$foreground" \
+  "background=$background" \
+  "selection-foreground=FFFFFF" \
+  "selection-background=$selection" \
+  "" \
+  "cursor=$background $accent" \
+  "" \
+  "regular0=$background" \
+  "regular1=D52032" \
+  "regular2=75C936" \
+  "regular3=F6D447" \
+  "regular4=5577CC" \
+  "regular5=A855D4" \
+  "regular6=4FD6C8" \
+  "regular7=$foreground" \
+  "" \
+  "bright0=$muted" \
+  "bright1=FF4055" \
+  "bright2=A8FF3E" \
+  "bright3=FFE36A" \
+  "bright4=7799FF" \
+  "bright5=D477FF" \
+  "bright6=75F2E4" \
+  "bright7=FFFFFF" > "$tmp_dir/foot.ini"
+
+printf '%s\n' \
+  "add_newline = true" \
+  "command_timeout = 200" \
+  "format = \"[$prompt_tag //](bold #$accent) [\$directory\$git_branch\$git_status](#$foreground)\$character\"" \
+  "" \
+  "[character]" \
+  "error_symbol = \"[✗](bold #FF4055)\"" \
+  "success_symbol = \"[❯](bold #$accent)\"" \
+  "" \
+  "[directory]" \
+  "truncation_length = 2" \
+  "truncation_symbol = \"…/\"" \
+  "style = \"bold #$accent\"" \
+  "repo_root_style = \"bold #$accent\"" \
+  "repo_root_format = \"[\$repo_root](\$repo_root_style)[\$path](\$style)[\$read_only](\$read_only_style) \"" \
+  "" \
+  "[git_branch]" \
+  "format = \"[\$branch](\$style) \"" \
+  "style = \"italic #$accent\"" \
+  "" \
+  "[git_status]" \
+  "format = '[\$all_status](\$style)'" \
+  "style = \"#$accent\"" \
+  "ahead = \"⇡\${count} \"" \
+  "diverged = \"⇕⇡\${ahead_count}⇣\${behind_count} \"" \
+  "behind = \"⇣\${count} \"" \
+  "conflicted = \" \"" \
+  "up_to_date = \" \"" \
+  "untracked = \"? \"" \
+  "modified = \" \"" \
+  "stashed = \"\"" \
+  "staged = \"\"" \
+  "renamed = \"\"" \
+  "deleted = \"\"" > "$tmp_dir/starship.toml"
+
+printf '%s\n' \
+  "--layout=reverse" \
+  "--height=70%" \
+  "--border=rounded" \
+  "--info=inline-right" \
+  "--prompt='$prompt_tag // '" \
+  "--pointer=▶" \
+  "--marker=◆" \
+  "--color=fg:#$foreground,bg:#$background,hl:#$accent" \
+  "--color=fg+:#FFFFFF,bg+:#$selection,hl+:#$accent" \
+  "--color=border:#$muted,label:#$accent,prompt:#$accent,pointer:#$accent,marker:#F6D447,info:#$muted" > "$tmp_dir/fzf.opts"
+
+printf '%s\n' \
+  '--theme="ansi"' \
+  '--style="numbers,changes,header"' \
+  '--color="always"' > "$tmp_dir/bat.conf"
+
+printf '%s\n' \
+  "gui:" \
+  "  theme:" \
+  "    activeBorderColor: [\"#$accent\", bold]" \
+  "    inactiveBorderColor: [\"#$muted\"]" \
+  "    searchingActiveBorderColor: [\"#F6D447\", bold]" \
+  "    optionsTextColor: [\"#$accent\"]" \
+  "    selectedLineBgColor: [\"#$selection\"]" \
+  "    inactiveViewSelectedLineBgColor: [\"#$selection\"]" \
+  "    cherryPickedCommitBgColor: [\"#$selection\"]" \
+  "    cherryPickedCommitFgColor: [\"#$accent\"]" \
+  "    unstagedChangesColor: [\"#F28C28\"]" \
+  "    defaultFgColor: [\"#$foreground\"]" > "$tmp_dir/lazygit.yml"
+
+printf '%s\n' \
+  "export STARSHIP_CONFIG=\"$tools_dir/starship.toml\"" \
+  "export FZF_DEFAULT_OPTS_FILE=\"$tools_dir/fzf.opts\"" \
+  "export BAT_CONFIG_PATH=\"$tools_dir/bat.conf\"" \
+  "export LG_CONFIG_FILE=\"$HOME/.config/lazygit/config.yml,$tools_dir/lazygit.yml\"" > "$tmp_dir/tools.env"
+
+for config in ghostty.conf alacritty.toml kitty.conf foot.ini; do
+  install -m 0644 "$tmp_dir/$config" "$theme_dir/$config"
+done
+for config in starship.toml fzf.opts bat.conf lazygit.yml tools.env; do
+  install -m 0644 "$tmp_dir/$config" "$tools_dir/$config"
+done
+printf '%s\n' "$profile" > "$state_file"
+
+if $reload; then
+  omarchy restart terminal
+fi
+
+if [[ ${EVA_TERMINAL_PROFILE_QUIET:-0} != 1 ]] && command -v notify-send >/dev/null 2>&1; then
+  notify-send -u low -a "MAGI Terminal Control" "TERMINAL PROFILE // ${profile^^}" "Color systems synchronized"
+fi
+
+printf 'Terminal profile: %s\n' "$profile"

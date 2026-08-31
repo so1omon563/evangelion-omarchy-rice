@@ -1,0 +1,153 @@
+#!/usr/bin/env python3
+"""Persistent MAGI focus-cycle timer."""
+
+import argparse
+import json
+import os
+import subprocess
+import time
+from pathlib import Path
+
+STATE_DIR = Path(os.environ.get("XDG_STATE_HOME", Path.home() / ".local/state")) / "evangelion-rice"
+STATE_FILE = STATE_DIR / "mission-timer.json"
+CONFIG_FILE = Path(os.environ.get("XDG_CONFIG_HOME", Path.home() / ".config")) / "omarchy/magi-mission.json"
+DEFAULTS = {"work_minutes": 25, "break_minutes": 5, "long_break_minutes": 15, "cycles": 4, "sound": True}
+
+
+def load_json(path, default):
+    try:
+        value = json.loads(path.read_text())
+        return value if isinstance(value, dict) else default.copy()
+    except (OSError, json.JSONDecodeError):
+        return default.copy()
+
+
+def config():
+    value = DEFAULTS.copy()
+    value.update(load_json(CONFIG_FILE, {}))
+    value["work_minutes"] = max(1, min(180, int(value["work_minutes"])))
+    value["break_minutes"] = max(1, min(60, int(value["break_minutes"])))
+    value["long_break_minutes"] = max(1, min(120, int(value["long_break_minutes"])))
+    value["cycles"] = max(1, min(12, int(value["cycles"])))
+    value["sound"] = bool(value["sound"])
+    return value
+
+
+def initial():
+    return {"phase": "sortie", "cycle": 0, "running": False, "paused": False, "remaining": 0, "deadline": 0}
+
+
+def save(value):
+    STATE_DIR.mkdir(parents=True, exist_ok=True)
+    tmp = STATE_FILE.with_suffix(".tmp")
+    tmp.write_text(json.dumps(value, separators=(",", ":")))
+    tmp.replace(STATE_FILE)
+
+
+def notify(title, body, cue="nominal"):
+    subprocess.Popen(["notify-send", "-a", "MAGI Mission", title, body], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    if config()["sound"]:
+        subprocess.Popen(["magi-sound", cue], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+
+
+def duration(phase, cfg):
+    if phase == "work":
+        return cfg["work_minutes"] * 60
+    if phase == "recovery":
+        return (cfg["long_break_minutes"] if load_json(STATE_FILE, initial()).get("cycle", 0) >= cfg["cycles"] else cfg["break_minutes"]) * 60
+    return 0
+
+
+def advance(value, now=None):
+    now = time.time() if now is None else now
+    cfg = config()
+    changed = False
+    while value.get("running") and not value.get("paused") and value.get("deadline", 0) <= now:
+        changed = True
+        if value["phase"] == "work":
+            value["cycle"] += 1
+            value["phase"] = "recovery"
+            value["remaining"] = (cfg["long_break_minutes"] if value["cycle"] >= cfg["cycles"] else cfg["break_minutes"]) * 60
+            value["deadline"] += value["remaining"]
+            notify("RECOVERY PHASE", f"Mission cycle {value['cycle']} complete. Stand down and recover.")
+        elif value["phase"] == "recovery" and value["cycle"] >= cfg["cycles"]:
+            value.update({"phase": "complete", "running": False, "paused": False, "remaining": 0, "deadline": 0})
+            notify("MISSION COMPLETE", f"All {cfg['cycles']} focus cycles completed.")
+        else:
+            value["phase"] = "work"
+            value["remaining"] = cfg["work_minutes"] * 60
+            value["deadline"] += value["remaining"]
+            notify("MISSION ACTIVE", f"Cycle {value['cycle'] + 1} authorized. Resume operations.")
+    if changed:
+        save(value)
+    return value
+
+
+def current():
+    value = initial()
+    value.update(load_json(STATE_FILE, {}))
+    return advance(value)
+
+
+def snapshot(value):
+    cfg = config()
+    remaining = value.get("remaining", 0) if value.get("paused") else max(0, int(value.get("deadline", 0) - time.time()) + 1) if value.get("running") else 0
+    labels = {"sortie": "SORTIE", "work": "MISSION ACTIVE", "recovery": "RECOVERY", "complete": "MISSION COMPLETE"}
+    total = cfg["work_minutes"] * 60 if value["phase"] == "work" else ((cfg["long_break_minutes"] if value["cycle"] >= cfg["cycles"] else cfg["break_minutes"]) * 60 if value["phase"] == "recovery" else 0)
+    return {**value, "label": labels[value["phase"]], "remaining": remaining, "display": f"{remaining // 60:02d}:{remaining % 60:02d}", "total": total, "config": cfg}
+
+
+def main():
+    parser = argparse.ArgumentParser(description="MAGI mission focus-cycle timer")
+    sub = parser.add_subparsers(dest="command")
+    sub.add_parser("status").add_argument("--json", action="store_true")
+    sub.add_parser("start")
+    sub.add_parser("toggle")
+    sub.add_parser("pause")
+    sub.add_parser("resume")
+    sub.add_parser("skip")
+    sub.add_parser("abort")
+    configure = sub.add_parser("configure")
+    configure.add_argument("--work", type=int)
+    configure.add_argument("--break-minutes", type=int)
+    configure.add_argument("--long-break", type=int)
+    configure.add_argument("--cycles", type=int)
+    configure.add_argument("--sound", choices=("on", "off"))
+    preview = sub.add_parser("preview")
+    preview.add_argument("--seconds", type=int, default=8)
+    args = parser.parse_args()
+    command = args.command or "status"
+    value = current()
+    cfg = config()
+    if command == "start":
+        value = {"phase": "work", "cycle": 0, "running": True, "paused": False, "remaining": cfg["work_minutes"] * 60, "deadline": time.time() + cfg["work_minutes"] * 60}
+        save(value); notify("MISSION ACTIVE", "Focus cycle 1 authorized. Eva launch sequence complete.")
+    elif command in {"toggle", "pause", "resume"}:
+        should_resume = command == "resume" or (command == "toggle" and value.get("paused"))
+        if should_resume and value.get("paused"):
+            value["paused"] = False; value["running"] = True; value["deadline"] = time.time() + value["remaining"]; save(value)
+        elif command != "resume" and value.get("running") and not value.get("paused"):
+            value["remaining"] = max(0, int(value["deadline"] - time.time()) + 1); value["paused"] = True; save(value)
+        elif command == "toggle" and value["phase"] in {"sortie", "complete"}:
+            value = {"phase": "work", "cycle": 0, "running": True, "paused": False, "remaining": cfg["work_minutes"] * 60, "deadline": time.time() + cfg["work_minutes"] * 60}; save(value)
+    elif command == "skip" and value.get("running"):
+        value["deadline"] = time.time(); save(value); value = advance(value)
+    elif command == "abort":
+        value = initial(); save(value); notify("MISSION ABORTED", "Focus cycle safely terminated.", "critical")
+    elif command == "configure":
+        mapping = {"work_minutes": args.work, "break_minutes": args.break_minutes, "long_break_minutes": args.long_break, "cycles": args.cycles}
+        cfg.update({key: val for key, val in mapping.items() if val is not None})
+        if args.sound is not None: cfg["sound"] = args.sound == "on"
+        CONFIG_FILE.parent.mkdir(parents=True, exist_ok=True); CONFIG_FILE.write_text(json.dumps(cfg, indent=2) + "\n")
+    elif command == "preview":
+        seconds = max(3, min(30, args.seconds)); value = {"phase": "work", "cycle": 0, "running": True, "paused": False, "remaining": seconds, "deadline": time.time() + seconds}; save(value)
+    output = snapshot(current())
+    if command == "status" and not args.json:
+        print(f"{output['label']} // {output['display']} // CYCLE {min(output['cycle'] + 1, output['config']['cycles'])}/{output['config']['cycles']}")
+    else:
+        print(json.dumps(output, separators=(",", ":")))
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

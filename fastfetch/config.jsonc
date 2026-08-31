@@ -1,0 +1,26 @@
+{
+  "$schema": "https://github.com/fastfetch-cli/fastfetch/raw/dev/doc/json_schema.json",
+  "logo": {
+    "type": "data",
+    "source": "\u001b[38;2;156;242;58m      /\\\\      /\\\\      /\\\\\n\u001b[38;2;143;75;200m     /M \\\\    /B \\\\    /C \\\\\n\u001b[38;2;213;32;50m    /___\\\\  /___\\\\  /___\\\\\n\u001b[38;2;156;242;58m     MEL      BAL      CAS",
+    "padding": { "top": 1, "right": 3, "left": 1 }
+  },
+  "display": { "separator": "  ", "disableLinewrap": true },
+  "modules": [
+    { "type": "custom", "format": "\u001b[38;2;213;32;50m━━ MAGI SYSTEM STATUS ━━" },
+    { "type": "title", "key": "\u001b[38;2;156;242;58mPILOT" },
+    { "type": "separator", "string": "\u001b[38;2;75;40;109m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━" },
+    { "type": "os", "key": "\u001b[38;2;143;75;200mSYSTEM" },
+    { "type": "host", "key": "\u001b[38;2;143;75;200mHOST" },
+    { "type": "kernel", "key": "\u001b[38;2;143;75;200mKERNEL" },
+    { "type": "wm", "key": "\u001b[38;2;143;75;200mWM" },
+    { "type": "terminal", "key": "\u001b[38;2;143;75;200mTERM" },
+    { "type": "cpu", "key": "\u001b[38;2;156;242;58mCPU", "format": "{name}" },
+    { "type": "gpu", "key": "\u001b[38;2;156;242;58mGPU", "detectionMethod": "pci", "format": "{name}" },
+    { "type": "memory", "key": "\u001b[38;2;156;242;58mMEMORY" },
+    { "type": "disk", "key": "\u001b[38;2;242;140;40mDISK" },
+    { "type": "uptime", "key": "\u001b[38;2;242;140;40mUPTIME" },
+    { "type": "command", "key": "\u001b[38;2;213;32;50mTHEME", "text": "omarchy theme current" },
+    { "type": "custom", "format": "\u001b[38;2;213;32;50m━━ ALL THREE SYSTEMS: OPERATIONAL ━━" }
+  ]
+}

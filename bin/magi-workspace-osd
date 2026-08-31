@@ -1,0 +1,40 @@
+#!/usr/bin/env bash
+
+set -u
+
+state_dir="${XDG_STATE_HOME:-$HOME/.local/state}/evangelion-rice/workspace-osd"
+disabled_file="$state_dir/disabled"
+
+reload_plugin() {
+  omarchy-shell -q workspace-osd reload >/dev/null 2>&1 || true
+}
+
+case "${1:-status}" in
+  enable)
+    mkdir -p "$state_dir"
+    rm -f "$disabled_file"
+    reload_plugin
+    echo "Workspace transition OSD enabled"
+    ;;
+  disable)
+    mkdir -p "$state_dir"
+    touch "$disabled_file"
+    reload_plugin
+    echo "Workspace transition OSD disabled"
+    ;;
+  toggle)
+    if [[ -e $disabled_file ]]; then exec "$0" enable; else exec "$0" disable; fi
+    ;;
+  status)
+    [[ -e $disabled_file ]] && echo disabled || echo enabled
+    ;;
+  preview)
+    workspace="${2:-1}"
+    [[ $workspace =~ ^[1-9][0-9]*$ ]] || { echo "Workspace must be a positive number" >&2; exit 2; }
+    omarchy-shell workspace-osd preview "$workspace"
+    ;;
+  *)
+    echo "Usage: magi-workspace-osd [enable|disable|toggle|status|preview [workspace]]" >&2
+    exit 2
+    ;;
+esac

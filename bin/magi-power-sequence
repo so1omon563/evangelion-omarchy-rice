@@ -1,0 +1,15 @@
+#!/usr/bin/env bash
+set -u
+
+case ${1:-status} in
+  status) omarchy-shell power-sequence state ;;
+  preview)
+    case ${2:-ac} in
+      ac|umbilical) omarchy-shell power-sequence preview ac ;;
+      battery|internal) omarchy-shell power-sequence preview battery ;;
+      *) echo 'Preview must be ac or battery' >&2; exit 2 ;;
+    esac
+    ;;
+  hide) omarchy-shell power-sequence hide ;;
+  *) echo 'Usage: magi-power-sequence {status|preview [ac|battery]|hide}' >&2; exit 2 ;;
+esac

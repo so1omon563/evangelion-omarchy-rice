@@ -1,0 +1,9 @@
+{
+  "path_rules": [
+    {"path": "~/Work/evangelion-rice", "profile": "magi"}
+  ],
+  "marker_rules": [
+    {"markers": [".terraform", "terraform.tf", "ansible.cfg", "compose.yml", "docker-compose.yml", "Dockerfile"], "profile": "engineering"},
+    {"markers": [".git", "Cargo.toml", "go.mod", "package.json", "pyproject.toml", "Gemfile"], "profile": "eva-01"}
+  ]
+}

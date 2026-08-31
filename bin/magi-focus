@@ -1,0 +1,148 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+state_dir="${XDG_STATE_HOME:-$HOME/.local/state}/evangelion-rice/at-field"
+snapshot_dir="$state_dir/snapshot"
+active_file="$state_dir/active"
+user_shell="$HOME/.config/omarchy/shell.toml"
+
+dnd_state() {
+  local value
+  value=$(omarchy-shell notifications dndState 2>/dev/null || true)
+  if [[ $value == on || $value == off ]]; then
+    printf '%s\n' "$value"
+  elif [[ -r ${XDG_STATE_HOME:-$HOME/.local/state}/omarchy/notifications.json ]]; then
+    jq -r 'if .dnd == true then "on" else "off" end' "${XDG_STATE_HOME:-$HOME/.local/state}/omarchy/notifications.json"
+  else
+    printf '%s\n' off
+  fi
+}
+
+set_dnd() {
+  [[ $(omarchy-shell notifications setDnd "$1" 2>/dev/null) == "$1" ]]
+}
+
+capture_border() {
+  if [[ -n ${HYPRLAND_INSTANCE_SIGNATURE:-} ]] && hyprctl version >/dev/null 2>&1; then
+    hyprctl getoption "$1" -j | jq -r '.gradient // empty'
+  fi
+}
+
+set_border_lua() {
+  local option=$1 value=$2
+  hyprctl eval "hl.config({ [\"${option/general:/general.}\"] = $value })" >/dev/null
+}
+
+restore_border() {
+  local option=$1 gradient=$2 token alpha rgb angle=0 colors=""
+  [[ -z $gradient ]] && return 0
+  for token in $gradient; do
+    if [[ $token == *deg ]]; then
+      angle=${token%deg}
+    else
+      token=${token#0x}
+      alpha=${token:0:2}
+      rgb=${token:2:6}
+      [[ -n $colors ]] && colors+=", "
+      colors+="\"rgba(${rgb}${alpha})\""
+    fi
+  done
+  set_border_lua "$option" "{ colors = { $colors }, angle = $angle }"
+}
+
+write_focus_shell() {
+  local source=${1:-/dev/null} destination=$2
+  awk '
+    BEGIN { in_bar=0; saw_bar=0 }
+    /^\[bar\][[:space:]]*$/ {
+      print
+      print "background = \"#090704\""
+      print "background-alpha = 0.96"
+      print "text = \"#D8CDB5\""
+      print "active = \"#F6A52F\""
+      in_bar=1; saw_bar=1; next
+    }
+    /^\[/ { in_bar=0 }
+    in_bar && /^[[:space:]]*(background|background-alpha|text|active)[[:space:]]*=/ { next }
+    { print }
+    END {
+      if (!saw_bar) {
+        print ""
+        print "[bar]"
+        print "background = \"#090704\""
+        print "background-alpha = 0.96"
+        print "text = \"#D8CDB5\""
+        print "active = \"#F6A52F\""
+      }
+    }
+  ' "$source" > "$destination"
+}
+
+restore_shell() {
+  if [[ -f $snapshot_dir/shell.existed ]]; then
+    install -m 0644 "$snapshot_dir/shell.toml" "$user_shell"
+  else
+    rm -f "$user_shell"
+  fi
+}
+
+enable() {
+  [[ -f $active_file ]] && { echo 'AT Field: active'; return 0; }
+  rm -rf "$snapshot_dir"
+  mkdir -p "$snapshot_dir" "$(dirname "$user_shell")"
+
+  dnd_state > "$snapshot_dir/dnd"
+  if [[ -f $user_shell ]]; then
+    cp "$user_shell" "$snapshot_dir/shell.toml"
+    touch "$snapshot_dir/shell.existed"
+  fi
+  capture_border general:col.active_border > "$snapshot_dir/active-border"
+  capture_border general:col.inactive_border > "$snapshot_dir/inactive-border"
+
+  tmp=$(mktemp "$state_dir/shell.XXXXXX")
+  trap 'rm -f "$tmp"' RETURN
+  shell_source=/dev/null
+  [[ -f $user_shell ]] && shell_source=$user_shell
+  write_focus_shell "$shell_source" "$tmp"
+
+  if ! install -m 0644 "$tmp" "$user_shell" ||
+     ! set_dnd on ||
+     ! set_border_lua general:col.active_border '{ colors = { "rgba(F6A52Fee)", "rgba(FFD166ee)" }, angle = 45 }' ||
+     ! set_border_lua general:col.inactive_border '"rgba(66563299)"'; then
+    restore_shell || true
+    set_dnd "$(cat "$snapshot_dir/dnd")" || true
+    restore_border general:col.active_border "$(cat "$snapshot_dir/active-border")" || true
+    restore_border general:col.inactive_border "$(cat "$snapshot_dir/inactive-border")" || true
+    echo 'AT Field activation failed; previous state restored.' >&2
+    return 1
+  fi
+
+  touch "$active_file"
+  omarchy-notification-send -u low -g '󰭟' 'A.T. FIELD // ACTIVE' 'Non-critical communications suppressed' 2>/dev/null || true
+  echo 'AT Field: active'
+}
+
+disable() {
+  [[ -f $active_file ]] || { echo 'AT Field: inactive'; return 0; }
+  local failed=0
+  restore_shell || failed=1
+  set_dnd "$(cat "$snapshot_dir/dnd")" || failed=1
+  restore_border general:col.active_border "$(cat "$snapshot_dir/active-border")" || failed=1
+  restore_border general:col.inactive_border "$(cat "$snapshot_dir/inactive-border")" || failed=1
+  if (( failed )); then
+    echo 'AT Field restoration incomplete; mode remains active for retry.' >&2
+    return 1
+  fi
+  rm -f "$active_file"
+  rm -rf "$snapshot_dir"
+  omarchy-notification-send -u low -g '󰅖' 'A.T. FIELD // RELEASED' 'Normal communications restored' 2>/dev/null || true
+  echo 'AT Field: inactive'
+}
+
+case ${1:-toggle} in
+  toggle) if [[ -f $active_file ]]; then disable; else enable; fi ;;
+  on|enable) enable ;;
+  off|disable) disable ;;
+  status) if [[ -f $active_file ]]; then echo active; else echo inactive; fi ;;
+  *) echo 'Usage: magi-focus {toggle|on|off|status}' >&2; exit 2 ;;
+esac

@@ -1,0 +1,17 @@
+# Personal validation material and pre-project snapshots
+/captures/
+/validation/
+/backups/
+
+# Generated Python and editor state
+**/__pycache__/
+*.py[cod]
+*.swp
+*~
+
+# Local state, secrets, and environment overrides
+.env
+.env.*
+!.env.example
+*.local
+*.log

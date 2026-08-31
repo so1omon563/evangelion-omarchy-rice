@@ -1,0 +1,100 @@
+#!/usr/bin/env python3
+"""Low-overhead NERV system health snapshot."""
+
+import argparse, json, os, shutil, subprocess, time
+from pathlib import Path
+
+STATE_DIR = Path(os.environ.get("XDG_STATE_HOME", Path.home()/".local/state"))/"evangelion-rice"
+CACHE = STATE_DIR/"health-updates.json"; PREVIEW = STATE_DIR/"health-preview.json"
+
+def run(args, timeout=5):
+    try: return subprocess.run(args,text=True,capture_output=True,timeout=timeout).stdout.strip()
+    except (OSError,subprocess.SubprocessError): return ""
+
+def item(name, available, value, detail, tier="nominal", action="No action required"):
+    return {"name":name,"available":available,"value":value,"detail":detail,"tier":tier,"action":action}
+
+def temperature():
+    vals=[]
+    for hw in Path("/sys/class/hwmon").glob("hwmon*"):
+        try:
+            if (hw/"name").read_text().strip() != "coretemp": continue
+            vals += [float(p.read_text())/1000 for p in hw.glob("temp*_input")]
+        except (OSError,ValueError): pass
+    if not vals: return item("THERMAL",False,"--","No supported CPU sensor")
+    value=max(v for v in vals if 5 <= v <= 120); tier="critical" if value>=95 else "warning" if value>=85 else "nominal"
+    return item("THERMAL",True,f"{value:.0f}°C","CPU package",tier,"Stop sustained load and check airflow" if tier!="nominal" else "No action required")
+
+def memory():
+    data={}
+    try:
+        for line in Path("/proc/meminfo").read_text().splitlines():
+            key,val=line.split(":",1); data[key]=int(val.split()[0])
+        used=100*(1-data["MemAvailable"]/data["MemTotal"]); tier="critical" if used>=95 else "warning" if used>=85 else "nominal"
+        return item("MEMORY",True,f"{used:.0f}%",f"{data['MemAvailable']//1048576:.1f} GiB available",tier,"Close memory-heavy applications" if tier!="nominal" else "No action required")
+    except (OSError,ValueError,KeyError): return item("MEMORY",False,"--","Pressure data unavailable")
+
+def storage():
+    try:
+        d=shutil.disk_usage(Path.home()); used=100*d.used/d.total; tier="critical" if used>=95 else "warning" if used>=85 else "nominal"
+        return item("STORAGE",True,f"{used:.0f}%",f"{d.free/1073741824:.1f} GiB free",tier,"Free space in the home filesystem" if tier!="nominal" else "No action required")
+    except OSError: return item("STORAGE",False,"--","Filesystem data unavailable")
+
+def battery():
+    bats=[p for p in Path("/sys/class/power_supply").glob("BAT*") if (p/"capacity").exists()]
+    if not bats: return item("BATTERY",False,"--","No battery reported")
+    b=bats[0]
+    try:
+        charge=int((b/"capacity").read_text()); status=(b/"status").read_text().strip(); health=None
+        for full,design in (("energy_full","energy_full_design"),("charge_full","charge_full_design")):
+            if (b/full).exists() and (b/design).exists(): health=100*int((b/full).read_text())/int((b/design).read_text()); break
+        tier="critical" if status=="Discharging" and charge<=7 else "warning" if status=="Discharging" and charge<=15 else "warning" if health is not None and health<70 else "nominal"
+        detail=status+(f" · health {health:.0f}%" if health is not None else "")
+        return item("BATTERY",True,f"{charge}%",detail,tier,"Connect power or review battery condition" if tier!="nominal" else "No action required")
+    except (OSError,ValueError,ZeroDivisionError): return item("BATTERY",False,"--","Battery data unavailable")
+
+def services():
+    out=run(["systemctl","--user","--failed","--no-legend","--plain"],4)
+    names=[line.split()[0] for line in out.splitlines() if line.strip() and ".service" in line]
+    return item("SERVICES",True,str(len(names)),", ".join(names[:3]) if names else "User services nominal","warning" if names else "nominal","Run systemctl --user --failed" if names else "No action required")
+
+def connectivity():
+    if not shutil.which("nmcli"): return item("UPLINK",False,"--","NetworkManager unavailable")
+    value=run(["nmcli","-t","networking","connectivity","check"],8) or "unknown"
+    tier="warning" if value in {"none","limited","portal"} else "nominal"
+    return item("UPLINK",True,value.upper(),"NetworkManager connectivity",tier,"Open Network control and verify the route" if tier!="nominal" else "No action required")
+
+def updates():
+    try:
+        cache=json.loads(CACHE.read_text())
+        if time.time()-cache["checked_at"] < 900: count=cache["count"]
+        else: raise ValueError
+    except (OSError,ValueError,KeyError,json.JSONDecodeError):
+        if not shutil.which("checkupdates"): return item("UPDATES",False,"--","checkupdates unavailable")
+        output=run(["checkupdates"],20); count=len(output.splitlines()) if output else 0
+        STATE_DIR.mkdir(parents=True,exist_ok=True); CACHE.write_text(json.dumps({"count":count,"checked_at":time.time()}))
+    return item("UPDATES",True,str(count),"Packages available" if count else "System current","info" if count else "nominal","Open MAGI System Update" if count else "No action required")
+
+def snapshot():
+    rows=[temperature(),memory(),storage(),battery(),services(),connectivity(),updates()]
+    try:
+        p=json.loads(PREVIEW.read_text())
+        if p["expires"]>time.time(): rows[1]=item("MEMORY",True,"92%","Preview pressure","warning","Close memory-heavy applications")
+        else: PREVIEW.unlink(missing_ok=True)
+    except (OSError,ValueError,KeyError,json.JSONDecodeError): pass
+    rank={"nominal":0,"info":0,"warning":1,"critical":2}; level=max(rows,key=lambda r:rank[r["tier"]])["tier"]
+    if level=="info": level="nominal"
+    issues=sum(r["tier"] in {"warning","critical"} for r in rows)
+    return {"level":level,"issues":issues,"summary":"NOMINAL" if not issues else f"{issues} ALERT"+("S" if issues!=1 else ""),"items":rows,"checked_at":int(time.time())}
+
+def main():
+    p=argparse.ArgumentParser(); sub=p.add_subparsers(dest="command"); s=sub.add_parser("status"); s.add_argument("--json",action="store_true"); pr=sub.add_parser("preview"); pr.add_argument("--seconds",type=int,default=30); args=p.parse_args(); command=args.command or "status"
+    if command=="preview":
+        STATE_DIR.mkdir(parents=True,exist_ok=True); PREVIEW.write_text(json.dumps({"expires":time.time()+max(5,min(120,args.seconds))}))
+    value=snapshot()
+    if command=="status" and not args.json:
+        print(f"SYSTEM // {value['summary']}")
+        for r in value["items"]: print(f"{r['name']:<10} {r['value']:<8} {r['detail']}")
+    else: print(json.dumps(value,separators=(",",":")))
+
+if __name__=="__main__": main()

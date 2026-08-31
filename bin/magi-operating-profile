@@ -1,0 +1,176 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+state_dir="${XDG_STATE_HOME:-$HOME/.local/state}/evangelion-rice/operating-profile"
+config="${XDG_CONFIG_HOME:-$HOME/.config}/omarchy/operating-profiles.json"
+shell_config="${XDG_CONFIG_HOME:-$HOME/.config}/omarchy/shell.toml"
+mode_file="$state_dir/mode"
+active_file="$state_dir/active"
+mobile_wallpaper_file="$state_dir/mobile-wallpaper"
+mkdir -p "$state_dir"
+
+default_config='{"docked":{"power_profile":"performance","bar_size":30,"audio_target":"external","wallpaper":"3-magi-tokyo3.png","display_layout":"extend-right"},"mobile":{"power_profile":"balanced","bar_size":26,"audio_target":"internal","wallpaper":"restore","display_layout":"internal"}}'
+
+read_config() {
+  if [[ -r $config ]] && jq -e '(.docked|type)=="object" and (.mobile|type)=="object"' "$config" >/dev/null 2>&1; then
+    cat "$config"
+  else
+    printf '%s\n' "$default_config"
+  fi
+}
+
+mode() {
+  local value=auto
+  [[ -r $mode_file ]] && read -r value < "$mode_file"
+  case $value in auto|docked|mobile) printf '%s\n' "$value" ;; *) printf '%s\n' auto ;; esac
+}
+
+monitor_json() {
+  local value
+  value=$(hyprctl monitors -j 2>/dev/null || true)
+  if jq -e 'type == "array"' >/dev/null 2>&1 <<< "$value"; then
+    printf '%s\n' "$value"
+  else
+    printf '[]\n'
+  fi
+}
+is_internal() { [[ $1 == eDP-* || $1 == LVDS-* || $1 == DSI-* ]]; }
+
+detected_profile() {
+  local output
+  while IFS= read -r output; do
+    if ! is_internal "$output"; then printf '%s\n' docked; return; fi
+  done < <(monitor_json | jq -r '.[].name')
+  printf '%s\n' mobile
+}
+
+effective_profile() {
+  local selected
+  selected=$(mode)
+  [[ $selected == auto ]] && detected_profile || printf '%s\n' "$selected"
+}
+
+profile_value() { read_config | jq -r --arg p "$1" --arg k "$2" '.[$p][$k] // empty'; }
+
+set_bar_size() {
+  local size=$1 source=/dev/null tmp
+  [[ $size =~ ^[0-9]+$ ]] || return 0
+  [[ -r $shell_config ]] && source=$shell_config
+  tmp=$(mktemp "$state_dir/shell.XXXXXX")
+  awk -v size="$size" '
+    BEGIN { in_bar=0; saw_bar=0 }
+    /^\[bar\][[:space:]]*$/ { print; print "size-horizontal = " size; print "size-vertical = " size; in_bar=1; saw_bar=1; next }
+    /^\[/ { in_bar=0 }
+    in_bar && /^[[:space:]]*(size-horizontal|size-vertical)[[:space:]]*=/ { next }
+    { print }
+    END { if (!saw_bar) { print ""; print "[bar]"; print "size-horizontal = " size; print "size-vertical = " size } }
+  ' "$source" > "$tmp"
+  install -m 0644 "$tmp" "$shell_config"
+  rm -f "$tmp"
+}
+
+set_power_profile() {
+  local requested=$1
+  command -v powerprofilesctl >/dev/null || return 0
+  powerprofilesctl list 2>/dev/null | sed -n 's/^\**[[:space:]]*\([^:]*\):.*/\1/p' | grep -Fxq "$requested" || return 0
+  [[ $(powerprofilesctl get 2>/dev/null || true) == "$requested" ]] || powerprofilesctl set "$requested"
+}
+
+set_audio_target() {
+  local target=$1 sinks chosen=""
+  command -v pactl >/dev/null || return 0
+  sinks=$(pactl -f json list sinks 2>/dev/null) || return 0
+  case $target in
+    internal) chosen=$(jq -r '[.[] | select(.properties["device.form_factor"]=="internal" or .properties["device.bus"]=="pci")][0].name // empty' <<< "$sinks") ;;
+    external) chosen=$(jq -r '[.[] | select(.properties["device.form_factor"]!="internal" and .properties["device.bus"]!="pci")][0].name // empty' <<< "$sinks") ;;
+    keep|"") return 0 ;;
+    *) chosen=$target ;;
+  esac
+  [[ -z $chosen ]] || pactl set-default-sink "$chosen"
+  return 0
+}
+
+current_wallpaper() { readlink -f "${XDG_STATE_HOME:-$HOME/.local/state}/omarchy/current/background" 2>/dev/null || true; }
+
+set_wallpaper() {
+  local profile=$1 requested=$2 current target=""
+  current=$(current_wallpaper)
+  if [[ $profile == docked && -n $current && ! -e $mobile_wallpaper_file ]]; then
+    printf '%s\n' "$current" > "$mobile_wallpaper_file"
+  fi
+  case $requested in
+    keep|"") return 0 ;;
+    restore)
+      [[ -r $mobile_wallpaper_file ]] && read -r target < "$mobile_wallpaper_file"
+      ;;
+    /*) target=$requested ;;
+    *) target="${XDG_STATE_HOME:-$HOME/.local/state}/omarchy/current/theme/backgrounds/$requested" ;;
+  esac
+  if [[ -f $target && $target != "$current" ]]; then omarchy-theme-bg-set "$target" >/dev/null; fi
+  [[ $profile == mobile ]] && rm -f "$mobile_wallpaper_file"
+  return 0
+}
+
+arrange_displays() {
+  local profile=$1 layout=$2 internal external width
+  internal=$(monitor_json | jq -r '[.[]|select(.name|test("^(eDP|LVDS|DSI)-"))][0].name // empty')
+  external=$(monitor_json | jq -r '[.[]|select(.name|test("^(eDP|LVDS|DSI)-")|not)][0].name // empty')
+  [[ $profile == docked && $layout == extend-right && -n $internal && -n $external ]] || return 0
+  width=$(monitor_json | jq -r --arg name "$internal" '.[]|select(.name==$name)|(.width/.scale|floor)')
+  hyprctl eval "hl.monitor({ output = \"$internal\", mode = \"preferred\", position = \"0x0\", scale = 1 })" >/dev/null
+  hyprctl eval "hl.monitor({ output = \"$external\", mode = \"preferred\", position = \"${width}x0\", scale = 1 })" >/dev/null
+}
+
+rescue_windows() {
+  local monitors clients target address monitor workspace valid
+  monitors=$(monitor_json); clients=$(hyprctl clients -j 2>/dev/null || printf '[]\n')
+  target=$(jq -r '[.[]|select(.name|test("^(eDP|LVDS|DSI)-"))][0].name // .[0].name // empty' <<< "$monitors")
+  [[ -n $target ]] || return 0
+  while IFS=$'\t' read -r address monitor workspace; do
+    [[ -n $address && $workspace =~ ^[1-9][0-9]*$ ]] || continue
+    valid=$(jq -r --argjson id "$monitor" 'any(.[]; .id==$id)' <<< "$monitors")
+    [[ $valid == true ]] && continue
+    hyprctl eval "hl.dsp.window.move({ monitor = \"$target\", follow = false, window = \"address:$address\" })" >/dev/null || true
+  done < <(jq -r '.[]|[.address,(.monitor|tostring),(.workspace.id|tostring)]|@tsv' <<< "$clients")
+}
+
+apply_profile() {
+  local profile cfg power bar audio wallpaper layout prior
+  profile=$(effective_profile); cfg=$(read_config); prior=$(cat "$active_file" 2>/dev/null || true)
+  power=$(jq -r --arg p "$profile" '.[$p].power_profile // empty' <<< "$cfg")
+  bar=$(jq -r --arg p "$profile" '.[$p].bar_size // empty' <<< "$cfg")
+  audio=$(jq -r --arg p "$profile" '.[$p].audio_target // empty' <<< "$cfg")
+  wallpaper=$(jq -r --arg p "$profile" '.[$p].wallpaper // empty' <<< "$cfg")
+  layout=$(jq -r --arg p "$profile" '.[$p].display_layout // empty' <<< "$cfg")
+  arrange_displays "$profile" "$layout"
+  rescue_windows
+  set_power_profile "$power"
+  set_audio_target "$audio"
+  set_bar_size "$bar"
+  if [[ $prior != "$profile" ]]; then set_wallpaper "$profile" "$wallpaper"; fi
+  printf '%s\n' "$profile" > "$active_file"
+  [[ $prior == "$profile" ]] || omarchy-notification-send -u low -g '󰍹' "OPERATING PROFILE // ${profile^^}" "Power, display, audio, and interface synchronized" 2>/dev/null || true
+  printf '%s\n' "$profile"
+}
+
+show_status() {
+  printf 'mode=%s\ndetected=%s\neffective=%s\nactive=%s\n' "$(mode)" "$(detected_profile)" "$(effective_profile)" "$(cat "$active_file" 2>/dev/null || echo none)"
+}
+
+show_plan() {
+  local profile; profile=$(effective_profile)
+  printf 'mode=%s\ndetected=%s\neffective=%s\n' "$(mode)" "$(detected_profile)" "$profile"
+  read_config | jq --arg p "$profile" '.[$p]'
+}
+
+case ${1:-apply} in
+  apply) apply_profile ;;
+  auto|docked|mobile)
+    printf '%s\n' "$1" > "$mode_file"
+    apply_profile >/dev/null
+    show_status
+    ;;
+  status) show_status ;;
+  plan) show_plan ;;
+  *) echo 'Usage: magi-operating-profile {apply|auto|docked|mobile|status|plan}' >&2; exit 2 ;;
+esac

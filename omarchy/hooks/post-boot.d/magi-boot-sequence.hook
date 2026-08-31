@@ -1,0 +1,4 @@
+#!/usr/bin/env bash
+
+# Never make the post-boot hook runner wait for presentation effects.
+setsid -f magi-boot-sequence run >/dev/null 2>&1

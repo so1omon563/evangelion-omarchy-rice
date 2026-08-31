@@ -1,0 +1,9 @@
+{
+  "warning_c": 85,
+  "critical_c": 95,
+  "warning_clear_c": 78,
+  "critical_clear_c": 88,
+  "warning_cooldown_seconds": 1200,
+  "critical_cooldown_seconds": 300,
+  "poll_seconds": 30
+}

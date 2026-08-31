@@ -1,0 +1,109 @@
+#!/bin/bash
+
+set -u
+
+presentation_prefix="org.omarchy.magi."
+
+current_background_path() {
+  readlink -f "$HOME/.local/state/omarchy/current/background" 2>/dev/null || true
+}
+
+layout_for_background() {
+  local background_name=${1##*/}
+
+  # side width_pct top_height_pct: every bundled composition has intentional
+  # negative space on the left, but its safe width differs by focal artwork.
+  case "$background_name" in
+    1-nerv-command.*) printf '%s\n' "left 36 37 Nerv Command" ;;
+    2-eva-unit-01.*)  printf '%s\n' "left 43 38 EVA Unit 01" ;;
+    3-magi-tokyo3.*)  printf '%s\n' "left 39 37 MAGI Tokyo-3" ;;
+    4-angel-alert.*)  printf '%s\n' "left 43 38 Angel Alert" ;;
+    5-eva-unit-00-prototype.*) printf '%s\n' "left 45 38 EVA Unit 00 Prototype" ;;
+    6-eva-unit-00-refit.*)     printf '%s\n' "left 45 38 EVA Unit 00 Refit" ;;
+    7-eva-unit-02.*)           printf '%s\n' "left 44 38 EVA Unit 02" ;;
+    *)                printf '%s\n' "left 38 37 safe fallback" ;;
+  esac
+}
+
+if [[ ${1:-} == "--print-layout" ]]; then
+  background_path=${2:-$(current_background_path)}
+  read -r side width_pct top_height_pct layout_name < <(layout_for_background "$background_path")
+  printf 'background=%s\nprofile=%s\nside=%s\nwidth=%s%%\ntop-height=%s%%\n' \
+    "${background_path:-Unknown}" "$layout_name" "$side" "$width_pct" "$top_height_pct"
+  exit 0
+fi
+
+mapfile -t presentation_pids < <(
+  hyprctl clients -j | jq -r --arg prefix "$presentation_prefix" '
+    .[] | select((.class // "") | startswith($prefix)) | .pid
+  '
+)
+
+if (( ${#presentation_pids[@]} > 0 )); then
+  for pid in "${presentation_pids[@]}"; do
+    kill "$pid"
+  done
+  omarchy-notification-send -g "󰍹" "MAGI PRESENTATION" "Presentation terminals dismissed"
+  exit 0
+fi
+
+hyprctl dispatch 'hl.dsp.focus({ workspace = "5" })' >/dev/null
+
+background_path=$(current_background_path)
+read -r side width_pct top_height_pct layout_name < <(layout_for_background "$background_path")
+
+setsid -f ghostty \
+  --gtk-single-instance=false \
+  --class=org.omarchy.magi.fastfetch \
+  --title="MAGI · SYSTEM STATUS" \
+  --font-size=9.5 \
+  --background-opacity=0.88 \
+  -e bash -lc 'fastfetch; printf "\n\033[38;2;156;242;58mMAGI console ready.\033[0m\n"; magi-media status; exec bash' &
+
+setsid -f ghostty \
+  --gtk-single-instance=false \
+  --class=org.omarchy.magi.btop \
+  --title="MAGI · RESOURCE MONITOR" \
+  --font-size=10.5 \
+  --background-opacity=0.88 \
+  -e btop &
+
+# The window rules establish floating/workspace behavior immediately. Once both
+# clients are mapped, refine their geometry for the active wallpaper and monitor.
+for _ in {1..60}; do
+  clients=$(hyprctl clients -j 2>/dev/null) || clients='[]'
+  fastfetch_address=$(jq -r '.[] | select(.class == "org.omarchy.magi.fastfetch") | .address' <<<"$clients" | head -n1)
+  btop_address=$(jq -r '.[] | select(.class == "org.omarchy.magi.btop") | .address' <<<"$clients" | head -n1)
+  [[ -n $fastfetch_address && -n $btop_address ]] && break
+  sleep 0.1
+done
+
+if [[ -n ${fastfetch_address:-} && -n ${btop_address:-} ]]; then
+  monitor=$(hyprctl monitors -j | jq -c 'map(select(.focused))[0] // .[0]')
+  monitor_x=$(jq -r '.x' <<<"$monitor")
+  monitor_y=$(jq -r '.y' <<<"$monitor")
+  monitor_width=$(jq -r '.width / .scale | floor' <<<"$monitor")
+  monitor_height=$(jq -r '.height / .scale | floor' <<<"$monitor")
+
+  margin=$((monitor_width * 12 / 1000 + 12))
+  top=$((monitor_y + 48))
+  bottom_margin=20
+  gap=14
+  panel_width=$((monitor_width * width_pct / 100))
+  usable_height=$((monitor_height - 48 - bottom_margin - gap))
+  top_height=$((usable_height * top_height_pct / 100))
+  bottom_height=$((usable_height - top_height))
+
+  if [[ $side == left ]]; then
+    left=$((monitor_x + margin))
+  else
+    left=$((monitor_x + monitor_width - panel_width - margin))
+  fi
+
+  hyprctl dispatch resizewindowpixel "exact $panel_width $top_height,address:$fastfetch_address" >/dev/null
+  hyprctl dispatch movewindowpixel "exact $left $top,address:$fastfetch_address" >/dev/null
+  hyprctl dispatch resizewindowpixel "exact $panel_width $bottom_height,address:$btop_address" >/dev/null
+  hyprctl dispatch movewindowpixel "exact $left $((top + top_height + gap)),address:$btop_address" >/dev/null
+fi
+
+omarchy-notification-send -g "󱚣" "MAGI PRESENTATION" "Workspace 05 · $layout_name layout initialized"

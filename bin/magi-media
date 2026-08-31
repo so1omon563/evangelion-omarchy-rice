@@ -1,0 +1,57 @@
+#!/usr/bin/env bash
+
+set -u
+
+action=${1:-status}
+
+mapfile -t players < <(playerctl -l 2>/dev/null | awk '!seen[$0]++')
+
+select_player() {
+  local player state
+
+  for player in "${players[@]}"; do
+    [[ $player == playerctld ]] && {
+      printf '%s\n' "$player"
+      return
+    }
+  done
+
+  for player in "${players[@]}"; do
+    state=$(playerctl --player="$player" status 2>/dev/null || true)
+    [[ $state == Playing ]] && {
+      printf '%s\n' "$player"
+      return
+    }
+  done
+
+  ((${#players[@]})) && printf '%s\n' "${players[0]}"
+}
+
+player=$(select_player)
+
+if [[ -z $player ]]; then
+  [[ $action == status ]] && echo "NOW PLAYING // NO ACTIVE SOURCE"
+  exit 0
+fi
+
+case "$action" in
+  play-pause|toggle)
+    playerctl --player="$player" play-pause >/dev/null 2>&1 || true
+    ;;
+  next|previous|stop|play|pause)
+    playerctl --player="$player" "$action" >/dev/null 2>&1 || true
+    ;;
+  status)
+    metadata=$(playerctl --player="$player" metadata --format '{{title}}|||{{artist}}' 2>/dev/null || true)
+    title=${metadata%%|||*}
+    artist=${metadata#*|||}
+    state=$(playerctl --player="$player" status 2>/dev/null || echo Stopped)
+    [[ -z $title ]] && title="NO TRACK METADATA"
+    [[ -n $artist ]] && title="$title  ·  $artist"
+    printf 'NOW PLAYING // %s // %s\n' "${state^^}" "$title"
+    ;;
+  *)
+    echo "Usage: magi-media [play-pause|next|previous|stop|play|pause|status]" >&2
+    exit 2
+    ;;
+esac

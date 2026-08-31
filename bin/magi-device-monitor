@@ -1,0 +1,45 @@
+#!/usr/bin/env python3
+import json, os, subprocess, sys
+from pathlib import Path
+
+STATE = Path(os.environ.get("XDG_STATE_HOME", Path.home()/".local/state"))/"evangelion-rice/device-osd"
+
+def classify(p):
+    if p.get("ID_BUS") != "usb" or p.get("ACTION") not in {"add", "remove"}: return None
+    action = "connected" if p["ACTION"] == "add" else "disconnected"
+    model = (p.get("ID_MODEL_FROM_DATABASE") or p.get("ID_MODEL") or "USB device").replace("_", " ")
+    model = " ".join(model.split())[:48]
+    if p.get("SUBSYSTEM") == "block" and p.get("DEVTYPE") in {"disk", "partition"} and p.get("ID_FS_USAGE") == "filesystem":
+        kind, label = "storage", model or "USB storage"
+    elif p.get("ID_INPUT_KEYBOARD") == "1": kind, label = "keyboard", model or "USB keyboard"
+    elif p.get("ID_INPUT_MOUSE") == "1": kind, label = "pointer", model or "USB pointer"
+    elif p.get("ID_AUDIO") == "1" or p.get("SOUND_INITIALIZED") == "1": kind, label = "audio", model or "USB audio"
+    elif "dock" in model.lower(): kind, label = "dock", model
+    else: return None
+    event = {"kind":kind, "action":action, "label":label}
+    if kind == "storage" and p.get("DEVNAME"): event["devnode"] = p["DEVNAME"]
+    return event
+
+def stream():
+    proc = subprocess.Popen(["udevadm","monitor","--udev","--property"], stdout=subprocess.PIPE, text=True, bufsize=1)
+    props = {}
+    for raw in proc.stdout:
+        line = raw.rstrip()
+        if not line:
+            event = classify(props)
+            if event:
+                if event["kind"] == "storage":
+                    STATE.mkdir(parents=True, exist_ok=True)
+                    (STATE/"last-storage").write_text(event.get("devnode", "")+"\n")
+                print(json.dumps(event), flush=True)
+            props = {}; continue
+        if "=" in line:
+            key, value = line.split("=",1); props[key] = value
+
+def emit(kind="storage", action="connected"):
+    labels={"storage":"USB storage","dock":"USB-C dock","keyboard":"USB keyboard","pointer":"USB pointer","audio":"USB audio"}
+    print(json.dumps({"kind":kind,"action":action,"label":labels.get(kind,"USB peripheral")}), flush=True)
+
+if __name__ == "__main__":
+    if len(sys.argv)>1 and sys.argv[1]=="emit": emit(*(sys.argv[2:4]))
+    else: stream()

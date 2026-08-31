@@ -1,0 +1,52 @@
+#!/usr/bin/env bash
+set -u
+
+state_dir="${XDG_STATE_HOME:-$HOME/.local/state}/evangelion-rice/command-telemetry"
+config="${XDG_CONFIG_HOME:-$HOME/.config}/omarchy/command-telemetry.json"
+disabled="$state_dir/disabled"
+
+threshold() {
+  local value=10
+  [[ -r $config ]] && value=$(jq -r '.threshold_seconds // 10' "$config" 2>/dev/null || echo 10)
+  [[ $value =~ ^[0-9]+([.][0-9]+)?$ ]] || value=10
+  printf '%s\n' "$value"
+}
+
+sound_enabled() {
+  [[ ! -r $config ]] || jq -e '.sound != false' "$config" >/dev/null 2>&1
+}
+
+format_duration() {
+  local ms=$1 seconds
+  seconds=$((ms/1000))
+  if (( seconds < 60 )); then printf '%ss' "$seconds"
+  else printf '%dm %02ds' "$((seconds/60))" "$((seconds%60))"
+  fi
+}
+
+event() {
+  local status=${1:-0} elapsed=${2:-0} minimum duration
+  [[ $status =~ ^[0-9]+$ && $elapsed =~ ^[0-9]+$ ]] || return 2
+  [[ ! -e $disabled ]] || return 0
+  minimum=$(threshold)
+  awk -v ms="$elapsed" -v sec="$minimum" 'BEGIN { exit !(ms >= sec*1000) }' || return 0
+  duration=$(format_duration "$elapsed")
+  if (( status == 0 )); then
+    omarchy-notification-send --app-name 'MAGI Command Telemetry' -g '◆' -u low -t 7000 \
+      'OPERATION COMPLETE' "Long-running terminal task completed in ${duration} · exit 0" || true
+    sound_enabled && magi-sound nominal >/dev/null 2>&1 || true
+  else
+    omarchy-notification-send --app-name 'MAGI Command Telemetry' -g '▲' -u normal -t 10000 \
+      'OPERATION FAILED' "Long-running terminal task failed after ${duration} · exit ${status}" || true
+  fi
+}
+
+case ${1:-status} in
+  event) event "${2:-}" "${3:-}" ;;
+  enable) mkdir -p "$state_dir"; rm -f "$disabled"; echo 'Command telemetry enabled; applies to new shells' ;;
+  disable) mkdir -p "$state_dir"; touch "$disabled"; echo 'Command telemetry disabled' ;;
+  status) printf 'enabled=%s\nthreshold_seconds=%s\nsound=%s\n' "$([[ -e $disabled ]] && echo no || echo yes)" "$(threshold)" "$(sound_enabled && echo yes || echo no)" ;;
+  preview-success) event 0 "${2:-12000}" ;;
+  preview-failure) event "${2:-1}" "${3:-12000}" ;;
+  *) echo 'Usage: magi-command-telemetry {status|enable|disable|preview-success [ms]|preview-failure [status] [ms]}' >&2; exit 2 ;;
+esac

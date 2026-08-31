@@ -1,0 +1,85 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width">
+  <title>NERV Central Command</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body data-density="standard" data-affinity="neutral">
+<div class="boot-sequence" id="boot-sequence"><div><b>NERV</b><span id="boot-copy">INITIALIZING MAGI INTERFACE</span><i></i></div></div>
+<div class="alert-strip" id="alert-strip"><b>EMERGENCY</b><span id="alert-copy">SYSTEM ANOMALY DETECTED</span><b>EMERGENCY</b></div>
+<main>
+  <header>
+    <div class="clock-block">
+      <small>NERV // CENTRAL COMMAND</small>
+      <div class="clock-face"><h1 id="time">00:00</h1><div class="minute-ring" id="minute-ring"><b id="seconds">00</b></div></div>
+      <p id="date"></p>
+    </div>
+    <div class="mark"><img src="assets/nerv-emblem-v2.png" alt="NERV"><span>GOD'S IN HIS HEAVEN · ALL'S RIGHT WITH THE WORLD</span></div>
+  </header>
+  <div class="status-rail">
+    <div><span>EVA AFFINITY</span><b id="rail-affinity">ACQUIRING</b></div>
+    <div><span>WORKSPACE</span><b id="rail-workspace">UNKNOWN</b></div>
+    <div><span>PROFILE</span><b id="rail-profile">UNKNOWN</b></div>
+    <div><span>UPTIME</span><b id="rail-uptime">00:00</b></div>
+    <div><span>UPLINK</span><b id="rail-network">CHECKING</b></div>
+    <button id="density-toggle" title="Cycle dashboard density">DENSITY // STD</button>
+  </div>
+  <section>
+    <article class="hero magi-card" id="magi-card">
+      <div class="instrument-head"><label>MAGI CONSENSUS</label><span class="instrument-chip" id="magi-chip">SYNCING</span></div>
+      <div class="magi-summary"><div><span>DECISION // 001</span><h2 id="magi-verdict">ANALYZING SYSTEM STATE</h2></div><strong id="magi-percent">000%</strong></div>
+      <div class="magi">
+        <div><span class="magi-node">M-01</span><b>MELCHIOR</b><i></i><small id="magi-1">PENDING</small></div>
+        <div><span class="magi-node">B-02</span><b>BALTHASAR</b><i></i><small id="magi-2">PENDING</small></div>
+        <div><span class="magi-node">C-03</span><b>CASPER</b><i></i><small id="magi-3">PENDING</small></div>
+      </div>
+    </article>
+    <article class="access-card">
+      <div class="instrument-head"><label>QUICK ACCESS</label><span class="instrument-chip">04 LINKS</span></div>
+      <nav>
+        <a href="https://github.com"><i>01</i><span><b>GITHUB</b><small>CODE REPOSITORY</small></span></a>
+        <a href="https://linear.app"><i>02</i><span><b>LINEAR</b><small>OPERATIONS QUEUE</small></span></a>
+        <a href="https://youtube.com"><i>03</i><span><b>YOUTUBE</b><small>VISUAL ARCHIVE</small></span></a>
+        <a href="https://mail.google.com"><i>04</i><span><b>MAIL</b><small>COMMUNICATIONS</small></span></a>
+      </nav>
+    </article>
+    <article class="telemetry-card" id="telemetry-card">
+      <div class="instrument-head"><label>SYSTEM TELEMETRY</label><span class="instrument-chip" id="system-chip">POLL</span></div>
+      <div class="telemetry-row"><span>BATTERY</span><div class="meter"><i id="battery-meter"></i></div><b id="battery">—</b></div>
+      <div class="telemetry-row"><span>THERMAL</span><div class="meter"><i id="thermal-meter"></i></div><b id="thermal">—</b></div>
+      <div class="telemetry-row"><span>NETWORK</span><div class="signal" id="network-signal"><i></i><i></i><i></i><i></i><i></i></div><b id="network">—</b></div>
+      <div class="telemetry-foot"><span>SYS-01 // LOCAL HARDWARE BUS</span><em id="system-state">ACQUIRING</em></div>
+    </article>
+    <article class="audio-card" id="audio-card">
+      <div class="instrument-head"><label>AUDIO CHANNEL</label><span class="instrument-chip" id="audio-chip">STANDBY</span></div>
+      <div class="audio-spectrum" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+      <div class="audio-copy"><h3 id="track">NO ACTIVE SOURCE</h3><p id="artist">MPRIS STANDBY</p></div>
+      <div class="progress"><i id="media-progress"></i></div>
+      <div class="media-controls"><button data-media="previous" title="Previous">◀◀</button><button data-media="toggle" id="media-toggle" title="Play or pause">▶ /Ⅱ</button><button data-media="next" title="Next">▶▶</button><span>VOL <b id="media-volume">00</b></span><button id="player-cycle" title="Switch active player">PLAYER ↻</button></div>
+      <div class="audio-foot"><span id="media-time">00:00 / 00:00</span><b id="media-player">CHANNEL // NONE</b></div>
+    </article>
+    <article class="weather-card" id="weather-card">
+      <div class="weather-head"><label>ATMOSPHERIC LINK</label><span class="weather-chip" id="weather-chip">SYNC</span></div>
+      <div class="weather-console"><div class="weather-radar"><i></i><span>NERV<br>MET-03</span></div><div class="weather-readout"><span class="weather-place" id="weather-place">ACQUIRING</span><strong id="weather-temp">--°</strong><span class="weather-wind" id="weather-wind">WIND // —</span></div></div>
+      <div class="weather-footer"><span id="weather-state">CONNECTING TO WEATHER LINK</span><b>03</b></div>
+      <span id="weather" hidden>ESTABLISHING LINK</span>
+    </article>
+    <article class="controls-card">
+      <div class="instrument-head"><label>MAGI CONTROLS</label><span class="ready-light"><i></i>ARMED</span></div>
+      <div class="commands"><div><code>Super + Space</code><span>COMMAND INTERFACE</span><b>READY</b></div><div><code>Super + Alt + D</code><span>EVA DEPLOYMENT</span><b>READY</b></div><div><code>Super + Alt + I</code><span>INTRUSION SIMULATION</span><b>SAFE</b></div><div><code>/</code><span>PAGE COMMAND PALETTE</span><b>LOCAL</b></div></div>
+    </article>
+    <article class="operations-card">
+      <div class="instrument-head"><label>OPERATIONS LOG</label><span class="instrument-chip">LIVE BUFFER</span></div>
+      <div class="event-log" id="event-log"><div><time>--:--:--</time><b>SYSTEM</b><span>WAITING FOR EVENT BUS</span></div></div>
+    </article>
+  </section>
+  <footer>LOCAL LOOPBACK // ALLOWLISTED MEDIA CONTROL // <span id="sync">SYNCHRONIZING</span><span class="footer-hint">PRESS / FOR COMMAND PALETTE</span></footer>
+</main>
+<div class="command-palette" id="command-palette" hidden>
+  <div class="palette-dialog"><div class="palette-head"><label>MAGI COMMAND SEARCH</label><button id="palette-close">ESC</button></div><input id="palette-input" autocomplete="off" placeholder="TYPE A COMMAND…"><div id="palette-results"></div><footer>↑↓ NAVIGATE · ENTER EXECUTE · ESC CLOSE</footer></div>
+</div>
+<script src="app.js"></script>
+</body>
+</html>

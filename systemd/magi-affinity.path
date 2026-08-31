@@ -1,0 +1,11 @@
+[Unit]
+Description=Watch Omarchy wallpaper selection for EVA affinity changes
+
+[Path]
+# Omarchy replaces the background symlink atomically. Watching the symlink
+# itself misses that rename; the containing directory always receives it.
+PathChanged=%h/.local/state/omarchy/current
+Unit=magi-affinity.service
+
+[Install]
+WantedBy=default.target

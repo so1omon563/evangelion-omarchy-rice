@@ -1,0 +1,10 @@
+[Unit]
+Description=Local NERV browser start page
+[Service]
+ExecStart=%h/.local/bin/magi-start-page serve
+Restart=on-failure
+RestartSec=2
+NoNewPrivileges=true
+PrivateTmp=true
+[Install]
+WantedBy=default.target

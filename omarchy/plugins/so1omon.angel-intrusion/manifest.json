@@ -1,0 +1,11 @@
+{
+  "schemaVersion": 1,
+  "id": "so1omon.angel-intrusion",
+  "name": "Angel Intrusion Display",
+  "version": "1.0.0",
+  "author": "So1omon",
+  "description": "Static-safe NERV warning display for the manual Angel demonstration mode.",
+  "kinds": ["service"],
+  "keepLoaded": true,
+  "entryPoints": { "service": "Service.qml" }
+}

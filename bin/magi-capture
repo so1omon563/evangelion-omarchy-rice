@@ -1,0 +1,54 @@
+#!/usr/bin/env bash
+set -u
+
+usage() { echo "Usage: magi-capture {screenshot [args...]|recording [args...]}" >&2; exit 2; }
+[[ $# -gt 0 ]] || usage
+kind=$1; shift
+
+notify_saved() {
+  local title=$1 destination=$2
+  omarchy-notification-send --app-name "NERV Capture" -g "●" -t 10000 "$title" "OUTPUT // $destination" --exec xdg-open -- "$(dirname "$destination")" || true
+}
+
+case $kind in
+screenshot)
+  include=false
+  args=()
+  for arg in "$@"; do
+    if [[ $arg == --include-indicator ]]; then include=true; else args+=("$arg"); fi
+  done
+  if ! $include; then
+    magi-privacy suppress
+    omarchy-shell -q magi-privacy suppress
+    trap 'magi-privacy restore; omarchy-shell -q magi-privacy restore' EXIT
+    sleep 0.15
+  fi
+  command=${MAGI_SCREENSHOT_COMMAND:-omarchy-capture-screenshot}
+  output=$($command "${args[@]}")
+  result=$?
+  (( result == 0 )) || exit "$result"
+  [[ -n $output ]] && printf '%s\n' "$output"
+  destination=$(printf '%s\n' "$output" | tail -n1)
+  if [[ -f $destination ]]; then notify_saved "CAPTURE COMPLETE" "$destination"
+  elif [[ ${args[1]:-slurp} == copy ]]; then omarchy-notification-send --app-name "NERV Capture" -g "●" -t 5000 "CAPTURE COMPLETE" "OUTPUT // CLIPBOARD" || true
+  fi
+  ;;
+recording)
+  command=${MAGI_SCREENRECORD_COMMAND:-omarchy-capture-screenrecording}
+  capture_output=$(mktemp)
+  trap 'rm -f "$capture_output"' EXIT
+  $command "$@" >"$capture_output"
+  result=$?
+  output=$(cat "$capture_output")
+  [[ -n $output ]] && printf '%s\n' "$output"
+  (( result == 0 )) || exit "$result"
+  destination=$(printf '%s\n' "$output" | tail -n1)
+  if [[ -f $destination ]]; then
+    notify_saved "RECORDING SECURED" "$destination"
+  elif pgrep -f '^gpu-screen-recorder' >/dev/null; then
+    omarchy-shell -q magi-privacy refresh
+    omarchy-notification-send --app-name "NERV Capture" -g "●" -t 3500 "RECORDING ACTIVE" "Persistent REC telemetry engaged" || true
+  fi
+  ;;
+*) usage ;;
+esac

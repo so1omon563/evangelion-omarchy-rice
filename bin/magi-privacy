@@ -1,0 +1,183 @@
+#!/usr/bin/env python3
+"""Unified NERV privacy activity probe and safe response controls."""
+
+import argparse
+import json
+import os
+import subprocess
+import time
+from pathlib import Path
+
+STATE_DIR = Path(os.environ.get("XDG_STATE_HOME", Path.home() / ".local/state")) / "evangelion-rice"
+STATE = STATE_DIR / "privacy-preview.json"
+SUPPRESS = STATE_DIR / "privacy-suppressed"
+RECORDING_FILE = Path("/tmp/omarchy-screenrecord-filename")
+REMOTE_PROCESSES = {
+    "wayvnc": "wayvnc",
+    "rustdesk": "RustDesk",
+    "sunshine": "Sunshine",
+    "xrdp": "xrdp",
+    "gnome-remote-desktop-daemon": "GNOME Remote Desktop",
+    "krfb": "KDE Remote Desktop",
+}
+REMOTE_SERVICES = ("wayvnc.service", "rustdesk.service", "sunshine.service", "gnome-remote-desktop.service", "krfb.service")
+RECORDERS = {"gpu-screen-recorder": "Omarchy Recorder", "wf-recorder": "wf-recorder"}
+
+
+def run(args, timeout=4):
+    try:
+        return subprocess.run(args, text=True, capture_output=True, timeout=timeout).stdout.strip()
+    except (OSError, subprocess.SubprocessError):
+        return ""
+
+
+def process_running(name):
+    try:
+        return subprocess.run(["pgrep", "-x", name], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, timeout=2).returncode == 0
+    except (OSError, subprocess.SubprocessError):
+        return False
+
+
+def node_label(node):
+    props = node.get("info", {}).get("props", {})
+    return str(props.get("application.name") or props.get("application.process.binary") or props.get("node.description") or props.get("node.name") or "Unknown client")[:80]
+
+
+def pipewire_activity():
+    try:
+        dump = json.loads(run(["pw-dump"], 5) or "[]")
+    except json.JSONDecodeError:
+        dump = []
+    nodes = {item.get("id"): item for item in dump if item.get("type") == "PipeWire:Interface:Node"}
+    links = [item for item in dump if item.get("type") == "PipeWire:Interface:Link" and item.get("info", {}).get("state") == "active"]
+    result = {"microphone": [], "camera": [], "screen": []}
+    for link in links:
+        props = link.get("info", {}).get("props", {})
+        source = nodes.get(props.get("link.output.node"), {})
+        client = nodes.get(props.get("link.input.node"), {})
+        source_props = source.get("info", {}).get("props", {})
+        media_class = str(source_props.get("media.class", ""))
+        source_blob = " ".join(str(source_props.get(key, "")) for key in ("node.name", "node.description", "media.name")).lower()
+        label = node_label(client)
+        if media_class == "Audio/Source" and "monitor" not in source_blob:
+            result["microphone"].append(label)
+        elif media_class == "Video/Source":
+            target = "camera" if any(word in source_blob for word in ("v4l2", "libcamera", "camera", "webcam")) else "screen"
+            result[target].append(label)
+        elif "video" in media_class.lower() and any(word in source_blob for word in ("screen", "screencast", "portal", "monitor")):
+            result["screen"].append(label)
+    return {key: sorted(set(value)) for key, value in result.items()}
+
+
+def preview_state():
+    try:
+        value = json.loads(STATE.read_text())
+        if value.get("expires", 0) > time.time():
+            return value
+        STATE.unlink(missing_ok=True)
+    except (OSError, json.JSONDecodeError):
+        pass
+    return {}
+
+
+def status():
+    activity = pipewire_activity()
+    recording = [label for process, label in RECORDERS.items() if process_running(process)]
+    remote = [label for process, label in REMOTE_PROCESSES.items() if process_running(process)]
+    preview = preview_state()
+    if preview:
+        for kind in preview.get("states", []):
+            if kind in activity:
+                activity[kind].append("MAGI Preview")
+            elif kind == "recording":
+                recording.append("MAGI Preview")
+            elif kind == "remote":
+                remote.append("MAGI Preview")
+    states = {
+        "microphone": {"active": bool(activity["microphone"]), "clients": sorted(set(activity["microphone"]))},
+        "camera": {"active": bool(activity["camera"]), "clients": sorted(set(activity["camera"]))},
+        "screen": {"active": bool(activity["screen"]), "clients": sorted(set(activity["screen"]))},
+        "recording": {"active": bool(recording), "clients": sorted(set(recording))},
+        "remote": {"active": bool(remote), "clients": sorted(set(remote))},
+    }
+    active = [key for key, value in states.items() if value["active"]]
+    labels = {"microphone": "MIC", "camera": "CAM", "screen": "SHARE", "recording": "REC", "remote": "REMOTE"}
+    recording_path = run(["cat", str(RECORDING_FILE)]) if recording else ""
+    recording_seconds = 0
+    if recording:
+        raw = run(["ps", "-o", "etimes=", "-C", "gpu-screen-recorder"])
+        try: recording_seconds = max(int(line.strip()) for line in raw.splitlines() if line.strip())
+        except (ValueError, TypeError): pass
+    return {"active": bool(active), "active_count": len(active), "summary": "+".join(labels[key] for key in active) or "CLEAR", "states": states, "preview": bool(preview), "suppressed": SUPPRESS.exists(), "recording": {"path": recording_path, "seconds": recording_seconds}, "checked_at": int(time.time())}
+
+
+def stop(kind):
+    result = status()
+    stopped = []
+    real_clients = {
+        name: [client for client in state["clients"] if client != "MAGI Preview"]
+        for name, state in result["states"].items()
+    }
+    if kind in {"all", "microphone"} and real_clients["microphone"]:
+        if subprocess.run(["wpctl", "set-mute", "@DEFAULT_AUDIO_SOURCE@", "1"], capture_output=True).returncode == 0:
+            stopped.append("microphone muted")
+    if kind in {"all", "recording"} and real_clients["recording"]:
+        command = ["omarchy-capture-screenrecording", "--stop-recording"]
+        if subprocess.run(command, capture_output=True).returncode == 0:
+            stopped.append("recording stopped")
+    if kind in {"all", "remote"} and real_clients["remote"]:
+        for service in REMOTE_SERVICES:
+            if subprocess.run(["systemctl", "--user", "is-active", "--quiet", service], capture_output=True).returncode == 0:
+                if subprocess.run(["systemctl", "--user", "stop", service], capture_output=True).returncode == 0:
+                    stopped.append(f"{service} stopped")
+    if preview_state():
+        STATE.unlink(missing_ok=True)
+        stopped.append("preview cleared")
+    if stopped:
+        run(["notify-send", "-a", "NERV Privacy", "PRIVACY RESPONSE", " · ".join(stopped)])
+        return 0
+    run(["notify-send", "-a", "NERV Privacy", "MANUAL ACTION REQUIRED", "Close the responsible application or use its sharing controls"])
+    return 1
+
+
+def main():
+    parser = argparse.ArgumentParser(description="NERV privacy activity control")
+    sub = parser.add_subparsers(dest="command", required=True)
+    status_parser = sub.add_parser("status")
+    status_parser.add_argument("--json", action="store_true")
+    stop_parser = sub.add_parser("stop")
+    stop_parser.add_argument("kind", nargs="?", choices=("all", "microphone", "camera", "screen", "recording", "remote"), default="all")
+    preview_parser = sub.add_parser("preview")
+    preview_parser.add_argument("states", nargs="?", default="microphone,camera,screen,remote")
+    preview_parser.add_argument("--seconds", type=int, default=20)
+    sub.add_parser("suppress")
+    sub.add_parser("restore")
+    args = parser.parse_args()
+    if args.command == "status":
+        result = status()
+        if args.json:
+            print(json.dumps(result, separators=(",", ":")))
+        else:
+            print(f"PRIVACY // {result['summary']}")
+            for kind, value in result["states"].items():
+                if value["active"]:
+                    print(f"{kind.upper():<10} {', '.join(value['clients'])}")
+        return 0
+    if args.command == "stop":
+        return stop(args.kind)
+    if args.command == "suppress":
+        STATE_DIR.mkdir(parents=True, exist_ok=True)
+        SUPPRESS.touch()
+        return 0
+    if args.command == "restore":
+        SUPPRESS.unlink(missing_ok=True)
+        return 0
+    states = [value.strip() for value in args.states.split(",") if value.strip() in {"microphone", "camera", "screen", "recording", "remote"}]
+    STATE.parent.mkdir(parents=True, exist_ok=True)
+    STATE.write_text(json.dumps({"states": states, "expires": time.time() + max(5, min(120, args.seconds))}, separators=(",", ":")))
+    print(f"Preview active for {max(5, min(120, args.seconds))} seconds: {', '.join(states)}")
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

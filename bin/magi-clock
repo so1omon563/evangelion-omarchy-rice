@@ -1,0 +1,56 @@
+#!/usr/bin/env python3
+"""MAGI world clock, uptime, and persistent mission elapsed time."""
+import argparse, json, os, time
+from datetime import datetime, timezone
+from pathlib import Path
+from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
+
+CONFIG=Path(os.environ.get("XDG_CONFIG_HOME",Path.home()/".config"))/"omarchy/magi-clock.json"
+STATE=Path(os.environ.get("XDG_STATE_HOME",Path.home()/".local/state"))/"evangelion-rice/mission-elapsed.json"
+DEFAULT={"local_zone":"America/Phoenix","zones":[{"label":"UTC","zone":"UTC"},{"label":"NEW YORK","zone":"America/New_York"},{"label":"LONDON","zone":"Europe/London"},{"label":"TOKYO-3","zone":"Asia/Tokyo"}]}
+
+def load(path,default):
+    try:
+        v=json.loads(path.read_text()); return v if isinstance(v,dict) else default.copy()
+    except (OSError,json.JSONDecodeError): return default.copy()
+def save(v):
+    STATE.parent.mkdir(parents=True,exist_ok=True); tmp=STATE.with_suffix(".tmp"); tmp.write_text(json.dumps(v,separators=(",",":"))); tmp.replace(STATE)
+def met_state(): return {"running":False,"elapsed":0,"started_at":0}|load(STATE,{})
+def elapsed(v): return int(v["elapsed"]+(time.time()-v["started_at"] if v["running"] else 0))
+def span(seconds):
+    days,rem=divmod(max(0,int(seconds)),86400); hours,rem=divmod(rem,3600); mins,secs=divmod(rem,60)
+    return (f"{days}D " if days else "")+f"{hours:02d}:{mins:02d}:{secs:02d}"
+def snapshot():
+    cfg=DEFAULT|load(CONFIG,{})
+    try: local_zone=ZoneInfo(cfg["local_zone"])
+    except ZoneInfoNotFoundError: local_zone=ZoneInfo("America/Phoenix")
+    now=datetime.now(timezone.utc); local=now.astimezone(local_zone); zones=[]
+    entries=[{"label":"ARIZONA","zone":cfg["local_zone"]}]+cfg.get("zones",[])
+    for entry in entries:
+        try:
+            dt=now.astimezone(ZoneInfo(entry["zone"])); delta=(dt.date()-local.date()).days
+            boundary="TODAY" if delta==0 else "TOMORROW" if delta==1 else "YESTERDAY" if delta==-1 else f"{delta:+d} DAYS"
+            zones.append({"label":entry["label"],"zone":entry["zone"],"available":True,"time":dt.strftime("%H:%M"),"date":dt.strftime("%a %d %b"),"boundary":boundary})
+        except (ZoneInfoNotFoundError,KeyError): zones.append({"label":entry.get("label","UNKNOWN"),"zone":entry.get("zone",""),"available":False,"time":"--:--","date":"UNAVAILABLE","boundary":"--"})
+    try: uptime=int(float(Path("/proc/uptime").read_text().split()[0]))
+    except (OSError,ValueError): uptime=0
+    met=met_state(); value=elapsed(met)
+    return {"utc":now.strftime("%H:%M"),"zones":zones,"uptime":uptime,"uptime_display":span(uptime),"met":{**met,"elapsed":value,"display":span(value)},"config":cfg}
+
+def main():
+    p=argparse.ArgumentParser(); sub=p.add_subparsers(dest="command"); s=sub.add_parser("status"); s.add_argument("--json",action="store_true")
+    for c in ("start","pause","resume","toggle","reset"): sub.add_parser(c)
+    args=p.parse_args(); cmd=args.command or "status"; v=met_state()
+    if cmd in {"start","resume"} and not v["running"]: v["running"]=True; v["started_at"]=time.time(); save(v)
+    elif cmd=="pause" and v["running"]: v["elapsed"]=elapsed(v); v["running"]=False; v["started_at"]=0; save(v)
+    elif cmd=="toggle":
+        if v["running"]: v["elapsed"]=elapsed(v); v["running"]=False; v["started_at"]=0
+        else: v["running"]=True; v["started_at"]=time.time()
+        save(v)
+    elif cmd=="reset": save({"running":False,"elapsed":0,"started_at":0})
+    out=snapshot()
+    if cmd=="status" and not args.json:
+        print(f"UTC // {out['utc']}\nSESSION // {out['uptime_display']}\nMISSION ELAPSED // {out['met']['display']}")
+        for z in out["zones"]: print(f"{z['label']:<12} {z['time']}  {z['date']}  {z['boundary']}")
+    else: print(json.dumps(out,separators=(",",":")))
+if __name__=="__main__": main()

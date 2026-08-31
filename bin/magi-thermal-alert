@@ -1,0 +1,103 @@
+#!/usr/bin/env python3
+import json, os, subprocess, sys, time
+from pathlib import Path
+
+STATE_DIR=Path(os.environ.get("XDG_STATE_HOME",Path.home()/".local/state"))/"evangelion-rice/thermal"
+CONFIG=Path(os.environ.get("XDG_CONFIG_HOME",Path.home()/".config"))/"omarchy/thermal-alerts.json"
+DISABLED=STATE_DIR/"disabled"; STATE=STATE_DIR/"state.json"
+DEFAULT={"warning_c":85,"critical_c":95,"warning_clear_c":78,"critical_clear_c":88,"warning_cooldown_seconds":1200,"critical_cooldown_seconds":300,"poll_seconds":30}
+
+def config():
+    try: data=json.loads(CONFIG.read_text()); return DEFAULT|{k:data[k] for k in DEFAULT if k in data}
+    except (OSError,ValueError,TypeError): return DEFAULT.copy()
+
+def temperatures():
+    values=[]
+    for hw in Path("/sys/class/hwmon").glob("hwmon*"):
+        try: name=(hw/"name").read_text().strip()
+        except OSError: continue
+        if name != "coretemp": continue
+        for item in hw.glob("temp*_input"):
+            try:
+                value=float(item.read_text().strip())/1000
+                if 10 <= value <= 110: values.append(value)
+            except (OSError,ValueError): pass
+    if values: return max(values),"coretemp"
+    for zone in Path("/sys/class/thermal").glob("thermal_zone*"):
+        try:
+            kind=(zone/"type").read_text().strip()
+            if kind not in {"x86_pkg_temp","acpitz"}: continue
+            value=float((zone/"temp").read_text().strip())/1000
+            if 10 <= value <= 110: values.append(value)
+        except (OSError,ValueError): pass
+    return (max(values),"thermal-zone") if values else (None,"unavailable")
+
+def load_state():
+    try: return {"tier":"nominal","last_warning":0,"last_critical":0}|json.loads(STATE.read_text())
+    except (OSError,ValueError,TypeError): return {"tier":"nominal","last_warning":0,"last_critical":0}
+
+def save_state(state):
+    STATE_DIR.mkdir(parents=True,exist_ok=True)
+    temp=STATE.with_suffix(".tmp"); temp.write_text(json.dumps(state,separators=(",",":"))+"\n"); temp.replace(STATE)
+
+def notify(tier,temp,dry=False):
+    if tier=="warning":
+        args=["omarchy-notification-send","--app-name","NERV Thermal","-g","▲","-u","normal","-t","15000","THERMAL LOAD // ELEVATED",f"CPU package is {temp:.0f}°C. Pause heavy work and verify vents are unobstructed."]
+    else:
+        args=["omarchy-notification-send","--app-name","NERV Thermal","-g","▲","-u","critical","THERMAL LIMIT // CRITICAL",f"CPU package is {temp:.0f}°C. Save work, stop sustained load, and allow the ThinkPad to cool."]
+    if dry: print("notify="+tier)
+    else:
+        subprocess.run(args,check=False,stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL)
+        if tier=="critical": subprocess.Popen(["magi-sound","critical"],stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL,start_new_session=True)
+
+def evaluate(temp,source="sensor",dry=False,now=None,quiet=False):
+    cfg=config(); state=load_state(); now=time.time() if now is None else now; old=state["tier"]; new=old
+    if old=="critical":
+        if temp < cfg["critical_clear_c"]: new="warning" if temp >= cfg["warning_c"] else "nominal"
+    elif old=="warning":
+        if temp >= cfg["critical_c"]: new="critical"
+        elif temp < cfg["warning_clear_c"]: new="nominal"
+    else:
+        if temp >= cfg["critical_c"]: new="critical"
+        elif temp >= cfg["warning_c"]: new="warning"
+    should=False
+    if new in {"warning","critical"} and new!=old:
+        key="last_"+new; cooldown=cfg[new+"_cooldown_seconds"]
+        should=now-float(state.get(key,0))>=cooldown
+        if should: state[key]=now
+    state.update(tier=new,temperature_c=round(temp,1),source=source,checked_at=now)
+    save_state(state)
+    if should: notify(new,temp,dry)
+    if not quiet: print(json.dumps({"available":True,"temperature_c":round(temp,1),"tier":new,"transition":old+"->"+new,"notified":should,"source":source},separators=(",",":")))
+
+def check(dry=False,override=None,quiet=False):
+    if DISABLED.exists():
+        if not quiet: print('{"enabled":false}')
+        return
+    temp,source=(override,"test") if override is not None else temperatures()
+    if temp is None:
+        if not quiet: print('{"enabled":true,"available":false,"tier":"unavailable"}')
+        return
+    evaluate(float(temp),source,dry,quiet=quiet)
+
+def monitor():
+    while True:
+        check(quiet=True)
+        time.sleep(max(10,float(config()["poll_seconds"])))
+
+def status():
+    temp,source=temperatures(); state=load_state(); cfg=config()
+    print(json.dumps({"enabled":not DISABLED.exists(),"available":temp is not None,"temperature_c":None if temp is None else round(temp,1),"sensor":source,"tier":state.get("tier","nominal"),"poll_seconds":cfg["poll_seconds"],"thresholds":{"warning":cfg["warning_c"],"critical":cfg["critical_c"],"warning_clear":cfg["warning_clear_c"],"critical_clear":cfg["critical_clear_c"]}},separators=(",",":")))
+
+cmd=sys.argv[1] if len(sys.argv)>1 else "status"
+if cmd=="check": check()
+elif cmd=="monitor": monitor()
+elif cmd=="status": status()
+elif cmd=="enable": STATE_DIR.mkdir(parents=True,exist_ok=True); DISABLED.unlink(missing_ok=True); print("Thermal alerts enabled")
+elif cmd=="disable": STATE_DIR.mkdir(parents=True,exist_ok=True); DISABLED.touch(); print("Thermal alerts disabled")
+elif cmd=="preview":
+    tier=sys.argv[2] if len(sys.argv)>2 else "warning"
+    if tier not in {"warning","critical"}: print("Preview must be warning or critical",file=sys.stderr); sys.exit(2)
+    notify(tier,DEFAULT["warning_c"] if tier=="warning" else DEFAULT["critical_c"],False)
+elif cmd=="evaluate" and len(sys.argv)>2: check(os.environ.get("MAGI_THERMAL_DRY_RUN")=="1",float(sys.argv[2]))
+else: print("Usage: magi-thermal-alert {status|check|enable|disable|preview [warning|critical]}",file=sys.stderr); sys.exit(2)

@@ -1,0 +1,11 @@
+{
+  "schemaVersion": 1,
+  "id": "so1omon.magi-idle",
+  "name": "MAGI Idle Status",
+  "version": "1.0.0",
+  "author": "So1omon",
+  "description": "Lightweight MAGI system-status overlay shown before the screensaver.",
+  "kinds": ["service"],
+  "keepLoaded": true,
+  "entryPoints": { "service": "Service.qml" }
+}

@@ -1,0 +1,11 @@
+{
+  "schemaVersion": 1,
+  "id": "so1omon.thermal",
+  "name": "NERV Thermal Monitor",
+  "version": "1.0.0",
+  "author": "So1omon",
+  "description": "Quiet T480 thermal monitoring with hysteresis and cooldowns.",
+  "kinds": ["service"],
+  "keepLoaded": true,
+  "entryPoints": { "service": "Service.qml" }
+}

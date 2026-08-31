@@ -1,0 +1,1 @@
+{"schemaVersion":1,"id":"so1omon.health","name":"NERV System Health","version":"1.0.0","author":"So1omon","description":"Quiet-when-nominal consolidated system health.","kinds":["bar-widget"],"entryPoints":{"barWidget":"BarWidget.qml"},"barWidget":{"displayName":"NERV System Health","category":"System","allowMultiple":false,"defaultSection":"right"}}

@@ -1,0 +1,11 @@
+{
+  "schemaVersion": 1,
+  "id": "so1omon.power-sequence",
+  "name": "NERV Umbilical Power Sequence",
+  "version": "1.0.0",
+  "author": "So1omon",
+  "description": "Debounced AC and internal-power transition telemetry.",
+  "kinds": ["service"],
+  "keepLoaded": true,
+  "entryPoints": { "service": "Service.qml" }
+}

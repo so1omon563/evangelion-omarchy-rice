@@ -1,0 +1,38 @@
+mode = "dark"
+
+# Evangelion / Tokyo-3 command-center palette
+accent = "#9CF23A"
+selection = "#4B286D"
+muted = "#665577"
+
+background = "#120D18"
+dark_background = "#0B0810"
+darker_background = "#060408"
+lighter_background = "#24172F"
+
+foreground = "#E8E1EF"
+dark_foreground = "#8E809A"
+light_foreground = "#D2C6DC"
+bright_foreground = "#FFFFFF"
+
+# Purple-to-green borders echo EVA-01 without sacrificing contrast.
+hyprland_active_border = "rgba(8F4BC8ee) rgba(9CF23Aee) 45deg"
+hyprland_inactive_border = "rgba(3A2A45cc)"
+active_border_color = "#9CF23A"
+active_tab_background = "#4B286D"
+
+red = "#D52032"
+yellow = "#F6D447"
+orange = "#F28C28"
+green = "#75C936"
+cyan = "#4FD6C8"
+blue = "#5577CC"
+magenta = "#A855D4"
+brown = "#8C5B43"
+
+bright_red = "#FF4055"
+bright_yellow = "#FFE36A"
+bright_green = "#A8FF3E"
+bright_cyan = "#75F2E4"
+bright_blue = "#7799FF"
+bright_magenta = "#D477FF"

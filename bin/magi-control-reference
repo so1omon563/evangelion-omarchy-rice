@@ -1,0 +1,18 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+guide="${XDG_DATA_HOME:-$HOME/.local/share}/evangelion-rice/HOTKEYS.md"
+if [[ ! -r $guide ]]; then
+  printf 'MAGI control reference not found: %s\n' "$guide" >&2
+  exit 1
+fi
+
+if [[ ${1:-} == "--print" ]]; then
+  exec bat --plain --paging=never "$guide"
+fi
+
+exec setsid uwsm-app -- xdg-terminal-exec \
+  --app-id=org.omarchy.magi.controls \
+  --title="MAGI // CONTROL REFERENCE" \
+  -e bat --plain --paging=always "$guide"

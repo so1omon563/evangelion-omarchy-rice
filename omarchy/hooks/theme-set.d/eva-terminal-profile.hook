@@ -1,0 +1,11 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+theme=${1:-}
+if [[ $theme != "evangelion" ]]; then
+  exit 0
+fi
+
+profile=$(eva-terminal-profile status)
+EVA_TERMINAL_PROFILE_QUIET=1 eva-terminal-profile "$profile" --no-reload

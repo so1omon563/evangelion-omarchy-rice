@@ -1,0 +1,6 @@
+[Unit]
+Description=Apply wallpaper-driven EVA affinity
+
+[Service]
+Type=oneshot
+ExecStart=%h/.local/bin/magi-affinity apply

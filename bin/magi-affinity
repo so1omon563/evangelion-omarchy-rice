@@ -1,0 +1,256 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+state_dir="${XDG_STATE_HOME:-$HOME/.local/state}/evangelion-rice"
+theme_dir="${XDG_STATE_HOME:-$HOME/.local/state}/omarchy/current/theme"
+mode_file="$state_dir/affinity-mode"
+manual_file="$state_dir/affinity-manual"
+active_file="$state_dir/affinity-active"
+background_link="${XDG_STATE_HOME:-$HOME/.local/state}/omarchy/current/background"
+mkdir -p "$state_dir"
+
+detect() {
+  case "${1##*/}" in
+    5-eva-unit-00-prototype.*) echo unit-00-prototype ;;
+    6-eva-unit-00-refit.*) echo unit-00-refit ;;
+    2-eva-unit-01.*) echo unit-01 ;;
+    7-eva-unit-02.*) echo unit-02 ;;
+    *) echo neutral ;;
+  esac
+}
+
+load_profile() {
+  case "$1" in
+    unit-00-prototype) label="EVA-00 PROTOTYPE"; terminal="unit-00-prototype"; accent=F6C744; accent2=3BA7D8; selection=5B4215; muted=756843; background=120F08; dark=0B0905; darker=060503; lighter=28200D; foreground=F2E9D2; dim=A49370; active=FF8A24 ;;
+    unit-00-refit) label="EVA-00 REFIT"; terminal="unit-00-refit"; accent=55D9FF; accent2=F2F6FF; selection=173D68; muted=526B83; background=08121E; dark=050B12; darker=03070B; lighter=102A43; foreground=E8F1FF; dim=8297AD; active=3E83FF ;;
+    unit-01) label="EVA-01 TEST TYPE"; terminal="eva-01"; accent=9CF23A; accent2=8F4BC8; selection=4B286D; muted=665577; background=120D18; dark=0B0810; darker=060408; lighter=24172F; foreground=E8E1EF; dim=8E809A; active=B76CFF ;;
+    unit-02) label="EVA-02 PRODUCTION"; terminal="unit-02"; accent=FF5A36; accent2=F6A52F; selection=61251C; muted=7D5148; background=160907; dark=0D0504; darker=070302; lighter=32100C; foreground=F5E5DF; dim=A98278; active=FF334F ;;
+    neutral) label="NERV / MAGI NEUTRAL"; terminal="magi"; accent=9CF23A; accent2=8F4BC8; selection=4B286D; muted=665577; background=120D18; dark=0B0810; darker=060408; lighter=24172F; foreground=E8E1EF; dim=8E809A; active=FF4055 ;;
+    *) printf 'Unknown affinity: %s\n' "$1" >&2; exit 2 ;;
+  esac
+}
+
+write_colors() {
+  cat > "$1/colors.toml" <<EOF
+mode = "dark"
+accent = "#$accent"
+selection = "#$selection"
+muted = "#$muted"
+background = "#$background"
+dark_background = "#$dark"
+darker_background = "#$darker"
+lighter_background = "#$lighter"
+foreground = "#$foreground"
+dark_foreground = "#$dim"
+light_foreground = "#$foreground"
+bright_foreground = "#FFFFFF"
+hyprland_active_border = "rgba(${accent2}ee) rgba(${accent}ee) 45deg"
+hyprland_inactive_border = "rgba(${muted}aa)"
+active_border_color = "#$accent"
+active_tab_background = "#$selection"
+red = "#D52032"
+yellow = "#F6D447"
+orange = "#F28C28"
+green = "#75C936"
+cyan = "#4FD6C8"
+blue = "#5577CC"
+magenta = "#A855D4"
+brown = "#8C5B43"
+bright_red = "#FF4055"
+bright_yellow = "#FFE36A"
+bright_green = "#A8FF3E"
+bright_cyan = "#75F2E4"
+bright_blue = "#7799FF"
+bright_magenta = "#D477FF"
+EOF
+}
+
+write_shell() {
+  cat > "$1/shell.toml" <<EOF
+[bar]
+background = "#$dark"
+background-alpha = 0.82
+text = "#$foreground"
+active = "#$active"
+scale-with-font = true
+size-horizontal = 30
+size-vertical = 30
+[hyprland]
+active-border = "rgba(${accent2}ee) rgba(${accent}ee) 45deg"
+active-border-foreground = "rgba(${accent2}ee) rgba(${accent}ee) 45deg"
+[controls]
+normal-color = "#$foreground"
+normal-fill-alpha = 0.03
+normal-border = "#$muted"
+normal-border-width = 1
+normal-border-alpha = 0.55
+hover-cursor-color = "#$accent"
+hover-cursor-fill-alpha = 0.10
+hover-cursor-border = "#$accent"
+hover-cursor-border-width = 1
+hover-cursor-border-alpha = 0.75
+focus-color = "#$accent"
+focus-fill-alpha = 0.12
+focus-border = "#$accent"
+focus-border-width = 1
+focus-border-alpha = 1.0
+selected-color = "#$accent"
+selected-fill-alpha = 0.18
+selected-border = "#$accent2"
+selected-border-width = 1
+selected-border-alpha = 1.0
+pressed-fill-alpha = 0.25
+selection-fill-alpha = 0.38
+[spacing]
+scale = 0.92
+scale-with-font = true
+panel-gap = 12
+panel-padding = 16
+popup-padding = 12
+control-gap = 7
+row-padding-x = 11
+[font]
+base-size = 11
+caption = 9
+heading = 15
+display = 23
+[popups]
+background = "#$dark"
+background-alpha = 0.94
+text = "#$foreground"
+border = "rgba(${accent2}ee) rgba(${accent}ee) 45deg"
+border-alpha = 1.0
+border-width = 2
+[tooltip]
+background = "#$background"
+background-alpha = 0.97
+text = "#$foreground"
+border = "#$accent"
+border-alpha = 1.0
+[notifications]
+background = "#$dark"
+background-alpha = 0.94
+text = "#$foreground"
+border = "rgba(${accent2}ee) rgba(${accent}ee) 45deg"
+border-alpha = 1.0
+border-width = 2
+countdown = "#$accent"
+[launcher]
+background = "#$dark"
+background-alpha = 0.93
+text = "#$foreground"
+border = "rgba(${accent2}ee) rgba(${accent}ee) 45deg"
+border-alpha = 1.0
+scrim = "#$darker"
+scrim-alpha = 0.62
+selected-background = "#$selection"
+selected-background-alpha = 0.48
+selected-text = "#$accent"
+selected-border = "#$accent"
+selected-border-alpha = 0.9
+[menu]
+background = "#$dark"
+background-alpha = 0.95
+text = "#$foreground"
+border = "rgba(${accent2}ee) rgba(${accent}ee) 45deg"
+border-alpha = 1.0
+scrim = "#$darker"
+scrim-alpha = 0.62
+selected-background = "#$selection"
+selected-background-alpha = 0.48
+selected-text = "#$accent"
+selected-border = "#$accent"
+selected-border-alpha = 0.9
+[polkit]
+background = "#$background"
+background-alpha = 1.0
+text = "#$foreground"
+text-error = "#FF4055"
+border = "#$accent"
+border-error = "#FF4055"
+border-alpha = 1.0
+scrim = "#$background"
+scrim-alpha = 0.5
+accent = "#$accent"
+[lock]
+background = "#$dark"
+background-alpha = 0.88
+text = "#$foreground"
+placeholder = "#$dim"
+text-error = "#FF4055"
+border = "#$accent2"
+border-active = "rgba(${accent2}ee) rgba(${accent}ee) 45deg"
+border-error = "#FF4055"
+border-alpha = 1.0
+selection = "#$accent"
+selection-alpha = 0.50
+[image-picker]
+scrim = "#$background"
+scrim-alpha = 0.5
+text = "#$foreground"
+selected-border = "#$accent"
+selected-border-alpha = 1.0
+unselected-border = "#$foreground"
+unselected-border-alpha = 0.28
+EOF
+}
+
+apply_profile() {
+  local profile=$1 tmp backup previous_profile previous_terminal
+  load_profile "$profile"
+  previous_profile=$(cat "$active_file" 2>/dev/null || echo neutral)
+  previous_terminal=$(eva-terminal-profile status 2>/dev/null || echo magi)
+  tmp=$(mktemp -d "$state_dir/affinity.XXXXXX")
+  backup=$(mktemp -d "$state_dir/affinity-backup.XXXXXX")
+  trap 'rm -rf "$tmp" "$backup"' RETURN
+  for file in colors.toml shell.toml; do [[ -f "$theme_dir/$file" ]] && cp "$theme_dir/$file" "$backup/$file"; done
+  write_colors "$tmp"
+  write_shell "$tmp"
+  if ! install -m 0644 "$tmp/colors.toml" "$theme_dir/colors.toml" || ! install -m 0644 "$tmp/shell.toml" "$theme_dir/shell.toml" || ! EVA_TERMINAL_PROFILE_QUIET=1 eva-terminal-profile "$terminal" --no-reload || ! apply_hypr; then
+    for file in colors.toml shell.toml; do [[ -f "$backup/$file" ]] && install -m 0644 "$backup/$file" "$theme_dir/$file"; done
+    EVA_TERMINAL_PROFILE_QUIET=1 eva-terminal-profile "$previous_terminal" --no-reload >/dev/null 2>&1 || true
+    echo "$previous_profile" > "$active_file"
+    echo 'Affinity apply failed; previous state restored.' >&2
+    return 1
+  fi
+  echo "$profile" > "$active_file"
+  printf 'Affinity: %s (%s mode)\n' "$label" "$(cat "$mode_file" 2>/dev/null || echo auto)"
+}
+
+apply_hypr() {
+  if [[ -n ${HYPRLAND_INSTANCE_SIGNATURE:-} ]] && command -v hyprctl >/dev/null 2>&1 && hyprctl version >/dev/null 2>&1; then
+    hyprctl eval "hl.config({ [\"general.col.active_border\"] = { colors = { \"rgba(${accent2}ee)\", \"rgba(${accent}ee)\" }, angle = 45 }, [\"general.col.inactive_border\"] = \"rgba(${muted}aa)\" })" >/dev/null
+  fi
+}
+
+command=${1:-status}
+case "$command" in
+  status) mode=$(cat "$mode_file" 2>/dev/null || echo auto); active=$(cat "$active_file" 2>/dev/null || detect "$(readlink -f "$background_link" 2>/dev/null || true)"); printf 'mode=%s\nactive=%s\nbackground=%s\n' "$mode" "$active" "$(readlink -f "$background_link" 2>/dev/null || echo unknown)" ;;
+  list) printf '%s\n' neutral unit-00-prototype unit-00-refit unit-01 unit-02 ;;
+  auto|reset)
+    old_mode=$(cat "$mode_file" 2>/dev/null || echo auto)
+    old_manual=$(cat "$manual_file" 2>/dev/null || true)
+    echo auto > "$mode_file"
+    rm -f "$manual_file"
+    if ! apply_profile "$(detect "$(readlink -f "$background_link" 2>/dev/null || true)")"; then
+      echo "$old_mode" > "$mode_file"
+      [[ -n $old_manual ]] && echo "$old_manual" > "$manual_file"
+      exit 1
+    fi
+    ;;
+  set)
+    profile=${2:-}
+    load_profile "$profile"
+    old_mode=$(cat "$mode_file" 2>/dev/null || echo auto)
+    old_manual=$(cat "$manual_file" 2>/dev/null || true)
+    echo manual > "$mode_file"
+    echo "$profile" > "$manual_file"
+    if ! apply_profile "$profile"; then
+      echo "$old_mode" > "$mode_file"
+      if [[ -n $old_manual ]]; then echo "$old_manual" > "$manual_file"; else rm -f "$manual_file"; fi
+      exit 1
+    fi
+    ;;
+  apply) mode=$(cat "$mode_file" 2>/dev/null || echo auto); if [[ $mode == manual && -r $manual_file ]]; then profile=$(cat "$manual_file"); else profile=$(detect "${2:-$(readlink -f "$background_link" 2>/dev/null || true)}"); fi; apply_profile "$profile" ;;
+  *) echo 'Usage: magi-affinity {status|list|auto|reset|set PROFILE|apply [BACKGROUND]}' >&2; exit 2 ;;
+esac

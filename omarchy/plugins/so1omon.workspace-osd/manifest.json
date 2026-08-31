@@ -1,0 +1,11 @@
+{
+  "schemaVersion": 1,
+  "id": "so1omon.workspace-osd",
+  "name": "MAGI Workspace Transitions",
+  "version": "1.0.0",
+  "author": "So1omon",
+  "description": "Brief NERV channel overlays for actual Hyprland workspace transitions.",
+  "kinds": ["service"],
+  "keepLoaded": true,
+  "entryPoints": { "service": "Service.qml" }
+}

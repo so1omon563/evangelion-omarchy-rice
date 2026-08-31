@@ -1,0 +1,16 @@
+{
+  "schemaVersion": 1,
+  "id": "so1omon.clipboard",
+  "name": "MAGI Clipboard Archive",
+  "version": "1.0.0",
+  "author": "So1omon / Omarchy",
+  "description": "A classified NERV data archive built on Omarchy's clipboard backend",
+  "kinds": [
+    "overlay"
+  ],
+  "keepLoaded": true,
+  "entryPoints": {
+    "overlay": "Clipboard.qml"
+  },
+  "omarchy": { "clonedFrom": "omarchy.clipboard" }
+}

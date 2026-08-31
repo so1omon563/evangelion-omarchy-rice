@@ -1,0 +1,183 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+state_dir="${XDG_STATE_HOME:-$HOME/.local/state}/evangelion-rice/angel-intrusion"
+session_file="$state_dir/session.json"
+active_file="$state_dir/active"
+config_file="${XDG_CONFIG_HOME:-$HOME/.config}/omarchy/angel-intrusion.json"
+alert_wallpaper="$HOME/.config/omarchy/themes/evangelion/backgrounds/4-angel-alert.png"
+
+dnd_state() {
+  local value
+  value=$(omarchy-shell notifications dndState 2>/dev/null || true)
+  if [[ $value == on || $value == off ]]; then
+    printf '%s\n' "$value"
+  elif [[ -r ${XDG_STATE_HOME:-$HOME/.local/state}/omarchy/notifications.json ]]; then
+    jq -r 'if .dnd == true then "on" else "off" end' "${XDG_STATE_HOME:-$HOME/.local/state}/omarchy/notifications.json"
+  else
+    echo off
+  fi
+}
+
+set_dnd() {
+  [[ $(omarchy-shell notifications setDnd "$1" 2>/dev/null) == "$1" ]]
+}
+
+capture_border() {
+  hyprctl getoption "$1" -j 2>/dev/null | jq -r '.gradient // empty'
+}
+
+set_border_lua() {
+  local option=$1 value=$2
+  hyprctl eval "hl.config({ [\"${option/general:/general.}\"] = $value })" >/dev/null
+}
+
+restore_border() {
+  local option=$1 gradient=$2 token alpha rgb angle=0 colors=""
+  [[ -n $gradient ]] || return 0
+  for token in $gradient; do
+    if [[ $token == *deg ]]; then
+      angle=${token%deg}
+    else
+      token=${token#0x}
+      alpha=${token:0:2}
+      rgb=${token:2:6}
+      [[ -n $colors ]] && colors+=", "
+      colors+="\"rgba(${rgb}${alpha})\""
+    fi
+  done
+  set_border_lua "$option" "{ colors = { $colors }, angle = $angle }"
+}
+
+sound_requested() {
+  [[ ${1:-} != --silent ]] || return 1
+  if [[ -r $config_file ]]; then
+    jq -e '(.sound // true) == true' "$config_file" >/dev/null 2>&1
+  else
+    return 0
+  fi
+}
+
+capture_session() {
+  local wallpaper profile dnd affinity mode active active_border inactive_border
+  wallpaper=$(readlink -f "${XDG_STATE_HOME:-$HOME/.local/state}/omarchy/current/background" 2>/dev/null || true)
+  profile=$(eva-terminal-profile status)
+  dnd=$(dnd_state)
+  affinity=$(magi-affinity status)
+  mode=$(sed -n 's/^mode=//p' <<<"$affinity")
+  active=$(sed -n 's/^active=//p' <<<"$affinity")
+  active_border=$(capture_border general:col.active_border)
+  inactive_border=$(capture_border general:col.inactive_border)
+  [[ -f $wallpaper ]] || { echo "Unable to capture the current wallpaper" >&2; return 1; }
+
+  mkdir -p "$state_dir"
+  jq -n --arg wallpaper "$wallpaper" --arg profile "$profile" --arg dnd "$dnd" \
+    --arg affinityMode "$mode" --arg affinityActive "$active" \
+    --arg activeBorder "$active_border" --arg inactiveBorder "$inactive_border" \
+    '{version:1,phase:"captured",wallpaper:$wallpaper,terminalProfile:$profile,
+      dnd:$dnd,affinityMode:$affinityMode,affinityActive:$affinityActive,
+      activeBorder:$activeBorder,inactiveBorder:$inactiveBorder}' > "$session_file.tmp"
+  mv "$session_file.tmp" "$session_file"
+}
+
+mark_phase() {
+  local phase=$1
+  jq --arg phase "$phase" '.phase = $phase' "$session_file" > "$session_file.tmp"
+  mv "$session_file.tmp" "$session_file"
+}
+
+restore_session() {
+  [[ -r $session_file ]] || return 0
+  local wallpaper profile dnd mode affinity active_border inactive_border failed=0
+  wallpaper=$(jq -r '.wallpaper' "$session_file")
+  profile=$(jq -r '.terminalProfile' "$session_file")
+  dnd=$(jq -r '.dnd' "$session_file")
+  mode=$(jq -r '.affinityMode' "$session_file")
+  affinity=$(jq -r '.affinityActive' "$session_file")
+  active_border=$(jq -r '.activeBorder' "$session_file")
+  inactive_border=$(jq -r '.inactiveBorder' "$session_file")
+
+  mark_phase restoring
+  omarchy theme bg set "$wallpaper" >/dev/null 2>&1 || failed=1
+  if [[ $mode == manual ]]; then
+    magi-affinity set "$affinity" >/dev/null 2>&1 || failed=1
+  else
+    magi-affinity auto >/dev/null 2>&1 || failed=1
+  fi
+  EVA_TERMINAL_PROFILE_QUIET=1 eva-terminal-profile "$profile" --no-reload >/dev/null 2>&1 || failed=1
+  set_dnd "$dnd" || failed=1
+  restore_border general:col.active_border "$active_border" || failed=1
+  restore_border general:col.inactive_border "$inactive_border" || failed=1
+
+  if (( failed )); then
+    touch "$active_file"
+    echo "Angel intrusion recovery incomplete; run 'magi-intrusion exit' again." >&2
+    return 1
+  fi
+  rm -f "$active_file" "$session_file"
+  omarchy-shell -q angel-intrusion deactivate >/dev/null 2>&1 || true
+  omarchy-notification-send -u low -g '󰅖' 'ANGEL SIGNAL // CLEARED' 'Prior visual and communication states restored' 2>/dev/null || true
+}
+
+activate() {
+  [[ -e $active_file ]] && { echo "Angel intrusion: active"; return 0; }
+  if [[ -r $session_file ]]; then
+    echo "Recovering an interrupted intrusion transition first" >&2
+    restore_session
+  fi
+  [[ -f $alert_wallpaper ]] || { echo "Angel alert wallpaper is missing: $alert_wallpaper" >&2; return 1; }
+
+  capture_session
+  mark_phase activating
+  if ! magi-affinity set unit-02 >/dev/null ||
+     ! omarchy theme bg set "$alert_wallpaper" >/dev/null ||
+     ! EVA_TERMINAL_PROFILE_QUIET=1 eva-terminal-profile unit-02 --no-reload >/dev/null ||
+     ! set_dnd on ||
+     ! set_border_lua general:col.active_border '{ colors = { "rgba(FF153Dee)", "rgba(F6A52Fee)" }, angle = 45 }' ||
+     ! set_border_lua general:col.inactive_border '"rgba(6F0A18cc)"'; then
+    echo "Angel intrusion activation failed; restoring captured state" >&2
+    restore_session
+    return 1
+  fi
+
+  mark_phase active
+  touch "$active_file"
+  omarchy-shell -q angel-intrusion activate >/dev/null 2>&1 || true
+  if sound_requested "${1:-}" && [[ $(magi-sound status) == enabled ]]; then
+    magi-sound critical >/dev/null 2>&1 || true
+  fi
+  echo "Angel intrusion: active — exit with: magi-intrusion exit"
+}
+
+exit_mode() {
+  if [[ ! -r $session_file ]]; then
+    if [[ -e $active_file ]]; then
+      rm -f "$active_file"
+      omarchy-shell -q angel-intrusion deactivate >/dev/null 2>&1 || true
+    fi
+    echo "Angel intrusion: inactive"
+    return 0
+  fi
+  restore_session
+  echo "Angel intrusion: inactive"
+}
+
+status() {
+  if [[ -e $active_file ]]; then
+    echo active
+  elif [[ -r $session_file ]]; then
+    printf 'recovery-required (%s)\n' "$(jq -r '.phase // "unknown"' "$session_file")"
+  else
+    echo inactive
+  fi
+}
+
+case "${1:-toggle}" in
+  enter|activate|on) activate "${2:-}" ;;
+  exit|abort|clear|off) exit_mode ;;
+  toggle) if [[ -e $active_file || -r $session_file ]]; then exit_mode; else activate "${2:-}"; fi ;;
+  status) status ;;
+  preview) omarchy-shell angel-intrusion preview ;;
+  *) echo "Usage: magi-intrusion [enter [--silent]|exit|toggle|status|preview]" >&2; exit 2 ;;
+esac

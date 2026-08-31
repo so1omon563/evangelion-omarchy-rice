@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "id": "so1omon.privacy",
+  "name": "NERV Privacy Activity",
+  "version": "1.0.0",
+  "author": "So1omon",
+  "description": "Persistent safety indicator for microphone, camera, sharing, recording, and remote-control activity.",
+  "kinds": ["bar-widget"],
+  "entryPoints": {"barWidget": "BarWidget.qml"},
+  "barWidget": {
+    "displayName": "NERV Privacy Activity",
+    "description": "Always-visible while privacy-sensitive activity is detected",
+    "category": "System",
+    "allowMultiple": false,
+    "defaultSection": "right"
+  }
+}

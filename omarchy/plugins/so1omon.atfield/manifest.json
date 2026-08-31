@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "id": "so1omon.atfield",
+  "name": "AT Field Focus",
+  "version": "1.0.0",
+  "author": "So1omon",
+  "description": "Persistent AT Field focus-mode safety indicator.",
+  "kinds": ["bar-widget"],
+  "entryPoints": { "barWidget": "BarWidget.qml" },
+  "barWidget": {
+    "displayName": "AT Field Focus",
+    "description": "Visible only while focus mode is active",
+    "category": "System",
+    "allowMultiple": false,
+    "defaultSection": "right"
+  }
+}

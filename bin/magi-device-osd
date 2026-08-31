@@ -1,0 +1,20 @@
+#!/usr/bin/env bash
+set -u
+state_dir="${XDG_STATE_HOME:-$HOME/.local/state}/evangelion-rice/device-osd"
+case ${1:-status} in
+  status) omarchy-shell device-osd state ;;
+  preview)
+    kind=${2:-storage}; action=${3:-connected}
+    omarchy-shell device-osd preview "$kind" "$action"
+    ;;
+  hide) omarchy-shell device-osd hide ;;
+  open)
+    [[ -r $state_dir/last-storage ]] || { echo 'No recent USB storage device' >&2; exit 1; }
+    read -r devnode < "$state_dir/last-storage"
+    [[ $devnode == /dev/* ]] || { echo 'Invalid storage record' >&2; exit 1; }
+    target=$(findmnt -rn -S "$devnode" -o TARGET | head -n1)
+    [[ -n $target && -d $target ]] || { echo 'Recent USB storage is not mounted' >&2; exit 1; }
+    setsid -f xdg-open "$target" >/dev/null 2>&1
+    ;;
+  *) echo 'Usage: magi-device-osd {status|preview [storage|dock|display|keyboard|pointer|audio] [connected|disconnected]|open|hide}' >&2; exit 2 ;;
+esac

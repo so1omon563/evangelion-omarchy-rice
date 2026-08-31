@@ -1,0 +1,84 @@
+#!/usr/bin/env bash
+set -u
+
+json=false
+[[ ${1:-} == --json ]] && json=true
+
+connectivity=unknown
+connection=""
+connection_type=unknown
+interface=""
+gateway=""
+signal=-1
+ssid=""
+vpn=""
+bluetooth=unavailable
+bluetooth_devices=0
+tailscale=unavailable
+tailscale_peers=0
+tailscale_name=""
+
+if command -v nmcli >/dev/null 2>&1; then
+  connectivity=$(nmcli -t networking connectivity check 2>/dev/null || echo unknown)
+  active=$(nmcli -t -f DEVICE,TYPE,STATE,CONNECTION device status 2>/dev/null | awk -F: '$3=="connected" && $2!="loopback" {print; exit}')
+  if [[ -n $active ]]; then
+    IFS=: read -r interface connection_type _ connection <<< "$active"
+  fi
+  route=$(ip -4 route show default 2>/dev/null | head -n1)
+  [[ $route =~ via[[:space:]]+([^[:space:]]+) ]] && gateway=${BASH_REMATCH[1]}
+  [[ -z $interface && $route =~ dev[[:space:]]+([^[:space:]]+) ]] && interface=${BASH_REMATCH[1]}
+  if [[ $connection_type == wifi ]]; then
+    wifi=$(nmcli -t -f IN-USE,SIGNAL,SSID device wifi list --rescan no 2>/dev/null | awk -F: '$1=="*" {print; exit}')
+    if [[ -n $wifi ]]; then IFS=: read -r _ signal ssid <<< "$wifi"; fi
+  fi
+  vpn=$(nmcli -t -f NAME,TYPE connection show --active 2>/dev/null | awk -F: '$1 != "tailscale0" && $2 ~ /^(vpn|wireguard|tun)$/ {print $1; exit}')
+fi
+
+if command -v busctl >/dev/null 2>&1 && busctl --system status org.bluez >/dev/null 2>&1; then
+  adapter=$(busctl --system tree org.bluez --list 2>/dev/null | awk '/^\/org\/bluez\/hci[0-9]+$/ {print; exit}')
+  powered=$(busctl --system get-property org.bluez "$adapter" org.bluez.Adapter1 Powered 2>/dev/null | awk '{print $2}')
+  if [[ $powered == true ]]; then
+    bluetooth=on
+    while read -r device; do
+      [[ -z $device ]] && continue
+      connected=$(busctl --system get-property org.bluez "$device" org.bluez.Device1 Connected 2>/dev/null | awk '{print $2}')
+      [[ $connected == true ]] && ((bluetooth_devices+=1))
+    done < <(busctl --system tree org.bluez --list 2>/dev/null | awk -F/ '/^\/org\/bluez\/hci[0-9]+\/dev_[^/]+$/ {print}')
+  elif [[ $powered == false ]]; then
+    bluetooth=off
+  fi
+fi
+
+if command -v tailscale >/dev/null 2>&1; then
+  ts=$(tailscale status --json 2>/dev/null || true)
+  if [[ -n $ts ]]; then
+    tailscale=$(jq -r 'if .BackendState == "Running" then "on" else (.BackendState // "off" | ascii_downcase) end' <<< "$ts" 2>/dev/null || echo unavailable)
+    tailscale_peers=$(jq -r '[.Peer[]? | select(.Online == true)] | length' <<< "$ts" 2>/dev/null || echo 0)
+    tailscale_name=$(jq -r '.Self.HostName // ""' <<< "$ts" 2>/dev/null || true)
+  else
+    tailscale=off
+  fi
+fi
+
+if [[ $connectivity == full ]]; then link=online
+elif [[ $connectivity == limited || $connectivity == portal ]]; then link=limited
+elif [[ $connectivity == none ]]; then link=offline
+elif [[ -n $interface ]]; then link=local
+else link=offline
+fi
+
+payload=$(jq -cn \
+  --arg link "$link" --arg connectivity "$connectivity" \
+  --arg connection "$connection" --arg type "$connection_type" \
+  --arg interface "$interface" --arg gateway "$gateway" \
+  --arg ssid "$ssid" --argjson signal "${signal:--1}" --arg vpn "$vpn" \
+  --arg bluetooth "$bluetooth" --argjson bluetooth_devices "$bluetooth_devices" \
+  --arg tailscale "$tailscale" --argjson tailscale_peers "$tailscale_peers" \
+  --arg tailscale_name "$tailscale_name" \
+  '{link:$link,connectivity:$connectivity,connection:$connection,type:$type,interface:$interface,gateway:$gateway,ssid:$ssid,signal:$signal,vpn:$vpn,bluetooth:$bluetooth,bluetoothDevices:$bluetooth_devices,tailscale:$tailscale,tailscalePeers:$tailscale_peers,tailscaleName:$tailscale_name}')
+
+if $json; then
+  printf '%s\n' "$payload"
+else
+  jq -r '"COMM // \(.link | ascii_upcase)\nUplink: \(.connection // "--") [\(.type)] \(if .signal >= 0 then "\(.signal)%" else "" end)\nRoute: \(.interface // "--") via \(.gateway // "--")\nVPN: \(if .vpn == "" then "none" else .vpn end)\nBluetooth: \(.bluetooth), \(.bluetoothDevices) connected\nTailscale: \(.tailscale), \(.tailscalePeers) peers"' <<< "$payload"
+fi

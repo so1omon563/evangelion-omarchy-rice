@@ -1,0 +1,62 @@
+#!/usr/bin/env bash
+
+set -u
+
+mode_file="${XDG_STATE_HOME:-$HOME/.local/state}/omarchy/evangelion-screensaver-mode"
+if [[ -r $mode_file && $(<"$mode_file") == default ]]; then
+  exec /usr/share/omarchy/bin/omarchy-launch-screensaver "$@"
+fi
+
+pgrep -f '[o]rg.omarchy.screensaver' >/dev/null && exit 0
+if omarchy-toggle-enabled screensaver-off && [[ ${1:-} != force ]]; then
+  exit 1
+fi
+
+focused=$(omarchy-hyprland-monitor-focused)
+terminal=$(xdg-terminal-exec --print-id)
+socket="$XDG_RUNTIME_DIR/hypr/$HYPRLAND_INSTANCE_SIGNATURE/.socket2.sock"
+exec {events}< <(socat -U - "UNIX-CONNECT:$socket")
+
+focus_monitor() {
+  hyprctl dispatch "hl.dsp.focus({ monitor = \"$1\" })" >/dev/null 2>&1 \
+    || hyprctl dispatch focusmonitor "$1" >/dev/null
+}
+
+hypr_exec() {
+  local command
+  printf -v command '%q ' "$@"
+  hyprctl dispatch "hl.dsp.exec_cmd([[$command]])" >/dev/null 2>&1 \
+    || hyprctl dispatch exec -- bash -lc "$command" >/dev/null
+}
+
+wait_for_window() {
+  local line deadline=$((SECONDS + 5))
+  while ((SECONDS < deadline)) && IFS= read -r -t $((deadline - SECONDS)) -u "$events" line; do
+    [[ $line == openwindow\>\>*,org.omarchy.screensaver,* ]] && return 0
+  done
+}
+
+for monitor in $(hyprctl monitors -j | jq -r '.[].name'); do
+  focus_monitor "$monitor"
+  case "$terminal" in
+    *Alacritty*)
+      hypr_exec alacritty --class=org.omarchy.screensaver --config-file "$OMARCHY_PATH/default/alacritty/screensaver.toml" -e magi-screensaver
+      ;;
+    *ghostty*)
+      hypr_exec ghostty --class=org.omarchy.screensaver --config-file="$OMARCHY_PATH/default/ghostty/screensaver" --font-size=18 -e magi-screensaver
+      ;;
+    *foot*)
+      hypr_exec foot --app-id=org.omarchy.screensaver --config="$OMARCHY_PATH/default/foot/screensaver.ini" -e magi-screensaver
+      ;;
+    *kitty*)
+      hypr_exec kitty --class=org.omarchy.screensaver --override font_size=18 --override window_padding_width=0 -e magi-screensaver
+      ;;
+    *)
+      omarchy-notification-send -g ✋ "Screensaver requires Alacritty, Foot, Ghostty, or Kitty"
+      exit 1
+      ;;
+  esac
+  wait_for_window
+done
+
+focus_monitor "$focused"

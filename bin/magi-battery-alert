@@ -1,0 +1,33 @@
+#!/bin/bash
+
+set -euo pipefail
+
+if (($# != 2)); then
+  echo "Usage: magi-battery-alert <reserve|critical> <percentage>" >&2
+  exit 1
+fi
+
+tier=$1
+level=$2
+
+case "$tier" in
+reserve)
+  omarchy-notification-send --app-name 'NERV Power' -g '◆' -u normal \
+    "Reserve power engaged" \
+    "Battery is at ${level}%. Connect external power when convenient." \
+    -i battery-caution -t 15000
+  ;;
+critical)
+  setsid -f magi-sound critical >/dev/null 2>&1
+  omarchy-notification-send --app-name 'NERV Power' -g '▲' -u critical \
+    "INTERNAL POWER" \
+    "Battery is at ${level}%. Connect external power immediately." \
+    -i battery-caution
+  ;;
+*)
+  echo "Unknown battery alert tier: $tier" >&2
+  exit 2
+  ;;
+esac
+
+omarchy-hook battery-low "$level"

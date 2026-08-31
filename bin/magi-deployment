@@ -1,0 +1,317 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+state_dir="${XDG_STATE_HOME:-$HOME/.local/state}/evangelion-rice/deployment"
+state_file="$state_dir/session.json"
+config_file="${XDG_CONFIG_HOME:-$HOME/.config}/omarchy/eva-deployment.json"
+
+config_json() {
+  local default_project="$HOME/Work/evangelion-rice"
+  if [[ -r $config_file ]] && jq -e 'type == "object"' "$config_file" >/dev/null 2>&1; then
+    jq -c --arg project "$default_project" '{
+      workspace: ((.workspace // 4) | tonumber),
+      project_dir: (.project_dir // $project),
+      terminal_profile: (.terminal_profile // "engineering"),
+      browser_url: (.browser_url // "about:blank")
+    }' "$config_file"
+  else
+    jq -cn --arg project "$default_project" '{workspace:4, project_dir:$project, terminal_profile:"engineering", browser_url:"about:blank"}'
+  fi
+}
+
+clients_json() { hyprctl clients -j 2>/dev/null || printf '%s\n' '[]'; }
+
+client_for_class() {
+  local class=$1
+  clients_json | jq -c --arg class "$class" '[.[] | select(.class == $class)][0] // empty'
+}
+
+client_still_matches() {
+  local address=$1 pid=$2 class=$3
+  clients_json | jq -e --arg address "$address" --argjson pid "$pid" --arg class "$class" \
+    'any(.[]; .address == $address and .pid == $pid and .class == $class)' >/dev/null
+}
+
+focus_workspace() {
+  hyprctl dispatch "hl.dsp.focus({ workspace = \"$1\" })" >/dev/null
+}
+
+wait_for_class() {
+  local class=$1 client
+  for _ in {1..80}; do
+    client=$(client_for_class "$class")
+    [[ -n $client ]] && { printf '%s\n' "$client"; return 0; }
+    sleep 0.1
+  done
+  return 1
+}
+
+launch_role() {
+  local role=$1 class=$2 project=$3 browser_url=$4 existing launched=false client
+  existing=$(client_for_class "$class")
+  if [[ -n $existing ]]; then
+    client=$existing
+  else
+    launched=true
+    case "$role" in
+      editor)
+        setsid -f ghostty --gtk-single-instance=false --class="$class" \
+          --title="ENTRY PLUG · EDITOR" -e bash -lc 'cd -- "$1"; exec nvim .' bash "$project" >/dev/null 2>&1
+        ;;
+      terminal)
+        setsid -f ghostty --gtk-single-instance=false --class="$class" \
+          --title="ENTRY PLUG · COMMAND" -e bash -lc 'cd -- "$1"; printf "\033[38;2;246;165;47mNERV BUILD CHANNEL // READY\033[0m\n"; exec bash' bash "$project" >/dev/null 2>&1
+        ;;
+      logs)
+        setsid -f ghostty --gtk-single-instance=false --class="$class" \
+          --title="ENTRY PLUG · TELEMETRY" -e bash -lc 'cd -- "$1"; printf "\033[38;2;156;242;58mMAGI PROJECT TELEMETRY\033[0m\n\n"; git status --short --branch 2>/dev/null || true; printf "\nTelemetry console ready.\n"; exec bash' bash "$project" >/dev/null 2>&1
+        ;;
+    esac
+    client=$(wait_for_class "$class") || {
+      printf 'Deployment role failed to map: %s\n' "$role" >&2
+      return 1
+    }
+  fi
+
+  jq -cn --arg role "$role" --argjson launched "$launched" --argjson client "$client" '{
+    role:$role, launched:$launched, address:$client.address, pid:$client.pid,
+    class:$client.class, originalWorkspace:$client.workspace.id,
+    originalFloating:$client.floating, originalAt:$client.at, originalSize:$client.size
+  }'
+}
+
+default_browser_exec() {
+  local desktop exec_path
+  desktop=$(env -u BROWSER xdg-settings get default-web-browser 2>/dev/null || true)
+  [[ -n $desktop ]] || desktop=$(xdg-mime query default x-scheme-handler/https 2>/dev/null || true)
+  exec_path=$(sed -n 's/^Exec=\([^ ]*\).*/\1/p' \
+    "$HOME/.local/share/applications/$desktop" \
+    "$HOME/.nix-profile/share/applications/$desktop" \
+    "/usr/share/applications/$desktop" 2>/dev/null | head -n1)
+  basename "${exec_path:-browser}"
+}
+
+launch_browser() {
+  local browser_url=$1 before browser_exec client='' active launched original address
+  before=$(clients_json)
+  browser_exec=$(default_browser_exec)
+  browser_exec=${browser_exec%-bin}
+  browser_exec=${browser_exec%-stable}
+
+  omarchy launch browser "$browser_url" >/dev/null 2>&1 || return 1
+
+  for _ in {1..80}; do
+    active=$(hyprctl activewindow -j 2>/dev/null || printf '%s\n' '{}')
+    if jq -e --arg browser "$browser_exec" \
+      '(((.class // "") | ascii_downcase) | contains($browser | ascii_downcase))' <<<"$active" >/dev/null; then
+      client=$active
+      break
+    fi
+    sleep 0.1
+  done
+  [[ -n $client ]] || return 1
+
+  address=$(jq -r '.address' <<<"$client")
+  if jq -e --arg address "$address" 'any(.[]; .address == $address)' <<<"$before" >/dev/null; then
+    launched=false
+    original=$(jq -c --arg address "$address" '.[] | select(.address == $address)' <<<"$before")
+  else
+    launched=true
+    original=$client
+  fi
+
+  jq -cn --argjson launched "$launched" --argjson client "$client" --argjson original "$original" '{
+    role:"browser", launched:$launched, address:$client.address, pid:$client.pid,
+    class:$client.class, originalWorkspace:$original.workspace.id,
+    originalFloating:$original.floating, originalAt:$original.at, originalSize:$original.size
+  }'
+}
+
+monitor_geometry() {
+  hyprctl monitors -j | jq -c '[.[] | select(.focused)][0] // .[0]'
+}
+
+layout_windows() {
+  local windows=$1 monitor mx my mw mh top right bottom left
+  local margin=12 gap=10 usable_w usable_h left_w right_w top_h bottom_h x_left x_right y_top y_bottom
+  monitor=$(monitor_geometry)
+  mx=$(jq -r '.x' <<<"$monitor")
+  my=$(jq -r '.y' <<<"$monitor")
+  mw=$(jq -r '(.width / .scale) | floor' <<<"$monitor")
+  mh=$(jq -r '(.height / .scale) | floor' <<<"$monitor")
+  left=$(jq -r '.reserved[0] // 0' <<<"$monitor")
+  top=$(jq -r '.reserved[1] // 0' <<<"$monitor")
+  right=$(jq -r '.reserved[2] // 0' <<<"$monitor")
+  bottom=$(jq -r '.reserved[3] // 0' <<<"$monitor")
+
+  usable_w=$((mw - left - right - margin * 2 - gap))
+  usable_h=$((mh - top - bottom - margin * 2 - gap))
+  left_w=$((usable_w * 58 / 100))
+  right_w=$((usable_w - left_w))
+  top_h=$((usable_h * 67 / 100))
+  bottom_h=$((usable_h - top_h))
+  x_left=$((mx + left + margin))
+  x_right=$((x_left + left_w + gap))
+  y_top=$((my + top + margin))
+  y_bottom=$((y_top + top_h + gap))
+
+  while IFS=$'\t' read -r role address; do
+    [[ -n $address ]] || continue
+    local x y width height
+    case "$role" in
+      editor)   x=$x_left;  y=$y_top;    width=$left_w;  height=$top_h ;;
+      terminal) x=$x_left;  y=$y_bottom; width=$left_w;  height=$bottom_h ;;
+      browser)  x=$x_right; y=$y_top;    width=$right_w; height=$top_h ;;
+      logs)     x=$x_right; y=$y_bottom; width=$right_w; height=$bottom_h ;;
+    esac
+    floating=$(clients_json | jq -r --arg address "$address" '.[] | select(.address == $address) | .floating')
+    [[ $floating == true ]] || hyprctl dispatch \
+      "hl.dsp.window.float({ action = \"set\", window = \"address:$address\" })" >/dev/null
+    hyprctl dispatch \
+      "hl.dsp.window.resize({ x = $width, y = $height, relative = false, window = \"address:$address\" })" >/dev/null
+    hyprctl dispatch \
+      "hl.dsp.window.move({ x = $x, y = $y, relative = false, window = \"address:$address\" })" >/dev/null
+  done < <(jq -r '.[] | [.role,.address] | @tsv' <<<"$windows")
+}
+
+session_active() {
+  [[ -r $state_file ]] || return 1
+  while IFS=$'\t' read -r address pid class; do
+    client_still_matches "$address" "$pid" "$class" && return 0
+  done < <(jq -r '.windows[] | [.address,.pid,.class] | @tsv' "$state_file")
+  return 1
+}
+
+deploy() {
+  local config workspace project profile browser_url original_workspace original_profile windows role
+  if session_active; then
+    workspace=$(jq -r '.workspace' "$state_file")
+    focus_workspace "$workspace"
+    layout_windows "$(jq -c '.windows' "$state_file")"
+    omarchy-notification-send -g "󰚩" "EVA DEPLOYMENT" "Existing mission layout focused · no duplicate launch"
+    return
+  fi
+
+  mkdir -p "$state_dir"
+  config=$(config_json)
+  workspace=$(jq -r '.workspace' <<<"$config")
+  project=$(jq -r '.project_dir' <<<"$config")
+  profile=$(jq -r '.terminal_profile' <<<"$config")
+  browser_url=$(jq -r '.browser_url' <<<"$config")
+  [[ -d $project ]] || { printf 'Configured project directory does not exist: %s\n' "$project" >&2; return 1; }
+
+  original_workspace=$(hyprctl activeworkspace -j | jq -r '.id')
+  original_profile=$(eva-terminal-profile status)
+  jq -n --argjson version 1 --argjson workspace "$workspace" --arg project "$project" \
+    --argjson originalWorkspace "$original_workspace" --arg originalProfile "$original_profile" \
+    '{version:$version,workspace:$workspace,project:$project,
+      originalWorkspace:$originalWorkspace,originalProfile:$originalProfile,windows:[]}' > "$state_file.tmp"
+  mv "$state_file.tmp" "$state_file"
+  # Stage the coordinated profile for newly launched mission terminals without
+  # restarting unrelated terminals that were already open.
+  eva-terminal-profile "$profile" --no-reload >/dev/null
+  focus_workspace "$workspace"
+
+  windows='[]'
+  while read -r role; do
+    case "$role" in
+      editor) class="org.omarchy.eva.editor" ;;
+      terminal) class="org.omarchy.eva.terminal" ;;
+      browser) class="" ;;
+      logs) class="org.omarchy.eva.logs" ;;
+    esac
+    if [[ $role == browser ]]; then
+      entry=$(launch_browser "$browser_url") || entry=''
+    else
+      entry=$(launch_role "$role" "$class" "$project" "$browser_url") || entry=''
+    fi
+    if [[ -z $entry ]]; then
+      printf '%s\n' "$windows" | jq -c --argjson entry "$(jq -cn --arg role "$role" '{role:$role,failed:true}')" '. + [$entry]' >/dev/null
+      continue
+    fi
+    address=$(jq -r '.address' <<<"$entry")
+    hyprctl dispatch \
+      "hl.dsp.window.move({ workspace = \"$workspace\", follow = false, window = \"address:$address\" })" >/dev/null
+    windows=$(jq -c --argjson entry "$entry" '. + [$entry]' <<<"$windows")
+    jq --argjson entry "$entry" '.windows += [$entry]' "$state_file" > "$state_file.tmp"
+    mv "$state_file.tmp" "$state_file"
+  done < <(printf '%s\n' editor terminal browser logs)
+
+  (( $(jq 'length' <<<"$windows") > 0 )) || {
+    eva-terminal-profile "$original_profile" --no-reload >/dev/null || true
+    rm -f "$state_file"
+    return 1
+  }
+  layout_windows "$windows"
+  focus_workspace "$workspace"
+  omarchy-notification-send -g "󰚩" "EVA DEPLOYMENT" "Workspace $(printf '%02d' "$workspace") · ${project##*/} · mission ready"
+}
+
+teardown() {
+  [[ -r $state_file ]] || { echo "No EVA deployment is active"; return 0; }
+  local original_workspace original_profile address pid class launched original original_floating original_x original_y original_w original_h
+  original_workspace=$(jq -r '.originalWorkspace' "$state_file")
+  original_profile=$(jq -r '.originalProfile' "$state_file")
+
+  while IFS=$'\t' read -r address pid class launched original original_floating original_x original_y original_w original_h; do
+    client_still_matches "$address" "$pid" "$class" || continue
+    if [[ $launched == true ]]; then
+      # The address/PID/class triple was verified immediately above. Signaling
+      # that exact client avoids broad process matching and address reuse.
+      kill -TERM "$pid" 2>/dev/null || true
+    elif [[ $original =~ ^-?[0-9]+$ ]] && (( original > 0 )); then
+      hyprctl dispatch \
+        "hl.dsp.window.move({ workspace = \"$original\", follow = false, window = \"address:$address\" })" >/dev/null
+      if [[ $original_floating == true ]]; then
+        hyprctl dispatch \
+          "hl.dsp.window.float({ action = \"set\", window = \"address:$address\" })" >/dev/null
+        hyprctl dispatch \
+          "hl.dsp.window.resize({ x = $original_w, y = $original_h, relative = false, window = \"address:$address\" })" >/dev/null
+        hyprctl dispatch \
+          "hl.dsp.window.move({ x = $original_x, y = $original_y, relative = false, window = \"address:$address\" })" >/dev/null
+      else
+        hyprctl dispatch \
+          "hl.dsp.window.float({ action = \"unset\", window = \"address:$address\" })" >/dev/null
+      fi
+    fi
+  done < <(jq -r '.windows[] | [.address,.pid,.class,.launched,.originalWorkspace,
+    (.originalFloating // false),(.originalAt[0] // 0),(.originalAt[1] // 0),
+    (.originalSize[0] // 800),(.originalSize[1] // 600)] | @tsv' "$state_file")
+
+  eva-terminal-profile "$original_profile" --no-reload >/dev/null || true
+  rm -f "$state_file"
+  focus_workspace "$original_workspace"
+  omarchy-notification-send -g "󰚩" "EVA RECOVERY" "Mission-launched windows dismissed · prior profile restored"
+}
+
+status() {
+  if session_active; then
+    jq -r '"active\nworkspace=" + (.workspace|tostring) + "\nproject=" + .project +
+      "\nroles=" + ([.windows[].role] | join(","))' "$state_file"
+  else
+    echo inactive
+  fi
+}
+
+plan() {
+  config_json | jq .
+  echo "default_browser=$(default_browser_exec)"
+  if hyprctl monitors -j >/dev/null 2>&1; then
+    echo "layout=editor/terminal left 58%; browser/logs right 42%; upper tier 67%"
+  fi
+}
+
+case "${1:-toggle}" in
+  deploy|start) deploy ;;
+  teardown|stop) teardown ;;
+  toggle) if session_active; then teardown; else deploy; fi ;;
+  focus)
+    session_active || { echo "No EVA deployment is active" >&2; exit 1; }
+    focus_workspace "$(jq -r '.workspace' "$state_file")"
+    layout_windows "$(jq -c '.windows' "$state_file")"
+    ;;
+  status) status ;;
+  plan) plan ;;
+  *) echo "Usage: magi-deployment [deploy|focus|teardown|toggle|status|plan]" >&2; exit 2 ;;
+esac

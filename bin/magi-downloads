@@ -1,0 +1,232 @@
+#!/usr/bin/env python3
+"""NERV classified download intake: inspect first, act deliberately."""
+
+import argparse
+import hashlib
+import json
+import mimetypes
+import os
+import shutil
+import stat
+import subprocess
+import sys
+import time
+from pathlib import Path
+from urllib.parse import urlparse
+
+CONFIG = Path.home() / ".config/omarchy/magi-downloads.json"
+EXECUTABLE_SUFFIXES = {".appimage", ".bin", ".com", ".desktop", ".exe", ".msi", ".run", ".sh", ".bat", ".cmd", ".ps1"}
+ARCHIVE_SUFFIXES = {".7z", ".bz2", ".gz", ".rar", ".tar", ".tbz", ".tgz", ".txz", ".xz", ".zip", ".zst"}
+COLORS = {"EXECUTABLE": "\033[38;2;255;64;85m", "ARCHIVE": "\033[38;2;242;140;40m", "DOCUMENT": "\033[38;2;79;214;200m", "IMAGE": "\033[38;2;183;108;255m", "MEDIA": "\033[38;2;156;242;58m", "DATA": "\033[38;2;246;183;60m", "FILE": "\033[38;2;142;128;154m"}
+RESET = "\033[0m"
+
+
+def run(args):
+    try:
+        return subprocess.run(args, text=True, capture_output=True, timeout=4).stdout.strip()
+    except (OSError, subprocess.SubprocessError):
+        return ""
+
+
+def configuration():
+    data = {"directory": "", "archive_directory": "", "max_items": 40, "recent_days": 30}
+    try:
+        loaded = json.loads(CONFIG.read_text())
+        if isinstance(loaded, dict):
+            data.update({key: loaded[key] for key in data if key in loaded})
+    except (OSError, json.JSONDecodeError):
+        pass
+    if not data["directory"]:
+        data["directory"] = run(["xdg-user-dir", "DOWNLOAD"]) or str(Path.home() / "Downloads")
+    root = Path(os.path.expandvars(os.path.expanduser(str(data["directory"])))).resolve()
+    archive = Path(os.path.expandvars(os.path.expanduser(str(data["archive_directory"])))).resolve() if data["archive_directory"] else root / "NERV-Archive"
+    return root, archive, max(1, min(250, int(data["max_items"]))), max(1, int(data["recent_days"]))
+
+
+def source_domain(path):
+    for attribute in ("user.xdg.origin.url", "user.download.source", "user.xdg.referrer.url"):
+        try:
+            value = os.getxattr(path, attribute).decode("utf-8", "replace")
+        except (OSError, UnicodeDecodeError):
+            continue
+        host = urlparse(value).hostname
+        if host:
+            return host.removeprefix("www.")[:80]
+    return "not recorded"
+
+
+def classification(path, mime):
+    suffix = path.suffix.lower()
+    try:
+        executable = bool(path.stat().st_mode & (stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH))
+    except OSError:
+        executable = False
+    if executable or suffix in EXECUTABLE_SUFFIXES or mime in {"application/x-executable", "application/x-sharedlib", "application/vnd.microsoft.portable-executable"}:
+        return "EXECUTABLE"
+    if suffix in ARCHIVE_SUFFIXES or mime in {"application/zip", "application/x-7z-compressed", "application/x-rar"}:
+        return "ARCHIVE"
+    if mime.startswith("image/"):
+        return "IMAGE"
+    if mime.startswith(("audio/", "video/")):
+        return "MEDIA"
+    if mime in {"application/json", "application/xml", "text/csv"}:
+        return "DATA"
+    if mime.startswith("text/") or mime in {"application/pdf", "application/epub+zip"}:
+        return "DOCUMENT"
+    return "FILE"
+
+
+def human_size(size):
+    value = float(size)
+    for unit in ("B", "KB", "MB", "GB", "TB"):
+        if value < 1024 or unit == "TB":
+            return f"{value:.0f}{unit}" if unit == "B" else f"{value:.1f}{unit}"
+        value /= 1024
+
+
+def human_age(timestamp):
+    seconds = max(0, time.time() - timestamp)
+    if seconds < 3600:
+        return f"{max(1, int(seconds // 60))}m"
+    if seconds < 86400:
+        return f"{int(seconds // 3600)}h"
+    return f"{int(seconds // 86400)}d"
+
+
+def inventory(root, archive, limit, recent_days):
+    cutoff = time.time() - recent_days * 86400
+    records = []
+    if not root.is_dir():
+        return records
+    for path in root.iterdir():
+        try:
+            resolved = path.resolve(strict=True)
+            info = resolved.stat()
+        except OSError:
+            continue
+        if not resolved.is_file() or path.is_symlink() or resolved.parent != root or resolved.parent == archive:
+            continue
+        if info.st_mtime < cutoff:
+            continue
+        mime = mimetypes.guess_type(resolved.name)[0] or "application/octet-stream"
+        records.append({
+            "name": resolved.name,
+            "path": str(resolved),
+            "class": classification(resolved, mime),
+            "mime": mime,
+            "bytes": info.st_size,
+            "size": human_size(info.st_size),
+            "modified": int(info.st_mtime),
+            "age": human_age(info.st_mtime),
+            "source_domain": source_domain(resolved),
+        })
+    return sorted(records, key=lambda item: item["modified"], reverse=True)[:limit]
+
+
+def choose(lines, prompt, header=""):
+    result = subprocess.run(["fzf", "--ansi", "--no-multi", "--reverse", "--height=100%", f"--prompt={prompt} ", f"--header={header}", "--border=sharp", "--color=bg+:#21152b,fg+:#f2edf5,hl:#9cf23a,hl+:#9cf23a,prompt:#f28c28,pointer:#ff4055,border:#4fd6c8"], input="\n".join(lines), text=True, capture_output=True)
+    return result.stdout.rstrip("\n") if result.returncode == 0 else ""
+
+
+def notify(title, body):
+    subprocess.Popen(["notify-send", "-a", "NERV Download Intake", title, body], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+
+
+def reveal(path):
+    uri = path.as_uri()
+    result = subprocess.run(["dbus-send", "--session", "--dest=org.freedesktop.FileManager1", "--type=method_call", "/org/freedesktop/FileManager1", "org.freedesktop.FileManager1.ShowItems", f"array:string:{uri}", "string:"], capture_output=True)
+    if result.returncode != 0:
+        subprocess.Popen(["xdg-open", str(path.parent)], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+
+
+def checksum(path):
+    digest = hashlib.sha256()
+    with path.open("rb") as handle:
+        for block in iter(lambda: handle.read(1024 * 1024), b""):
+            digest.update(block)
+    value = digest.hexdigest()
+    if shutil.which("wl-copy"):
+        subprocess.run(["wl-copy"], input=value, text=True)
+    print(f"\nSHA-256 // {path.name}\n{value}\n")
+    input("Press Enter to return to intake…")
+
+
+def archive_file(path, archive):
+    confirmation = choose(["CONFIRM ARCHIVE", "ABORT"], "ARCHIVE>", f"Move {path.name} into {archive.name}; this does not delete the file")
+    if confirmation != "CONFIRM ARCHIVE":
+        return
+    archive.mkdir(parents=True, exist_ok=True)
+    target = archive / path.name
+    stem, suffix = path.stem, path.suffix
+    counter = 2
+    while target.exists():
+        target = archive / f"{stem}-{counter}{suffix}"
+        counter += 1
+    shutil.move(str(path), str(target))
+    notify("ARCHIVE TRANSFER COMPLETE", target.name)
+
+
+def interactive(records, archive):
+    if not records:
+        print("NERV // DOWNLOAD INTAKE\n\nNO RECENT FILES DETECTED")
+        return 0
+    while records:
+        rows = []
+        mapping = {}
+        for index, item in enumerate(records, 1):
+            color = COLORS[item["class"]]
+            row = f"{index:02d}  {color}{item['class']:<10}{RESET}  {item['age']:>4}  {item['size']:>8}  {item['source_domain']:<24}  {item['name']}"
+            rows.append(row)
+            mapping[row] = item
+        selected = choose(rows, "INTAKE>", "NERV CLASSIFIED DOWNLOADS // TYPE  AGE  SIZE  SOURCE DOMAIN  FILE")
+        if not selected:
+            return 0
+        item = mapping.get(selected)
+        if not item:
+            continue
+        path = Path(item["path"])
+        actions = ["REVEAL IN FILE MANAGER", "COMPUTE SHA-256", "ARCHIVE FILE"]
+        if item["class"] != "EXECUTABLE":
+            actions.insert(0, "OPEN WITH DEFAULT APPLICATION")
+        else:
+            actions.insert(0, "OPEN BLOCKED // EXECUTABLE-LIKE FILE")
+        action = choose(actions + ["RETURN TO INTAKE"], "ACTION>", f"{item['class']} // {item['name']} // source {item['source_domain']}")
+        if action == "OPEN WITH DEFAULT APPLICATION":
+            subprocess.Popen(["xdg-open", str(path)], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        elif action.startswith("OPEN BLOCKED"):
+            notify("EXECUTION INTERLOCK ACTIVE", "Reveal the file and inspect it manually before execution")
+        elif action == "REVEAL IN FILE MANAGER":
+            reveal(path)
+        elif action == "COMPUTE SHA-256":
+            checksum(path)
+        elif action == "ARCHIVE FILE":
+            archive_file(path, archive)
+            records[:] = [record for record in records if record["path"] != str(path) or path.exists()]
+    return 0
+
+
+def main():
+    parser = argparse.ArgumentParser(description="NERV classified download intake")
+    parser.add_argument("command", nargs="?", choices=("open", "list", "directory"), default="open")
+    parser.add_argument("--json", action="store_true")
+    args = parser.parse_args()
+    root, archive, limit, days = configuration()
+    if args.command == "directory":
+        print(root)
+        return 0
+    records = inventory(root, archive, limit, days)
+    if args.command == "list":
+        if args.json:
+            print(json.dumps({"directory": str(root), "archive_directory": str(archive), "items": records}, separators=(",", ":")))
+        else:
+            for item in records:
+                print(f"{item['class']:<10} {item['age']:>4} {item['size']:>8} {item['source_domain']:<24} {item['name']}")
+        return 0
+    if not sys.stdin.isatty():
+        print("magi-downloads open requires an interactive terminal", file=sys.stderr)
+        return 2
+    return interactive(records, archive)
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

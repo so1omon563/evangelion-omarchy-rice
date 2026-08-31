@@ -1,0 +1,9 @@
+{
+  "local_zone": "America/Phoenix",
+  "zones": [
+    {"label": "UTC", "zone": "UTC"},
+    {"label": "NEW YORK", "zone": "America/New_York"},
+    {"label": "LONDON", "zone": "Europe/London"},
+    {"label": "TOKYO-3", "zone": "Asia/Tokyo"}
+  ]
+}

@@ -1,0 +1,1 @@
+{"schemaVersion":1,"id":"so1omon.world-clock","name":"MAGI World Clock","version":"1.0.0","author":"So1omon","description":"World zones, session uptime, and mission elapsed time.","kinds":["bar-widget"],"entryPoints":{"barWidget":"BarWidget.qml"},"barWidget":{"displayName":"MAGI World Clock","category":"Time","allowMultiple":false,"defaultSection":"center"}}

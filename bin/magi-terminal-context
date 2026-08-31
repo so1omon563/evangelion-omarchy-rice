@@ -1,0 +1,236 @@
+#!/usr/bin/env python3
+"""Detect and apply isolated, launch-time EVA terminal profiles."""
+
+import argparse
+import json
+import os
+import shlex
+import subprocess
+import sys
+from pathlib import Path
+
+CONFIG = Path.home() / ".config/omarchy/magi-terminal-context.json"
+STATE = Path(os.environ.get("XDG_STATE_HOME", Path.home() / ".local/state")) / "evangelion-rice/context-profiles"
+PROFILES = {
+    "eva-01": {"tag": "EVA-01", "background": "120D18", "foreground": "E8E1EF", "muted": "665577", "selection": "4B286D", "accent": "B76CFF"},
+    "magi": {"tag": "MAGI", "background": "07110B", "foreground": "DCE8D8", "muted": "58705D", "selection": "244D2E", "accent": "9CF23A"},
+    "engineering": {"tag": "ENG", "background": "160D07", "foreground": "F1E4D6", "muted": "806752", "selection": "633417", "accent": "F28C28"},
+    "unit-00-prototype": {"tag": "EVA-00P", "background": "120F08", "foreground": "F2E9D2", "muted": "756843", "selection": "5B4215", "accent": "F6C744"},
+    "unit-00-refit": {"tag": "EVA-00R", "background": "08121E", "foreground": "E8F1FF", "muted": "526B83", "selection": "173D68", "accent": "55D9FF"},
+    "unit-02": {"tag": "EVA-02", "background": "160907", "foreground": "F5E5DF", "muted": "7D5148", "selection": "61251C", "accent": "FF5A36"},
+}
+ALIASES = {"purple": "eva-01", "green": "magi", "orange": "engineering", "prototype": "unit-00-prototype", "refit": "unit-00-refit", "blue": "unit-00-refit", "red": "unit-02"}
+
+
+def config():
+    try:
+        value = json.loads(CONFIG.read_text())
+        return value if isinstance(value, dict) else {}
+    except (OSError, json.JSONDecodeError):
+        return {}
+
+
+def normalize(profile):
+    profile = ALIASES.get(profile, profile)
+    if profile not in PROFILES:
+        raise ValueError(f"unknown profile: {profile}")
+    return profile
+
+
+def within(path, root):
+    try:
+        path.relative_to(root)
+        return True
+    except ValueError:
+        return False
+
+
+def detect(directory):
+    override = os.environ.get("EVA_TERMINAL_PROFILE_OVERRIDE", "")
+    if override:
+        try:
+            return normalize(override), "manual environment override"
+        except ValueError:
+            pass
+    path = Path(directory).expanduser().resolve()
+    rules = config()
+    candidates = []
+    for rule in rules.get("path_rules", []):
+        try:
+            root = Path(os.path.expandvars(os.path.expanduser(rule["path"]))).resolve()
+            profile = normalize(rule["profile"])
+        except (KeyError, TypeError, ValueError):
+            continue
+        if within(path, root):
+            candidates.append((len(root.parts), profile, f"path {root}"))
+    if candidates:
+        _, profile, reason = max(candidates)
+        return profile, reason
+    for parent in (path, *path.parents):
+        for rule in rules.get("marker_rules", []):
+            try:
+                profile = normalize(rule["profile"])
+                markers = [str(marker) for marker in rule["markers"]]
+            except (KeyError, TypeError, ValueError):
+                continue
+            for marker in markers:
+                if (parent / marker).exists():
+                    return profile, f"marker {marker} at {parent}"
+    return "", "no matching rule"
+
+
+def global_profile():
+    try:
+        value = subprocess.run(["eva-terminal-profile", "status"], text=True, capture_output=True, timeout=2).stdout.strip()
+        return normalize(value)
+    except (OSError, subprocess.SubprocessError, ValueError):
+        return "eva-01"
+
+
+def starship(profile):
+    palette = PROFILES[profile]
+    directory = STATE / profile
+    directory.mkdir(parents=True, exist_ok=True)
+    path = directory / "starship.toml"
+    content = f'''add_newline = true
+command_timeout = 200
+format = "[{palette['tag']} //](bold #{palette['accent']}) [$directory$git_branch$git_status](#{palette['foreground']})$character"
+
+[character]
+error_symbol = "[✗](bold #FF4055)"
+success_symbol = "[❯](bold #{palette['accent']})"
+
+[directory]
+truncation_length = 2
+truncation_symbol = "…/"
+style = "bold #{palette['accent']}"
+repo_root_style = "bold #{palette['accent']}"
+repo_root_format = "[$repo_root]($repo_root_style)[$path]($style)[$read_only]($read_only_style) "
+
+[git_branch]
+format = "[$branch]($style) "
+style = "italic #{palette['accent']}"
+
+[git_status]
+format = '[$all_status]($style)'
+style = "#{palette['accent']}"
+ahead = "⇡${{count}} "
+diverged = "⇕⇡${{ahead_count}}⇣${{behind_count}} "
+behind = "⇣${{count}} "
+conflicted = " "
+up_to_date = " "
+untracked = "? "
+modified = " "
+stashed = ""
+staged = ""
+renamed = ""
+deleted = ""
+'''
+    if not path.exists() or path.read_text() != content:
+        path.write_text(content)
+    return path
+
+
+def shell_environment(profile, manual=True):
+    palette = PROFILES[profile]
+    prompt = starship(profile)
+    sequences = (
+        f"\\033]10;#{palette['foreground']}\\007"
+        f"\\033]11;#{palette['background']}\\007"
+        f"\\033]12;#{palette['accent']}\\007"
+        f"\\033]17;#{palette['selection']}\\007"
+        f"\\033]19;#FFFFFF\\007"
+    )
+    lines = [
+        f"export STARSHIP_CONFIG={shlex.quote(str(prompt))}",
+        f"export EVA_TERMINAL_CONTEXT_PROFILE={shlex.quote(profile)}",
+    ]
+    if manual:
+        lines.append(f"export EVA_TERMINAL_PROFILE_OVERRIDE={shlex.quote(profile)}")
+    else:
+        lines.append("unset EVA_TERMINAL_PROFILE_OVERRIDE")
+    lines.append(f"printf {shlex.quote(sequences)}")
+    return "\n".join(lines)
+
+
+def bashrc(profile):
+    directory = STATE / profile
+    directory.mkdir(parents=True, exist_ok=True)
+    path = directory / "bashrc"
+    content = f'''[[ -r $HOME/.bashrc ]] && source "$HOME/.bashrc"
+eval "$(magi-terminal-context env {shlex.quote(profile)} --directory "$PWD")"
+'''
+    if not path.exists() or path.read_text() != content:
+        path.write_text(content)
+    return path
+
+
+def main():
+    parser = argparse.ArgumentParser(description="Context-aware EVA terminal profiles")
+    sub = parser.add_subparsers(dest="command", required=True)
+    detect_parser = sub.add_parser("detect")
+    detect_parser.add_argument("directory", nargs="?", default=os.getcwd())
+    detect_parser.add_argument("--json", action="store_true")
+    env_parser = sub.add_parser("env")
+    env_parser.add_argument("profile", nargs="?", default="auto")
+    env_parser.add_argument("--directory", default=os.getcwd())
+    launch_parser = sub.add_parser("launch")
+    launch_parser.add_argument("directory", nargs="?", default="")
+    launch_parser.add_argument("--profile", default="auto")
+    launch_parser.add_argument("--dry-run", action="store_true")
+    sub.add_parser("status")
+    sub.add_parser("list")
+    args = parser.parse_args()
+
+    if args.command == "list":
+        print("\n".join(PROFILES))
+        return 0
+    if args.command == "status":
+        print(os.environ.get("EVA_TERMINAL_CONTEXT_PROFILE", global_profile()))
+        return 0
+    if args.command == "detect":
+        profile, reason = detect(args.directory)
+        if args.json:
+            print(json.dumps({"directory": str(Path(args.directory).expanduser().resolve()), "profile": profile or None, "reason": reason}, separators=(",", ":")))
+        elif profile:
+            print(profile)
+        return 0
+    if args.command == "env":
+        manual = args.profile not in {"auto", "default"}
+        if args.profile == "auto":
+            profile, _ = detect(args.directory)
+            profile = profile or global_profile()
+        elif args.profile == "default":
+            profile = global_profile()
+        else:
+            try:
+                profile = normalize(args.profile)
+            except ValueError as error:
+                print(error, file=sys.stderr)
+                return 2
+        print(shell_environment(profile, manual))
+        return 0
+    directory = Path(args.directory).expanduser().resolve() if args.directory else Path(subprocess.run(["omarchy-cmd-terminal-cwd"], text=True, capture_output=True).stdout.strip() or Path.home()).resolve()
+    if args.profile == "auto":
+        profile, _ = detect(directory)
+    else:
+        try:
+            profile = normalize(args.profile)
+        except ValueError as error:
+            print(error, file=sys.stderr)
+            return 2
+    if not profile:
+        if args.dry_run:
+            print(json.dumps({"directory": str(directory), "profile": None, "action": "packaged default"}, separators=(",", ":")))
+            return 0
+        os.execv("/usr/share/omarchy/bin/omarchy-launch-terminal", ["omarchy-launch-terminal"])
+    context_rc = bashrc(profile)
+    command = f'cd -- {shlex.quote(str(directory))}; exec bash --rcfile {shlex.quote(str(context_rc))} -i'
+    if args.dry_run:
+        print(json.dumps({"directory": str(directory), "profile": profile, "action": "isolated context launch"}, separators=(",", ":")))
+        return 0
+    os.execv("/usr/share/omarchy/bin/omarchy-launch-terminal", ["omarchy-launch-terminal", "--", "bash", "-c", command])
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

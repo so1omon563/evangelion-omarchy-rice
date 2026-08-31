@@ -1,0 +1,546 @@
+{
+  // MAGI command interface. Dotted IDs become children of the `magi` root;
+  // targets reuse Omarchy's live providers instead of duplicating their logic.
+  "magi": {
+    "icon": "󰢮",
+    "label": "MAGI Command Interface",
+    "title": "MAGI // COMMAND",
+    "aliases": ["magi", "nerv", "evangelion"],
+    "description": "Applications, system control, backgrounds, and presentation mode"
+  },
+  "magi.apps": {
+    "icon": "󰀻",
+    "label": "Application Index",
+    "action": "omarchy-menu summon apps",
+    "description": "Search and launch installed applications"
+  },
+  "magi.background": {
+    "icon": "󰸉",
+    "label": "Visual Environment",
+    "action": "background=$(omarchy-theme-bg-switcher); [[ -n $background ]] && omarchy-theme-bg-set \"$background\"",
+    "description": "Select an Evangelion wallpaper"
+  },
+  "magi.affinity": {
+    "icon": "󰏘",
+    "label": "EVA Unit Affinity",
+    "title": "MAGI // UNIT AFFINITY",
+    "description": "Automatic wallpaper colors or a persistent manual override"
+  },
+  "magi.affinity.auto": {
+    "icon": "󰑐",
+    "label": "Automatic",
+    "action": "magi-affinity auto",
+    "checked": "[[ $(magi-affinity status | sed -n 's/^mode=//p') == auto ]]"
+  },
+  "magi.affinity.neutral": {
+    "label": "NERV / MAGI Neutral",
+    "action": "magi-affinity set neutral"
+  },
+  "magi.affinity.unit-00-prototype": {
+    "label": "EVA-00 Prototype",
+    "action": "magi-affinity set unit-00-prototype"
+  },
+  "magi.affinity.unit-00-refit": {
+    "label": "EVA-00 Refit",
+    "action": "magi-affinity set unit-00-refit"
+  },
+  "magi.affinity.unit-01": {
+    "label": "EVA-01 Test Type",
+    "action": "magi-affinity set unit-01"
+  },
+  "magi.affinity.unit-02": {
+    "label": "EVA-02 Production",
+    "action": "magi-affinity set unit-02"
+  },
+  "magi.presentation": {
+    "icon": "󰍹",
+    "label": "Presentation Mode",
+    "action": "magi-presentation",
+    "checked": "pgrep -f -- '--class=org.omarchy.magi.' >/dev/null",
+    "description": "Toggle system status and resource telemetry"
+  },
+  "magi.operating-profile": {
+    "icon": "󰍹",
+    "label": "Operating Profile",
+    "title": "MAGI // OPERATING PROFILE",
+    "description": "Coordinate displays, power, bar density, audio, and wallpaper"
+  },
+  "magi.operating-profile.auto": {
+    "icon": "󰑐",
+    "label": "Automatic Dock Detection",
+    "action": "magi-operating-profile auto",
+    "checked": "[[ $(magi-operating-profile status | sed -n 's/^mode=//p') == auto ]]"
+  },
+  "magi.operating-profile.docked": {
+    "icon": "󰍹",
+    "label": "Force Docked",
+    "action": "magi-operating-profile docked",
+    "checked": "[[ $(magi-operating-profile status | sed -n 's/^mode=//p') == docked ]]"
+  },
+  "magi.operating-profile.mobile": {
+    "icon": "󰌢",
+    "label": "Force Mobile",
+    "action": "magi-operating-profile mobile",
+    "checked": "[[ $(magi-operating-profile status | sed -n 's/^mode=//p') == mobile ]]"
+  },
+  "magi.operating-profile.apply": {
+    "icon": "󰑓",
+    "label": "Reapply Current Profile",
+    "action": "magi-operating-profile apply"
+  },
+  "magi.deployment": {
+    "icon": "󰚩",
+    "label": "EVA Deployment",
+    "title": "NERV // DEVELOPMENT SORTIE",
+    "description": "Assemble or recover the deterministic development mission"
+  },
+  "magi.deployment.deploy": {
+    "icon": "󰐊",
+    "label": "Deploy Mission Workspace",
+    "action": "magi-deployment deploy",
+    "checked": "[[ $(magi-deployment status | head -n1) == active ]]"
+  },
+  "magi.deployment.focus": {
+    "icon": "󰍹",
+    "label": "Focus Active Mission",
+    "action": "magi-deployment focus",
+    "when": "[[ $(magi-deployment status | head -n1) == active ]]"
+  },
+  "magi.deployment.recover": {
+    "icon": "󰜺",
+    "label": "Recover Mission Workspace",
+    "action": "magi-deployment teardown",
+    "when": "[[ $(magi-deployment status | head -n1) == active ]]"
+  },
+  "magi.intrusion": {
+    "icon": "󰀦",
+    "label": "Angel Intrusion Simulation",
+    "title": "NERV // SECURITY CONDITION ONE",
+    "description": "Manual red-alert demonstration with transactional recovery"
+  },
+  "magi.intrusion.enter": {
+    "icon": "󰐊",
+    "label": "Initiate Simulation",
+    "action": "magi-intrusion enter",
+    "when": "[[ $(magi-intrusion status) == inactive ]]"
+  },
+  "magi.intrusion.exit": {
+    "icon": "󰅖",
+    "label": "SAFE EXIT / Restore State",
+    "action": "magi-intrusion exit",
+    "when": "[[ $(magi-intrusion status) != inactive ]]"
+  },
+  "magi.intrusion.preview": {
+    "icon": "󰍹",
+    "label": "Preview Warning Display",
+    "action": "magi-intrusion preview",
+    "description": "Preview the OSD without changing desktop state"
+  },
+  "magi.workspace-osd": {
+    "icon": "󰍹",
+    "label": "Workspace Channel OSD",
+    "action": "magi-workspace-osd toggle",
+    "checked": "[[ $(magi-workspace-osd status) == enabled ]]",
+    "description": "Toggle brief MAGI channel overlays during workspace changes"
+  },
+  "magi.focus": {
+    "icon": "󰭟",
+    "label": "AT Field Focus Mode",
+    "action": "magi-focus toggle",
+    "checked": "[[ $(magi-focus status) == active ]]",
+    "description": "Suppress non-critical communications and apply focus treatment"
+  },
+  "magi.mission": {
+    "icon": "󰔛",
+    "label": "Mission Timer",
+    "title": "MAGI // MISSION CLOCK",
+    "description": "Persistent focus sorties and recovery cycles"
+  },
+  "magi.mission.panel": {"icon":"󰋼","label":"Open Mission Clock","action":"omarchy-shell magi-mission toggle"},
+  "magi.mission.start": {"icon":"󰐊","label":"Begin Sortie","action":"magi-mission start"},
+  "magi.mission.toggle": {"icon":"󰏤","label":"Pause / Resume","action":"magi-mission toggle"},
+  "magi.mission.advance": {"icon":"󰒭","label":"Advance Phase","action":"magi-mission skip"},
+  "magi.mission.abort": {"icon":"󰅖","label":"Abort Mission","action":"magi-mission abort"},
+  "magi.health": {"icon":"󰄬","label":"System Health","title":"NERV // SYSTEM HEALTH","description":"Battery, thermal, storage, memory, services, updates, and connectivity"},
+  "magi.health.panel": {"icon":"󰋼","label":"Open Health Panel","action":"omarchy-shell magi-health toggle"},
+  "magi.health.inspect": {"icon":"󰆍","label":"Terminal Health Report","action":"omarchy-launch-terminal -- bash -lc 'magi-health status; echo; read -rp \"Press Enter to close...\"'"},
+  "magi.health.preview": {"icon":"󰀦","label":"Preview Health Warning","action":"magi-health preview --seconds 30"},
+  "magi.clock": {"icon":"󰥔","label":"World & Mission Clock","title":"MAGI // WORLD CHRONOMETER","description":"Arizona, UTC, remote zones, uptime, and mission elapsed time"},
+  "magi.clock.panel": {"icon":"󰋼","label":"Open Clock Matrix","action":"omarchy-shell magi-clock toggle"},
+  "magi.clock.toggle": {"icon":"󰐊","label":"Start / Pause Mission Elapsed","action":"magi-clock toggle"},
+  "magi.clock.reset": {"icon":"󰑐","label":"Reset Mission Elapsed","action":"magi-clock reset"},
+  "magi.capture": {"icon":"󰹑","label":"Capture Operations","title":"NERV // CAPTURE CONTROL","description":"Screenshots and persistent recording telemetry"},
+  "magi.capture.screenshot": {"icon":"󰹑","label":"Interactive Screenshot","action":"magi-capture screenshot"},
+  "magi.capture.recording": {"icon":"󰑋","label":"Start / Stop Recording","action":"magi-capture recording --stop-recording || omarchy-menu toggle trigger.capture.screenrecord"},
+  "magi.communications": {
+    "icon": "󰖩",
+    "label": "Communication Link",
+    "action": "omarchy-shell magi-communications toggle",
+    "description": "Network, Bluetooth, VPN, route, and Tailscale telemetry"
+  },
+  "magi.privacy": {
+    "icon": "󰒃",
+    "label": "Privacy Activity",
+    "title": "NERV // PRIVACY CONTROL",
+    "description": "Inspect microphone, camera, sharing, recording, and remote-control activity"
+  },
+  "magi.privacy.inspect": {
+    "icon": "󰋼",
+    "label": "Open Activity Monitor",
+    "action": "omarchy-shell magi-privacy toggle"
+  },
+  "magi.privacy.respond": {
+    "icon": "󰒃",
+    "label": "Safe Privacy Response",
+    "action": "magi-privacy stop all",
+    "description": "Mute the microphone and stop known recorders or remote-control services"
+  },
+  "magi.privacy.preview": {
+    "icon": "󰔡",
+    "label": "Preview All Alerts",
+    "action": "magi-privacy preview microphone,camera,screen,recording,remote --seconds 30"
+  },
+  "magi.media": {
+    "icon": "󰝚",
+    "label": "Audio Channel",
+    "title": "MAGI // MEDIA CONTROL",
+    "description": "Control the active MPRIS playback source"
+  },
+  "magi.media.previous": {
+    "icon": "󰒮",
+    "label": "Previous Track",
+    "action": "magi-media previous"
+  },
+  "magi.media.play-pause": {
+    "icon": "󰐎",
+    "label": "Play / Pause",
+    "action": "magi-media play-pause"
+  },
+  "magi.media.next": {
+    "icon": "󰒭",
+    "label": "Next Track",
+    "action": "magi-media next"
+  },
+  "magi.media.stop": {
+    "icon": "󰓛",
+    "label": "Stop Playback",
+    "action": "magi-media stop"
+  },
+  "magi.boot": {
+    "icon": "󰚩",
+    "label": "Startup Sequence",
+    "title": "MAGI // LOGIN SEQUENCE",
+    "description": "Preview or configure graphical-login telemetry"
+  },
+  "magi.boot.preview": {
+    "icon": "󰐊",
+    "label": "Preview Sequence",
+    "action": "setsid -f magi-boot-sequence preview",
+    "description": "Run the sequence without changing its setting"
+  },
+  "magi.boot.enable": {
+    "icon": "󰄬",
+    "label": "Enable at Login",
+    "action": "magi-boot-sequence enable",
+    "checked": "[[ $(magi-boot-sequence status) == enabled ]]"
+  },
+  "magi.boot.disable": {
+    "icon": "󰅖",
+    "label": "Disable at Login",
+    "action": "magi-boot-sequence disable",
+    "checked": "[[ $(magi-boot-sequence status) == disabled ]]"
+  },
+  "magi.sounds": {
+    "icon": "󰕾",
+    "label": "Interface Sound Cues",
+    "title": "MAGI // AUDIO FEEDBACK",
+    "description": "Preview or configure procedural UI sounds"
+  },
+  "magi.sounds.test": {
+    "icon": "󰐊",
+    "label": "Test Sound Sequence",
+    "action": "setsid -f magi-sound test"
+  },
+  "magi.sounds.enable": {
+    "icon": "󰄬",
+    "label": "Enable Sound Cues",
+    "action": "magi-sound enable",
+    "checked": "[[ $(magi-sound status) == enabled ]]"
+  },
+  "magi.sounds.disable": {
+    "icon": "󰝟",
+    "label": "Disable Sound Cues",
+    "action": "magi-sound disable",
+    "checked": "[[ $(magi-sound status) == disabled ]]"
+  },
+  "magi.power-sequence": {
+    "icon": "󰚥",
+    "label": "Umbilical Power Sequence",
+    "title": "NERV // POWER TRANSITION",
+    "description": "Preview AC and internal-power telemetry"
+  },
+  "magi.power-sequence.ac": {
+    "icon": "󰚥",
+    "label": "Preview Umbilical Power",
+    "action": "magi-power-sequence preview ac"
+  },
+  "magi.power-sequence.battery": {
+    "icon": "󰁹",
+    "label": "Preview Internal Power",
+    "action": "magi-power-sequence preview battery"
+  },
+  "magi.devices": {
+    "icon": "󰋐",
+    "label": "External Device Telemetry",
+    "title": "NERV // EXTERNAL INTERFACE",
+    "description": "Preview device notices or open recent mounted storage"
+  },
+  "magi.devices.preview-storage": {
+    "icon": "󰋊",
+    "label": "Preview Storage Connection",
+    "action": "magi-device-osd preview storage connected"
+  },
+  "magi.devices.preview-display": {
+    "icon": "󰍹",
+    "label": "Preview Display Link",
+    "action": "magi-device-osd preview display connected"
+  },
+  "magi.devices.open-storage": {
+    "icon": "󰉋",
+    "label": "Open Recent Mounted Storage",
+    "action": "magi-device-osd open",
+    "when": "[[ -r $HOME/.local/state/evangelion-rice/device-osd/last-storage ]]"
+  },
+  "magi.command-telemetry": {
+    "icon": "󰆍",
+    "label": "Command Completion Telemetry",
+    "title": "MAGI // TERMINAL OPERATIONS",
+    "description": "Long-running command completion notices without command text"
+  },
+  "magi.command-telemetry.preview-success": {
+    "icon": "󰄬",
+    "label": "Preview Successful Operation",
+    "action": "magi-command-telemetry preview-success"
+  },
+  "magi.command-telemetry.preview-failure": {
+    "icon": "󰅖",
+    "label": "Preview Failed Operation",
+    "action": "magi-command-telemetry preview-failure"
+  },
+  "magi.command-telemetry.enable": {
+    "icon": "󰄬",
+    "label": "Enable Command Telemetry",
+    "action": "magi-command-telemetry enable",
+    "checked": "[[ $(magi-command-telemetry status | sed -n 's/^enabled=//p') == yes ]]"
+  },
+  "magi.command-telemetry.disable": {
+    "icon": "󰅖",
+    "label": "Disable Command Telemetry",
+    "action": "magi-command-telemetry disable"
+  },
+  "magi.thermal": {
+    "icon": "󰔏",
+    "label": "Thermal Monitoring",
+    "title": "NERV // THERMAL CONTROL",
+    "description": "Inspect or preview temperature alerts"
+  },
+  "magi.thermal.status": {
+    "icon": "󰔏",
+    "label": "Show Thermal Status",
+    "action": "omarchy-launch-terminal -- bash -lc 'magi-thermal-alert status | jq; read -rp \"Press Enter to close...\"'"
+  },
+  "magi.thermal.preview-warning": {
+    "icon": "󰀪",
+    "label": "Preview Elevated Warning",
+    "action": "magi-thermal-alert preview warning"
+  },
+  "magi.thermal.preview-critical": {
+    "icon": "󰀦",
+    "label": "Preview Critical Warning",
+    "action": "magi-thermal-alert preview critical"
+  },
+  "magi.thermal.enable": {
+    "label": "Enable Thermal Alerts",
+    "action": "magi-thermal-alert enable",
+    "checked": "[[ $(magi-thermal-alert status | jq -r .enabled) == true ]]"
+  },
+  "magi.thermal.disable": {
+    "label": "Disable Thermal Alerts",
+    "action": "magi-thermal-alert disable"
+  },
+  "magi.update-operation": {"icon":"󰚰","label":"MAGI System Update","title":"MAGI // MAINTENANCE OPERATION","description":"Run Omarchy update with phase telemetry and durable logs"},
+  "magi.update-operation.run": {"icon":"󰐊","label":"Launch Interactive Update","action":"omarchy-launch-terminal -- bash -lc 'magi-update run; code=$?; echo; read -rp \"Update exited $code. Press Enter to close...\"; exit $code'"},
+  "magi.update-operation.status": {"icon":"󰋼","label":"Show Last Update Status","action":"omarchy-launch-terminal -- bash -lc 'magi-update status; read -rp \"Press Enter to close...\"'"},
+  "magi.update-operation.log": {"icon":"󰈙","label":"Open Last Full Log","action":"omarchy-launch-terminal -- magi-update log"},
+  "magi.start-page": {"icon":"󰖟","label":"NERV Browser Start Page","action":"magi-start-page open","description":"Open the local dashboard in the current default browser"},
+  "magi.download-intake": {"icon":"󰇚","label":"Classified Download Intake","title":"NERV // DOWNLOAD INTAKE","description":"Inspect recent downloads before opening, revealing, hashing, or archiving them"},
+  "magi.download-intake.open": {"icon":"󰈙","label":"Open Intake Console","action":"omarchy-launch-terminal -- magi-downloads open"},
+  "magi.download-intake.folder": {"icon":"󰉋","label":"Open Downloads Directory","action":"xdg-open \"$(magi-downloads directory)\""},
+  "magi.download-intake.list": {"icon":"󰋼","label":"Print Recent Intake","action":"omarchy-launch-terminal -- bash -lc 'magi-downloads list; echo; read -rp \"Press Enter to close...\"'"},
+  "magi.controls": {
+    "icon": "󰌌",
+    "label": "Control Reference",
+    "action": "magi-control-reference",
+    "description": "Open Evangelion shortcuts and command guide"
+  },
+  "magi.theme": {
+    "icon": "󰏘",
+    "label": "Theme Systems",
+    "action": "theme=$(omarchy-theme-switcher); [[ -n $theme ]] && omarchy-theme-set \"$theme\"",
+    "description": "Select and manage desktop themes"
+  },
+  "magi.terminal": {
+    "icon": "󰆍",
+    "label": "Terminal Profile",
+    "title": "MAGI // TERMINAL COLOR SYSTEM",
+    "description": "Switch coordinated terminal color profiles"
+  },
+  "magi.terminal.eva-01": {
+    "icon": "󰘧",
+    "label": "EVA-01 Purple",
+    "action": "eva-terminal-profile eva-01",
+    "checked": "[[ $(eva-terminal-profile status) == eva-01 ]]",
+    "description": "Primary desktop profile"
+  },
+  "magi.terminal.magi": {
+    "icon": "󰔟",
+    "label": "MAGI Green",
+    "action": "eva-terminal-profile magi",
+    "checked": "[[ $(eva-terminal-profile status) == magi ]]",
+    "description": "System diagnostics profile"
+  },
+  "magi.terminal.engineering": {
+    "icon": "󰈸",
+    "label": "Engineering Orange",
+    "action": "eva-terminal-profile engineering",
+    "checked": "[[ $(eva-terminal-profile status) == engineering ]]",
+    "description": "Maintenance and operations profile"
+  },
+  "magi.terminal.context": {"icon":"󰉋","label":"Context-Aware Terminal","title":"MAGI // TERMINAL CONTEXT","description":"Choose an isolated profile from the launch directory without recoloring existing terminals"},
+  "magi.terminal.context.launch": {"icon":"󰆍","label":"Launch Context Terminal Here","action":"magi-terminal-context launch"},
+  "magi.terminal.context.inspect": {"icon":"󰋼","label":"Inspect Current Directory Rule","action":"omarchy-launch-terminal -- bash -lc 'magi-terminal-context detect --json | jq; echo; read -rp \"Press Enter to close...\"'"},
+  "magi.terminal.context.rules": {"icon":"󰒓","label":"Edit Context Rules","action":"omarchy-launch-editor ~/.config/omarchy/magi-terminal-context.json"},
+  "magi.lock": {
+    "icon": "󰌾",
+    "label": "Secure Terminal",
+    "action": "omarchy system lock",
+    "description": "Lock this workstation"
+  },
+  "magi.system": {
+    "icon": "󰐥",
+    "label": "System and Power",
+    "target": "system",
+    "description": "Suspend, restart, shut down, or log out"
+  },
+
+  // NERV session control. Destructive actions drill into a confirmation
+  // submenu whose first selection is always ABORT; execution requires an
+  // additional directional choice and activation.
+  "system": {
+    "icon": "󰐥",
+    "label": "NERV Session Control",
+    "title": "NERV // SESSION",
+    "description": "Secure workstation state and power operations"
+  },
+  "system.screensaver": {
+    "label": "Idle Display",
+    "action": "bash -lc 'omarchy-launch-screensaver force'",
+    "description": "Activate the configured visual standby sequence"
+  },
+  "system.lock": {
+    "label": "Authorization Lock",
+    "action": "omarchy-system-lock",
+    "description": "Secure the workstation immediately"
+  },
+  "system.suspend": {
+    "label": "Standby",
+    "when": "! omarchy-toggle-enabled suspend-off",
+    "action": "systemctl suspend",
+    "description": "Suspend system operation"
+  },
+  "system.hibernate": {
+    "label": "Deep Standby",
+    "when": "omarchy-hibernation-available",
+    "action": "systemctl hibernate",
+    "description": "Hibernate system state to disk"
+  },
+  "system.logout": {
+    "label": "Terminate Session",
+    "title": "LOGOUT?",
+    "description": "Close applications and end the graphical session",
+    "action": ""
+  },
+  "system.reboot": {
+    "label": "Restart Systems",
+    "title": "RESTART?",
+    "description": "Close applications and reboot the workstation",
+    "action": ""
+  },
+  "system.shutdown": {
+    "label": "System Shutdown",
+    "title": "SHUTDOWN?",
+    "description": "Close applications and power off the workstation",
+    "action": ""
+  },
+  "system.cancel": {
+    "icon": "󰜺",
+    "label": "ABORT // DESKTOP",
+    "action": "true",
+    "description": "Abort session control without changing system state"
+  },
+  "system.logout.abort": {
+    "icon": "󰜺",
+    "label": "ABORT // KEEP SESSION",
+    "action": "true",
+    "description": "Return to the desktop"
+  },
+  "system.logout.execute": {
+    "icon": "󰍃",
+    "label": "EXECUTE // LOGOUT",
+    "action": "omarchy-system-logout",
+    "description": "Close applications and terminate this session"
+  },
+  "system.reboot.abort": {
+    "icon": "󰜺",
+    "label": "ABORT // STAY ONLINE",
+    "action": "true",
+    "description": "Return to the desktop"
+  },
+  "system.reboot.execute": {
+    "icon": "󰜉",
+    "label": "EXECUTE // RESTART",
+    "action": "omarchy-system-reboot",
+    "description": "Close applications and restart the workstation"
+  },
+  "system.shutdown.abort": {
+    "icon": "󰜺",
+    "label": "ABORT // STAY ONLINE",
+    "action": "true",
+    "description": "Return to the desktop"
+  },
+  "system.shutdown.execute": {
+    "icon": "󰐥",
+    "label": "EXECUTE // SHUTDOWN",
+    "action": "omarchy-system-shutdown",
+    "description": "Close applications and power off the workstation"
+  },
+
+  // Preserve the installed Neon Overdrive controls for that theme.
+  "style.neon-overdrive": {
+    "icon": "󰢮",
+    "label": "Neon Overdrive",
+    "title": "Neon Overdrive Controls",
+    "when": "[[ $(cat ~/.local/state/omarchy/current/theme.name 2>/dev/null) == neon-overdrive ]]"
+  },
+  "style.neon-overdrive.preset": {"icon":"󰏘","label":"Preset"},
+  "style.neon-overdrive.preset.static": {"icon":"󰖔","label":"Static","checked":"~/.config/omarchy/themes/neon-overdrive/scripts/neon-control is-preset static","action":"~/.config/omarchy/themes/neon-overdrive/scripts/neon-control preset static"},
+  "style.neon-overdrive.preset.balanced": {"icon":"󰾅","label":"Balanced","checked":"~/.config/omarchy/themes/neon-overdrive/scripts/neon-control is-preset balanced","action":"~/.config/omarchy/themes/neon-overdrive/scripts/neon-control preset balanced"},
+  "style.neon-overdrive.preset.overdrive": {"icon":"󱐋","label":"Overdrive","checked":"~/.config/omarchy/themes/neon-overdrive/scripts/neon-control is-preset overdrive","action":"~/.config/omarchy/themes/neon-overdrive/scripts/neon-control preset overdrive"},
+  "style.neon-overdrive.rain": {"icon":"󰖗","label":"Rain","checked":"~/.config/omarchy/themes/neon-overdrive/scripts/neon-control enabled rain","action":"~/.config/omarchy/themes/neon-overdrive/scripts/neon-control toggle rain"},
+  "style.neon-overdrive.audio": {"icon":"󰝚","label":"Audio Reactivity","checked":"~/.config/omarchy/themes/neon-overdrive/scripts/neon-control enabled audio_reactivity","action":"~/.config/omarchy/themes/neon-overdrive/scripts/neon-control toggle audio_reactivity"},
+  "style.neon-overdrive.cava": {"icon":"󰺢","label":"CAVA Visualizer","checked":"~/.config/omarchy/themes/neon-overdrive/scripts/neon-control enabled cava","action":"~/.config/omarchy/themes/neon-overdrive/scripts/neon-control toggle cava"},
+  "style.neon-overdrive.bloom": {"icon":"󰛨","label":"Magenta Bloom","checked":"~/.config/omarchy/themes/neon-overdrive/scripts/neon-control enabled bloom","action":"~/.config/omarchy/themes/neon-overdrive/scripts/neon-control toggle bloom"},
+  "style.neon-overdrive.edge": {"icon":"󰇀","label":"Screen-edge Glow","checked":"~/.config/omarchy/themes/neon-overdrive/scripts/neon-control enabled edge_glow","action":"~/.config/omarchy/themes/neon-overdrive/scripts/neon-control toggle edge_glow"},
+  "style.neon-overdrive.drift": {"icon":"󰒟","label":"Camera Drift","checked":"~/.config/omarchy/themes/neon-overdrive/scripts/neon-control enabled camera_drift","action":"~/.config/omarchy/themes/neon-overdrive/scripts/neon-control toggle camera_drift"},
+  "style.neon-overdrive.window-glow": {"icon":"󰖯","label":"Window Glow","checked":"~/.config/omarchy/themes/neon-overdrive/scripts/neon-control enabled window_glow","action":"~/.config/omarchy/themes/neon-overdrive/scripts/neon-control toggle window_glow"}
+}

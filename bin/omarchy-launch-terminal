@@ -1,0 +1,9 @@
+#!/usr/bin/env bash
+
+# Preserve every packaged command-launch path exactly. Only a plain interactive
+# terminal launch receives context detection.
+if (($#)); then
+  exec /usr/share/omarchy/bin/omarchy-launch-terminal "$@"
+else
+  exec magi-terminal-context launch
+fi
