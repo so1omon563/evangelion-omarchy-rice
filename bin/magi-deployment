@@ -203,7 +203,7 @@ session_active() {
 }
 
 deploy() {
-  local config workspace project profile browser_url original_workspace original_profile windows role
+  local config workspace project profile browser_url original_workspace original_profile windows role failed=0
   if session_active; then
     workspace=$(jq -r '.workspace' "$state_file")
     focus_workspace "$workspace"
@@ -224,6 +224,7 @@ deploy() {
   command -v omarchy >/dev/null || { echo "Omarchy browser launcher is unavailable" >&2; return 1; }
 
   mkdir -p "$state_dir"
+  omarchy-shell -q mode-transition show deployment entering "Preparing mission workspace" >/dev/null 2>&1 || true
 
   original_workspace=$(hyprctl activeworkspace -j | jq -r '.id')
   original_profile=$(eva-terminal-profile status)
@@ -251,7 +252,7 @@ deploy() {
       entry=$(launch_role "$role" "$class" "$project" "$browser_url") || entry=''
     fi
     if [[ -z $entry ]]; then
-      printf '%s\n' "$windows" | jq -c --argjson entry "$(jq -cn --arg role "$role" '{role:$role,failed:true}')" '. + [$entry]' >/dev/null
+      failed=1
       continue
     fi
     address=$(jq -r '.address' <<<"$entry")
@@ -262,6 +263,12 @@ deploy() {
     mv "$state_file.tmp" "$state_file"
   done < <(printf '%s\n' editor terminal browser logs)
 
+  if (( failed )); then
+    teardown
+    omarchy-shell -q mode-transition show deployment aborted "Partial launch rolled back" >/dev/null 2>&1 || true
+    return 1
+  fi
+
   (( $(jq 'length' <<<"$windows") > 0 )) || {
     eva-terminal-profile "$original_profile" --no-reload >/dev/null || true
     rm -f "$state_file"
@@ -270,6 +277,7 @@ deploy() {
   layout_windows "$windows"
   focus_workspace "$workspace"
   omarchy-notification-send -g "󰚩" "EVA DEPLOYMENT" "Workspace $(printf '%02d' "$workspace") · ${project##*/} · mission ready"
+  omarchy-shell -q mode-transition show deployment active "Mission workspace synchronized" >/dev/null 2>&1 || true
 }
 
 teardown() {
@@ -307,6 +315,7 @@ teardown() {
   rm -f "$state_file"
   focus_workspace "$original_workspace"
   omarchy-notification-send -g "󰚩" "EVA RECOVERY" "Mission-launched windows dismissed · prior profile restored"
+  omarchy-shell -q mode-transition show deployment exited "Prior workspace and profile restored" >/dev/null 2>&1 || true
 }
 
 status() {

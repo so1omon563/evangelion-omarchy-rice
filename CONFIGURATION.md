@@ -105,6 +105,17 @@ Full and Reduced retain Omarchy's supported compositor-safe reveal, while Off
 snaps the selected frame immediately. Unknown artwork resolves to neutral, and
 the original wallpaper commands, hashes, and licensing metadata are unchanged.
 
+Operating modes share one fixed, non-interactive transition card near the lower
+left edge. Presentation, Deployment, A.T. Field, Angel Intrusion, dock/mobile,
+and isolated terminal context report entering, active, exited, or aborted state
+without covering the desktop or taking focus. Full adds a small edge acquisition
+cue, Reduced uses only a short fade, and Off changes immediately. Deployment
+and Presentation roll back partial launches; existing sessions are focused
+instead of duplicated. A.T. Field and Angel restore captured state, Angel stays
+manual with `magi-intrusion exit` always authoritative, dock changes rescue
+windows from removed outputs, and presentation still follows wallpaper-safe
+placement.
+
 Hyprland consumes the effective mode at reload. Full retains the v1.1 window
 pop, border/fade, directional workspace slide, special-workspace travel, and
 blur. Reduced keeps only short fades and border feedback. Off disables

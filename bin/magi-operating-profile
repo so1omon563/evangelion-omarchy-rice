@@ -137,6 +137,7 @@ rescue_windows() {
 apply_profile() {
   local profile cfg power bar audio wallpaper layout prior
   profile=$(effective_profile); cfg=$(read_config); prior=$(cat "$active_file" 2>/dev/null || true)
+  omarchy-shell -q mode-transition show "$profile" entering "Synchronizing display, power, audio, and interface" >/dev/null 2>&1 || true
   power=$(jq -r --arg p "$profile" '.[$p].power_profile // empty' <<< "$cfg")
   bar=$(jq -r --arg p "$profile" '.[$p].bar_size // empty' <<< "$cfg")
   audio=$(jq -r --arg p "$profile" '.[$p].audio_target // empty' <<< "$cfg")
@@ -150,6 +151,7 @@ apply_profile() {
   if [[ $prior != "$profile" ]]; then set_wallpaper "$profile" "$wallpaper"; fi
   printf '%s\n' "$profile" > "$active_file"
   [[ $prior == "$profile" ]] || omarchy-notification-send -u low -g '󰍹' "OPERATING PROFILE // ${profile^^}" "Power, display, audio, and interface synchronized" 2>/dev/null || true
+  omarchy-shell -q mode-transition show "$profile" active "Operating profile synchronized" >/dev/null 2>&1 || true
   printf '%s\n' "$profile"
 }
 

@@ -4,6 +4,15 @@ set -euo pipefail
 
 presentation_prefix="org.omarchy.magi."
 
+cleanup_failed() {
+  local pid
+  while read -r pid; do [[ $pid =~ ^[0-9]+$ ]] && kill -TERM "$pid" 2>/dev/null || true; done < <(
+    hyprctl clients -j 2>/dev/null | jq -r --arg prefix "$presentation_prefix" '.[]|select((.class//"")|startswith($prefix))|.pid'
+  )
+  magi-motion release presentation >/dev/null 2>&1 || true
+  omarchy-shell -q mode-transition show presentation aborted "Partial launch rolled back" >/dev/null 2>&1 || true
+}
+
 launch_terminal() {
   local terminal=$1 class=$2 title=$3; shift 3
   case $terminal in
@@ -89,6 +98,7 @@ if (( ${#presentation_pids[@]} > 0 )); then
     kill "$pid"
   done
   magi-motion release presentation >/dev/null 2>&1 || true
+  omarchy-shell -q mode-transition show presentation exited "Presentation surfaces dismissed" >/dev/null 2>&1 || true
   omarchy-notification-send -g "󰍹" "MAGI PRESENTATION" "Presentation terminals dismissed"
   exit 0
 fi
@@ -100,11 +110,12 @@ for required in fastfetch btop; do
 done
 workspace=$(eva-user-config get presentation.workspace 2>/dev/null || echo 5)
 magi-motion hold presentation >/dev/null 2>&1 || true
-trap 'magi-motion release presentation >/dev/null 2>&1 || true' ERR
+trap cleanup_failed ERR
 hyprctl dispatch "hl.dsp.focus({ workspace = \"$workspace\" })" >/dev/null
 
 background_path=$(current_background_path)
 read -r side width_pct top_height_pct layout_name < <(layout_for_background "$background_path")
+omarchy-shell -q mode-transition show presentation entering "$layout_name layout" >/dev/null 2>&1 || true
 
 launch_terminal "$terminal" org.omarchy.magi.fastfetch "MAGI · SYSTEM STATUS" \
   bash -lc 'fastfetch; printf "\n\033[38;2;156;242;58mMAGI console ready.\033[0m\n"; magi-media status; exec "$1" -l' bash "$login_shell"
@@ -137,4 +148,5 @@ if [[ -n ${fastfetch_address:-} && -n ${btop_address:-} ]]; then
 fi
 
 omarchy-notification-send -g "󱚣" "MAGI PRESENTATION" "Workspace $(printf '%02d' "$workspace") · $layout_name layout initialized"
+omarchy-shell -q mode-transition show presentation active "$layout_name layout synchronized" >/dev/null 2>&1 || true
 trap - ERR

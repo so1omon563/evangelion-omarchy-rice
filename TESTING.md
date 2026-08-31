@@ -14,6 +14,7 @@ Motion has two additional evidence layers:
 ./tests/lock-motion.py test-results/lock-motion.json
 ./tests/lifecycle-motion.py test-results/lifecycle-motion.json
 ./tests/affinity-motion.py test-results/affinity-motion.json
+./tests/mode-transition.py test-results/mode-transition.json
 ./tests/motion-observe.py test-results/motion-observation.json
 ```
 
@@ -33,6 +34,10 @@ Full/Reduced/Off paths without waiting for real idle or powering off a display.
 `affinity-motion.py` verifies wallpaper detection, neutral fallback, serialized
 rapid-settle behavior, atomic profile state, manual authority, Auto feedback,
 and Off-mode instant presentation without changing any wallpaper asset.
+`mode-transition.py` verifies all seven coordinated mode families, unfocused
+non-obscuring feedback, Full/Reduced/Off paths, exact-client restoration,
+duplicate suppression, partial-launch rollback, manual Angel exit, dock rescue,
+and wallpaper-aware presentation placement without launching applications.
 
 `installer.sh` exercises individual transaction mechanics in a temporary home.
 `clean-user.sh` simulates a fresh, logged-in Omarchy user with isolated config,

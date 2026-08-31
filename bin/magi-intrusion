@@ -99,6 +99,7 @@ restore_session() {
   inactive_border=$(jq -r '.inactiveBorder' "$session_file")
 
   mark_phase restoring
+  omarchy-shell -q mode-transition show angel exiting "Restoring captured session" >/dev/null 2>&1 || true
   omarchy theme bg set "$wallpaper" >/dev/null 2>&1 || failed=1
   if [[ $mode == manual ]]; then
     magi-affinity set "$affinity" >/dev/null 2>&1 || failed=1
@@ -117,6 +118,7 @@ restore_session() {
   fi
   rm -f "$active_file" "$session_file"
   omarchy-shell -q angel-intrusion deactivate >/dev/null 2>&1 || true
+  omarchy-shell -q mode-transition show angel exited "Prior state restored" >/dev/null 2>&1 || true
   omarchy-notification-send -u low -g '󰅖' 'ANGEL SIGNAL // CLEARED' 'Prior visual and communication states restored' 2>/dev/null || true
 }
 
@@ -130,6 +132,7 @@ activate() {
 
   capture_session
   mark_phase activating
+  omarchy-shell -q mode-transition show angel entering "Manual simulation · exit remains available" >/dev/null 2>&1 || true
   if ! magi-affinity set unit-02 >/dev/null ||
      ! omarchy theme bg set "$alert_wallpaper" >/dev/null ||
      ! EVA_TERMINAL_PROFILE_QUIET=1 eva-terminal-profile unit-02 --no-reload >/dev/null ||
@@ -144,6 +147,7 @@ activate() {
   mark_phase active
   touch "$active_file"
   omarchy-shell -q angel-intrusion activate >/dev/null 2>&1 || true
+  omarchy-shell -q mode-transition show angel active "Safe exit: magi-intrusion exit" >/dev/null 2>&1 || true
   if sound_requested "${1:-}" && [[ $(magi-sound status) == enabled ]]; then
     magi-sound critical >/dev/null 2>&1 || true
   fi

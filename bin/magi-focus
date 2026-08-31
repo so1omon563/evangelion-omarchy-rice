@@ -88,6 +88,7 @@ restore_shell() {
 
 enable() {
   [[ -f $active_file ]] && { echo 'AT Field: active'; return 0; }
+  omarchy-shell -q mode-transition show at-field entering "Suppressing non-critical communications" >/dev/null 2>&1 || true
   rm -rf "$snapshot_dir"
   mkdir -p "$snapshot_dir" "$(dirname "$user_shell")"
 
@@ -119,6 +120,7 @@ enable() {
 
   touch "$active_file"
   omarchy-notification-send -u low -g '󰭟' 'A.T. FIELD // ACTIVE' 'Non-critical communications suppressed' 2>/dev/null || true
+  omarchy-shell -q mode-transition show at-field active "Communication barrier established" >/dev/null 2>&1 || true
   echo 'AT Field: active'
 }
 
@@ -135,6 +137,7 @@ disable() {
   fi
   rm -f "$active_file"
   rm -rf "$snapshot_dir"
+  omarchy-shell -q mode-transition show at-field exited "Normal communications restored" >/dev/null 2>&1 || true
   omarchy-notification-send -u low -g '󰅖' 'A.T. FIELD // RELEASED' 'Normal communications restored' 2>/dev/null || true
   echo 'AT Field: inactive'
 }
