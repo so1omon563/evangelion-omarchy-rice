@@ -34,6 +34,8 @@ else
 fi
 "$root/preflight.py" --source-only --json | jq -e '.schema_version == 1 and (.compatible|type)=="boolean" and (.capabilities|type)=="object"' >/dev/null \
   && pass "compatibility preflight JSON schema" || fail "compatibility preflight JSON schema"
+"$root/preflight.py" --source-only --json | jq -e '.compatible == true' >/dev/null \
+  && pass "source-only preflight tolerates absent desktop runtime" || fail "source-only preflight tolerates absent desktop runtime"
 
 for file in "$root"/bin/*; do
   [[ -f $file ]] || continue

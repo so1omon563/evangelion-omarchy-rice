@@ -121,7 +121,8 @@ def build_report(activation):
         parsed = version_tuple(value)
         lower, upper = SUPPORTED[name]
         if not parsed:
-            add_check(checks, f"{name}-version", "blocker", "not detected", f"Install {name} through Omarchy and rerun preflight")
+            status = "blocker" if activation else "optional"
+            add_check(checks, f"{name}-version", status, "not detected", f"Install {name} through Omarchy and rerun preflight")
         elif lower <= parsed < upper:
             add_check(checks, f"{name}-version", "pass", value, f"Supported range: >={'.'.join(map(str, lower))}, <{'.'.join(map(str, upper))}")
         else:
@@ -139,7 +140,7 @@ def build_report(activation):
     for group in deps:
         if not group["missing"]:
             continue
-        status = "blocker" if group["level"] == "required" else "optional"
+        status = "blocker" if activation and group["level"] == "required" else "optional"
         add_check(checks, f"dependency:{group['feature']}", status, "missing " + ", ".join(group["missing"]),
                   "omarchy pkg add " + " ".join(group["packages"]))
 
