@@ -76,6 +76,7 @@ strict per-collector field, type, enum, and range allowlist.
 
 ```bash
 magi-context status --json       # Read current state; does not publish
+magi-context surface --json      # Fixed presentation-safe projection
 magi-context explain             # Human-readable state and reason
 magi-context refresh --json      # Atomically publish the latest request
 magi-context disable             # Global kill switch
@@ -131,6 +132,22 @@ when the panel is opened or Refresh is explicitly selected. Displayed facts use
 a second fixed allowlist; raw signal values and the numeric confidence field are
 not rendered. The panel is also available with `Super + Alt + G` or from
 `MAGI Command Interface → Context Inspector`.
+
+### Context-aware surfaces
+
+The mode OSD, low-urgency notification borders, start-page status rail, and
+screensaver HUD all consume the same read-only `magi-context surface`
+projection. They never run collectors or independently inspect hardware. The
+projection contains only a fixed status, stable reason code, short label, and
+allowlisted contributing facts. Critical notification urgency remains visually
+authoritative, and every surface keeps its normal geometry.
+
+Run `magi-context decorative disable` to remove these decorative cues while
+leaving context collection and the inspector available. Disabled, stale,
+unknown, unavailable, or missing context resolves to `baseline`; in that state
+the surfaces match the v1.2 presentation exactly. Re-enable cues with
+`magi-context decorative enable` and explicitly refresh from the inspector or
+with `magi-context refresh`.
 
 ## Interface motion
 

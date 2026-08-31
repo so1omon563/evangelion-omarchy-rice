@@ -13,6 +13,7 @@ const demoData = {
   workspace: {id: 1, name: 'MELCHIOR'},
   affinity: {mode: 'manual', active: 'unit-01'},
   profile: 'engineering',
+  context: {schema_version: 1, active: true, status: 'mobile', freshness: 'fresh', reason_code: 'mobile-operations', label: 'Mobile operations', facts: {display_mode: 'mobile'}},
   uptime: 273720,
   events: [
     {time: '19:01:28', type: 'SYSTEM', message: 'MAGI DASHBOARD LINK ESTABLISHED'},
@@ -119,6 +120,13 @@ function paintRail(data) {
   $('rail-network').textContent = data.network.online ? 'CONNECTED' : 'OFFLINE';
 }
 
+function paintContext(context) {
+  const active = context?.active === true;
+  $('context-state').hidden = !active;
+  document.body.dataset.context = active ? String(context.status || 'baseline') : 'baseline';
+  $('rail-context').textContent = active ? String(context.status || 'baseline').replaceAll('-', ' ').toUpperCase() : 'BASELINE';
+}
+
 function paintEvents(events) {
   $('event-log').innerHTML = events.map(event => `<div><time>${escapeHtml(event.time)}</time><b>${escapeHtml(event.type)}</b><span>${escapeHtml(event.message)}</span></div>`).join('');
 }
@@ -135,7 +143,7 @@ async function sync() {
     currentData = data;
     const map = {background: 'bg', dark_background: 'dark', foreground: 'fg', dark_foreground: 'muted', bright_red: 'red'};
     Object.entries(data.theme).forEach(([key, value]) => document.documentElement.style.setProperty(`--${map[key] || key}`, value));
-    paintMagi(data); paintTelemetry(data); paintMedia(data.media); paintWeather(data.weather); paintRail(data); paintEvents(data.events); paintAlert(data);
+    paintMagi(data); paintTelemetry(data); paintMedia(data.media); paintWeather(data.weather); paintRail(data); paintContext(data.context); paintEvents(data.events); paintAlert(data);
     $('sync').textContent = 'SYNCHRONIZED';
   } catch (error) {
     $('sync').textContent = 'LOCAL DATA UNAVAILABLE';

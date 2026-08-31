@@ -26,6 +26,7 @@ concurrency coverage:
 ./tests/context.py
 ./tests/context-collectors.py
 ./tests/context-policy.py
+./tests/context-surfaces.py
 ```
 
 It uses a temporary home and asserts that read-only status creates no state,
@@ -46,6 +47,11 @@ from automatic actions.
 refresh-only collection, fixed fact/signal/recommendation allowlists, bounded
 scrollable geometry, plain unknown/unavailable/disabled states, keyboard focus
 and activation, global motion integration, menu entry, and documented hotkey.
+
+`context-surfaces.py` verifies that the OSD, notifications, start page, and
+screensaver use the shared presentation-safe projection, contain no duplicated
+hardware detection, preserve fixed geometry, and fall back to a hidden or
+neutral v1.2 baseline when context is missing or decorative cues are disabled.
 
 `motion-regression.py` is portable CI coverage for rapid Full/Reduced/Off
 changes, persistence, interruption/coalescing contracts, critical-state

@@ -17,6 +17,7 @@ python3 "$root/tests/context.py" >/dev/null && pass "local MAGI context controll
 python3 "$root/tests/context-collectors.py" >/dev/null && pass "capability-aware MAGI context collectors" || fail "capability-aware MAGI context collectors"
 python3 "$root/tests/context-policy.py" >/dev/null && pass "deterministic MAGI context policy" || fail "deterministic MAGI context policy"
 python3 "$root/tests/context-panel.py" >/dev/null && pass "responsive MAGI context inspector" || fail "responsive MAGI context inspector"
+python3 "$root/tests/context-surfaces.py" >/dev/null && pass "shared reversible context surfaces" || fail "shared reversible context surfaces"
 python3 "$root/tests/motion.py" >/dev/null && pass "shared motion controller" || fail "shared motion controller"
 python3 "$root/tests/shell-motion.py" >/dev/null && pass "unified shell motion policy" || fail "unified shell motion policy"
 python3 "$root/tests/motion-regression.py" /tmp/evangelion-motion-regression.json >/dev/null && pass "motion accessibility and interruption regressions" || fail "motion accessibility and interruption regressions"

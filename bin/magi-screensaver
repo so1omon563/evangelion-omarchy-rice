@@ -5,6 +5,7 @@ import os
 import select
 import shutil
 import signal
+import subprocess
 import sys
 import termios
 import time
@@ -60,6 +61,16 @@ def motion_mode():
         return "full"
 
 
+def context_surface():
+    try:
+        raw = subprocess.run(["magi-context", "surface", "--json", "--compact"], text=True,
+                             capture_output=True, timeout=2, check=False).stdout
+        value = json.loads(raw)
+        return value if value.get("active") is True else {"active": False, "status": "baseline"}
+    except (OSError, subprocess.SubprocessError, ValueError):
+        return {"active": False, "status": "baseline"}
+
+
 def center(lines, width, height):
     content = []
     top = max(1, (height - len(lines)) // 2)
@@ -77,7 +88,7 @@ def place(row, column, color, text, width):
     return f"{ESC}{row};{column}H{ESC}{color}{clipped}"
 
 
-def hud(width, height, scene_index, scene_age, scene_seconds, phase, motion):
+def hud(width, height, scene_index, scene_age, scene_seconds, phase, motion, context=None):
     if width < 54 or height < 18:
         return ""
 
@@ -96,6 +107,10 @@ def hud(width, height, scene_index, scene_age, scene_seconds, phase, motion):
         place(5, 2, PURPLE, "╎", width),
         place(height - 5, width - 1, GREEN, "╎", width),
     ]
+    context = context or {"active": False, "status": "baseline"}
+    if context.get("active"):
+        label = str(context.get("status", "baseline")).replace("-", " ").upper()[:20]
+        output.append(place(4, 3, GREEN, "│ CONTEXT // " + label, width))
 
     # One restrained sweep crosses the display; reduced-motion pins it safely.
     scan_row = height // 2 if not motion else 5 + (phase * 3) % max(1, height - 10)
@@ -185,6 +200,7 @@ def main():
     apply_affinity_palette()
     config = setting()
     mode = motion_mode()
+    context = context_surface()
     reduced = mode != "full" or bool(config.get("reduced_motion", False)) or "--static" in sys.argv
     scene_seconds = max(8, int(config.get("scene_seconds", 12)))
     scenes = [magi_scene, sync_scene, warning_scene, unit_scene]
@@ -220,7 +236,7 @@ def main():
                 art = transition(width, height, scene_index, scene_age / 1.25)
             else:
                 art = scenes[scene_index](width, height, phase, not reduced)
-            chrome = hud(width, height, scene_index, scene_age, scene_seconds, phase, not reduced)
+            chrome = hud(width, height, scene_index, scene_age, scene_seconds, phase, not reduced, context)
             sys.stdout.write(f"{ESC}H{ESC}2J{ESC}48;2;5;4;10m{chrome}{art}{ESC}0m")
             sys.stdout.flush()
             last_scene, last_phase = scene_index, render_phase

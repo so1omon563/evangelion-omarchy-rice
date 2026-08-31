@@ -14,6 +14,7 @@ Item {
   property string detail: "OPERATING PARAMETERS SYNCHRONIZED"
   property color accent: "#9cf23a"
   property int eventCount: 0
+  property var contextSurface: ({active:false,status:"baseline"})
   Motion.MotionState { id: motion }
   readonly property var targetScreen: {
     var focused=Hyprland.focusedMonitor, screens=Quickshell.screens||[]
@@ -28,9 +29,17 @@ Item {
   function show(name,nextPhase,nextDetail) {
     var words=copy(name)
     modeName=words[0]; phase=String(nextPhase||"active").toUpperCase()
-    detail=String(nextDetail||words[1]).toUpperCase().slice(0,64); accent=words[2]
+    detail=String(nextDetail||words[1]).toUpperCase().slice(0,64); accent=contextAccent(words[2])
     opened=true; eventCount++; retire.restart()
   }
+  function contextAccent(fallback) {
+    if (!contextSurface.active) return fallback
+    var colors={critical:"#ff4055",constrained:"#f6d447",offline:"#f6d447",docked:"#62d8ff",mobile:"#9cf23a","media-active":"#b76cff"}
+    return colors[contextSurface.status]||fallback
+  }
+  function refreshContext() { if (!contextProbe.running) contextProbe.running=true }
+  FileView { path:Quickshell.env("HOME")+"/.local/state/evangelion-rice/context/state.json"; watchChanges:true; printErrors:false; onFileChanged:root.refreshContext() }
+  Process { id:contextProbe; running:true; command:["magi-context","surface","--json","--compact"]; stdout:StdioCollector { onStreamFinished:{ try { root.contextSurface=JSON.parse(text) } catch(error) { root.contextSurface={active:false,status:"baseline"} } } } }
   function hide() { opened=false; retire.stop() }
   Timer { id: retire; interval: motion.full?1800:(motion.reduced?1400:1100); onTriggered:root.opened=false }
   IpcHandler {

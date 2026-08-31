@@ -28,6 +28,7 @@ BorderSurface {
   property int cornerRadius: 0
   property bool popupAnimated: false
   property string motionMode: "full"
+  property var contextSurface: ({active:false,status:"baseline"})
 
   // System monospace font injected by the container.
   property string fontFamily: ""
@@ -53,8 +54,9 @@ BorderSurface {
   readonly property color severityColor: urgency === 2 ? "#FF4055" : (urgency === 1 ? "#F6B73C" : "#9CF23A")
   readonly property string severityLabel: urgency === 2 ? "CRITICAL ALERT" : (urgency === 1 ? "SYSTEM WARNING" : "MAGI INFORMATION")
   readonly property string severityGlyph: urgency === 2 ? "▲" : (urgency === 1 ? "◆" : "●")
-  readonly property color accentColor: severityColor
-  readonly property var cardBorderSpec: Border.flat(severityColor, Math.max(1, Style.space(2)))
+  readonly property color contextColor: ({critical:"#FF4055",constrained:"#F6D447",offline:"#F6D447",docked:"#62D8FF",mobile:"#9CF23A","media-active":"#B76CFF"})[String(contextSurface.status||"")] || severityColor
+  readonly property color accentColor: urgency === 0 && contextSurface.active ? contextColor : severityColor
+  readonly property var cardBorderSpec: Border.flat(accentColor, Math.max(1, Style.space(2)))
 
   function sanitizeBody(s) {
     return NotificationLogic.sanitizeBody(s, app, appIcon)

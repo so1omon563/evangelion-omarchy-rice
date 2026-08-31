@@ -16,7 +16,8 @@ BarWidget {
   })
   readonly property string status: String(context.derived_state?.status || "unknown")
   readonly property string freshness: String(context.derived_state?.freshness?.status || "unknown")
-  readonly property color stateColor: status === "critical" ? root.bar.urgent
+  readonly property bool decorative: context.controller?.decorative_enabled !== false && freshness === "fresh"
+  readonly property color stateColor: !decorative ? Color.muted : status === "critical" ? root.bar.urgent
     : (status === "constrained" || status === "offline" ? "#F6D447"
     : (status === "unknown" || status === "unavailable" || status === "disabled" ? Color.muted : Color.accent))
   readonly property var safeFacts: ["battery_percent", "connectivity", "display_mode", "media_state", "operating_profile", "power_source", "profile_selection", "temperature_c", "thermal_pressure", "time_band", "weekend"]
@@ -83,7 +84,7 @@ BarWidget {
   Text { anchors.centerIn:parent; text:"󰘦"; color:root.stateColor; font.family:root.bar.fontFamily; font.pixelSize:Style.font.body; font.bold:true }
   Motion.StateCue {
     anchors { left:parent.left; top:parent.top; bottom:parent.bottom }
-    active:status==="critical"||status==="constrained"||status==="offline"
+    active:root.decorative&&(status==="critical"||status==="constrained"||status==="offline")
     critical:status==="critical"
     cueColor:root.stateColor
   }

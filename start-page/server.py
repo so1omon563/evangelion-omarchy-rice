@@ -34,6 +34,17 @@ def key_values(command):
     return values
 
 
+def context_surface():
+    baseline = {"schema_version": 1, "active": False, "status": "baseline", "freshness": "unknown", "reason_code": "context-unavailable", "label": "", "facts": {}}
+    try:
+        value = json.loads(run(["magi-context", "surface", "--json", "--compact"]))
+    except json.JSONDecodeError:
+        return baseline
+    if value.get("schema_version") != 1 or not isinstance(value.get("active"), bool):
+        return baseline
+    return {key: value.get(key, baseline[key]) for key in baseline}
+
+
 def weather():
     message = run(["omarchy-weather-status"], 6)
     if message and message != "Weather unavailable":
@@ -152,6 +163,7 @@ def status():
         "workspace": workspace(),
         "affinity": {"mode": affinity.get("mode", "unknown"), "active": affinity.get("active", "neutral")},
         "profile": profile.get("active", profile.get("effective", "unknown")),
+        "context": context_surface(),
         "uptime": round(float(Path("/proc/uptime").read_text().split()[0])),
     }
     snapshot["events"] = record_events(snapshot)

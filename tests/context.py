@@ -47,6 +47,9 @@ def main():
         assert initial["contract"]["availability_values"] == ["unknown", "available", "unavailable", "disabled"]
         assert initial["contract"]["freshness_values"] == ["unknown", "fresh", "stale", "disabled"]
         assert not (home / ".local/state/evangelion-rice/context/state.json").exists(), "status must be read-only"
+        surface = json.loads(run(home, "surface", "--json", "--compact").stdout)
+        assert surface == {"schema_version": 1, "active": False, "status": "baseline", "freshness": "unknown",
+                           "reason_code": "awaiting-observations", "label": "", "facts": {}}
 
         refreshed = json.loads(run(home, "refresh", "--json").stdout)
         assert refreshed["generation"] == 1 and refreshed["request_id"] == 1
@@ -75,6 +78,8 @@ def main():
         assert current["controller"]["decorative_enabled"] is False
         assert current["signals"]["media"]["availability"] == "disabled"
         assert current["signals"]["power"]["availability"] in {"available", "unavailable"}
+        decorated = json.loads(run(home, "surface", "--json", "--compact").stdout)
+        assert decorated["active"] is False, "decorative kill switch did not restore baseline projection"
 
         config["custom"] = {"keep": True}
         config_path.write_text(json.dumps(config))

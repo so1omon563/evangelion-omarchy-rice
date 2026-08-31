@@ -31,6 +31,9 @@ COLLECTORS = ("power", "thermal", "displays", "devices", "connectivity",
               "media", "time", "operating_profile")
 AVAILABILITY = ("unknown", "available", "unavailable", "disabled")
 FRESHNESS = ("unknown", "fresh", "stale", "disabled")
+SURFACE_FACTS = ("battery_percent", "connectivity", "display_mode", "media_state",
+                 "operating_profile", "power_source", "profile_selection",
+                 "temperature_c", "thermal_pressure", "time_band", "weekend")
 DEFAULT_CONTEXT = {
     "enabled": True,
     "automation_enabled": False,
@@ -320,8 +323,29 @@ def explain(state):
     return "\n".join(lines)
 
 
+def surface_projection(state):
+    """Return the fixed, presentation-safe subset consumed by visual surfaces."""
+    derived = state.get("derived_state", {})
+    controller = state.get("controller", {})
+    freshness = derived.get("freshness", {}).get("status", "unknown")
+    status = derived.get("status", "unknown")
+    reason = state.get("reasons", [{}])[0] if state.get("reasons") else {}
+    active = bool(controller.get("enabled") and controller.get("decorative_enabled")
+                  and freshness == "fresh" and status not in {"unknown", "unavailable", "disabled"})
+    facts = reason.get("facts", {}) if isinstance(reason.get("facts"), dict) else {}
+    safe = {key: facts[key] for key in SURFACE_FACTS if key in facts
+            and isinstance(facts[key], (str, int, float, bool))}
+    return {
+        "schema_version": 1, "active": active,
+        "status": status if active else "baseline",
+        "freshness": freshness, "reason_code": str(reason.get("code", "context-unavailable"))[:64],
+        "label": str(derived.get("summary", ""))[:80] if active else "",
+        "facts": safe if active else {},
+    }
+
+
 def usage():
-    print("Usage: magi-context [status|explain|refresh|enable|disable|automation enable|disable|decorative enable|disable|collector NAME enable|disable] [--json] [--compact]", file=sys.stderr)
+    print("Usage: magi-context [status|surface|explain|refresh|enable|disable|automation enable|disable|decorative enable|disable|collector NAME enable|disable] [--json] [--compact]", file=sys.stderr)
     return 2
 
 
@@ -331,7 +355,7 @@ def main():
     compact = "--compact" in sys.argv[1:]
     command = args[0] if args else "status"
     try:
-        if command in ("status", "explain"):
+        if command in ("status", "surface", "explain"):
             state = load_state()
         elif command == "refresh":
             state, _ = refresh()
@@ -344,9 +368,12 @@ def main():
         else:
             return usage()
 
+        output = surface_projection(state) if command == "surface" else state
         if json_output:
-            print(json.dumps(state, separators=(",", ":"), sort_keys=True) if compact
-                  else json.dumps(state, indent=2, sort_keys=True))
+            print(json.dumps(output, separators=(",", ":"), sort_keys=True) if compact
+                  else json.dumps(output, indent=2, sort_keys=True))
+        elif command == "surface":
+            print(output["status"])
         elif command == "explain":
             print(explain(state))
         else:

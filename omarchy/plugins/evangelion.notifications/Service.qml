@@ -16,6 +16,10 @@ Item {
   id: service
 
   Motion.MotionState { id: motion }
+  property var contextSurface: ({active:false,status:"baseline"})
+  function refreshContextSurface() { if (!contextSurfaceProbe.running) contextSurfaceProbe.running=true }
+  FileView { path:Quickshell.env("HOME")+"/.local/state/evangelion-rice/context/state.json"; watchChanges:true; printErrors:false; onFileChanged:service.refreshContextSurface() }
+  Process { id:contextSurfaceProbe; running:true; command:["magi-context","surface","--json","--compact"]; stdout:StdioCollector { onStreamFinished:{ try { service.contextSurface=JSON.parse(text) } catch(error) { service.contextSurface={active:false,status:"baseline"} } } } }
 
   // Injected by omarchy-shell (the first-party service loader).
   property var shell: null
@@ -1056,6 +1060,7 @@ Item {
               glyph: cardSlot.glyph
               popupAnimated: true
               motionMode: motion.mode
+              contextSurface: service.contextSurface
 
               onCloseRequested: service.dismissPopup(cardSlot.index)
               onCardClicked: service.invokePopupDefault(cardSlot.index)
