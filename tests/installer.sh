@@ -51,6 +51,7 @@ run_install --apply --preset full --yes >/dev/null
 [[ -x $test_root/home/.local/bin/magi-context ]] || fail "full preset omitted MAGI context controller"
 [[ -f $test_root/home/.local/lib/evangelion-rice/magi_context_collectors.py ]] || fail "full preset omitted MAGI context collectors"
 jq -e '.plugins | any(.id == "evangelion.motion")' "$test_root/home/.config/omarchy/shell.json" >/dev/null || fail "motion service is not enabled"
+jq -e '.bar.layout.left | map(.id) | index("evangelion.media") as $media | index("evangelion.cava") == ($media + 1)' "$test_root/home/.config/omarchy/shell.json" >/dev/null || fail "Cava is not adjacent to media in installed layout"
 [[ ! -e $test_root/home/.config/omarchy/plugins/neon.overdrive ]] || fail "full preset installed undetected Neon Overdrive integration"
 grep -qF 'source "$HOME/.config/omarchy/evangelion.bash"' "$test_root/home/.bashrc" || fail "full preset omitted shell integration"
 initial_full_snapshot=$(cat "$test_root/state/evangelion-rice/last-install-backup")

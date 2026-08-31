@@ -9,13 +9,13 @@
       "left": [
         { "id": "omarchy.menu" },
         { "id": "evangelion.workspaces" },
-        { "id": "evangelion.media" }
+        { "id": "evangelion.media" },
+        { "id": "evangelion.cava" }
       ],
       "center": [
         { "id": "omarchy.clock", "format": "ddd d MMM  HH:mm", "formatAlt": "d MMMM  'W'ww  yyyy", "verticalFormat": "HH\n—\nmm" },
         { "id": "evangelion.world-clock" },
-        { "id": "evangelion.mission" },
-        { "id": "evangelion.cava" }
+        { "id": "evangelion.mission" }
       ],
       "right": [
         { "id": "evangelion.privacy" },

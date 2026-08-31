@@ -77,6 +77,8 @@ jq -e '.final_release_allowed == true and .candidate_commit == "9714cafea65e1886
   && pass "final v1.2 release gate uses exact candidate evidence" || fail "final v1.2 release gate"
 jq -e '.plugins | any(.id == "evangelion.motion")' "$root/omarchy/shell.json" >/dev/null \
   && pass "motion service enabled in shell" || fail "motion service shell enablement"
+jq -e '.bar.layout.left | map(.id) | index("evangelion.media") as $media | index("evangelion.cava") == ($media + 1)' "$root/omarchy/shell.json" >/dev/null \
+  && pass "Cava follows media in left bar section" || fail "Cava/media bar adjacency"
 
 duplicates=$(sed -n 's/.*o\.bind("\([^"]*\)".*/\1/p' "$root/hypr/bindings.lua" | sort | uniq -d)
 [[ -z $duplicates ]] && pass "no duplicate custom hotkeys" || fail "duplicate hotkeys: $duplicates"
@@ -105,6 +107,8 @@ elif [[ -d ${HOME}/.config/omarchy ]]; then
   live_widgets=$(jq -r '.bar.layout[][]|.id' "$HOME/.config/omarchy/shell.json" 2>/dev/null || true)
   while IFS= read -r id; do [[ $id != evangelion.* && $id != neon.overdrive ]] || grep -qxF "$id" <<<"$live_widgets" || fail "live widget absent: $id"; done <<<"$widgets"
   pass "live widget layout inspected"
+  jq -e '.bar.layout.left | map(.id) | index("evangelion.media") as $media | index("evangelion.cava") == ($media + 1)' "$HOME/.config/omarchy/shell.json" >/dev/null \
+    && pass "live Cava/media bar adjacency" || fail "live Cava/media bar adjacency"
 else warn "live Omarchy config unavailable; source-only validation"; fi
 
 printf '\nSUMMARY // %d checks · %d failures · %d warnings\n' "$checks" "$failures" "$warnings"
