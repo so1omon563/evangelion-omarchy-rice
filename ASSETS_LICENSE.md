@@ -8,7 +8,18 @@ NERV, EVA units, related names, designs, and marks belong to their respective
 rights holders. This project is not affiliated with or endorsed by those
 rights holders.
 
-Wallpaper provenance currently documented in `theme/ARTWORK.md` covers files
-5–7. Files 1–4 should remain private until their provenance and redistribution
-status are reviewed. Do not redistribute image assets merely because the code
-is available under MIT.
+All seven wallpapers were generated specifically for this project using
+OpenAI's image-generation tool. Their provenance and audited hashes are recorded
+in `theme/ARTWORK.md`; no downloaded stock artwork or extracted animation frames
+are included.
+
+To the extent the repository owner holds copyright or other licensable rights
+in the generated wallpaper files, those rights are licensed under
+[CC BY-NC 4.0](https://creativecommons.org/licenses/by-nc/4.0/). Attribution may
+be given as “Evangelion Omarchy Rice contributors.”
+
+That license does not grant rights to Evangelion characters, designs, names,
+logos, or trademarks. Those remain the property of their respective rights
+holders. The generated nature of an image does not remove those third-party
+considerations, and the wallpapers should not be presented as official artwork
+or used commercially.
