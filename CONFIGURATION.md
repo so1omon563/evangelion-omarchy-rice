@@ -352,6 +352,16 @@ Terminal rules live in `~/.config/omarchy/magi-terminal-context.json` and may
 select `eva-01`, `magi`, or `engineering` by path or marker file without
 changing existing terminals. See [HOTKEYS.md](HOTKEYS.md).
 
+## Bar icon treatment
+
+Agents, Bluetooth, Dropbox, and Tailscale use thin adapters around their native
+Omarchy widgets. Their original click actions, menus, tooltips, and state logic
+remain authoritative; only the fixed NERV frame and shared state palette are
+added. The StatusNotifier tray remains native so symbolic icons follow the bar
+foreground while full-color vendor icons retain their identity. See
+[BAR_ICONS.md](BAR_ICONS.md) for the inventory, implementation paths, and the
+per-widget stock fallback procedure.
+
 ## Thermal, screensaver, and optional integrations
 
 `~/.config/omarchy/thermal-alerts.json` controls thresholds, clear points,

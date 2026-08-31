@@ -24,12 +24,12 @@
         { "id": "evangelion.atfield" },
         { "id": "omarchy.indicators" },
         { "id": "omarchy.tray" },
-        { "id": "omarchy.dropbox" },
-        { "id": "omarchy.tailscale" },
-        { "id": "omarchy.agents" },
+        { "id": "evangelion.dropbox" },
+        { "id": "evangelion.tailscale" },
+        { "id": "evangelion.agents" },
         { "id": "omarchy.system-update" },
         { "id": "evangelion.communications" },
-        { "id": "omarchy.bluetooth" },
+        { "id": "evangelion.bluetooth" },
         { "id": "omarchy.network" },
         { "id": "omarchy.audio" },
         { "id": "omarchy.monitor" },
@@ -51,7 +51,8 @@
     { "id": "evangelion.device-osd" },
     { "id": "evangelion.thermal" },
     { "id": "evangelion.update-operation" },
-    { "id": "evangelion.mode-transition" }
+    { "id": "evangelion.mode-transition" },
+    { "id": "evangelion.icon-theme" }
   ],
   "disabledPlugins": [
     "omarchy.lock",

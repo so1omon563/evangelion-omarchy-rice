@@ -1,0 +1,11 @@
+{
+  "schemaVersion": 1,
+  "id": "evangelion.agents",
+  "name": "NERV Agents",
+  "version": "1.0.0",
+  "author": "Evangelion Rice",
+  "description": "Evangelion chrome around Omarchy's native agents widget.",
+  "kinds": ["bar-widget"],
+  "entryPoints": { "barWidget": "BarWidget.qml" },
+  "barWidget": { "displayName": "NERV Agents", "category": "System", "allowMultiple": false, "defaultSection": "right" }
+}

@@ -30,6 +30,7 @@ python3 "$root/tests/lifecycle-motion.py" /tmp/evangelion-lifecycle-motion.json 
 python3 "$root/tests/affinity-motion.py" /tmp/evangelion-affinity-motion.json >/dev/null && pass "wallpaper affinity transition contracts" || fail "wallpaper affinity transition contracts"
 python3 "$root/tests/mode-transition.py" /tmp/evangelion-mode-transition.json >/dev/null && pass "reversible operating mode contracts" || fail "reversible operating mode contracts"
 python3 "$root/tests/bar-motion.py" /tmp/evangelion-bar-motion.json >/dev/null && pass "stateful MAGI bar motion contracts" || fail "stateful MAGI bar motion contracts"
+python3 "$root/tests/bar-icons.py" >/dev/null && pass "unified upstream and tray icon contracts" || fail "unified upstream and tray icon contracts"
 for mode in full reduced off; do lua "$root/tests/hypr-motion.lua" "$mode" >/dev/null && pass "Hyprland $mode motion profile" || fail "Hyprland $mode motion profile"; done
 python3 "$root/tests/documentation.py" >/dev/null && pass "public documentation contract" || fail "public documentation contract"
 if rg -n 'Work/evangelion-rice' "$root/bin" "$root/lib" "$root/omarchy" >/dev/null; then fail "owner-specific project path remains"; else pass "no owner-specific project path"; fi

@@ -1,0 +1,11 @@
+{
+  "schemaVersion": 1,
+  "id": "evangelion.tailscale",
+  "name": "NERV Tailscale",
+  "version": "1.0.0",
+  "author": "Evangelion Rice",
+  "description": "Evangelion chrome around Omarchy's native Tailscale widget.",
+  "kinds": ["bar-widget"],
+  "entryPoints": { "barWidget": "BarWidget.qml" },
+  "barWidget": { "displayName": "NERV Tailscale", "category": "Network", "allowMultiple": false, "defaultSection": "right" }
+}

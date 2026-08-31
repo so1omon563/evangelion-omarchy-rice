@@ -1,0 +1,11 @@
+{
+  "schemaVersion": 1,
+  "id": "evangelion.bluetooth",
+  "name": "NERV Bluetooth",
+  "version": "1.0.0",
+  "author": "Evangelion Rice",
+  "description": "Evangelion chrome around Omarchy's native Bluetooth widget.",
+  "kinds": ["bar-widget"],
+  "entryPoints": { "barWidget": "BarWidget.qml" },
+  "barWidget": { "displayName": "NERV Bluetooth", "category": "Network", "allowMultiple": false, "defaultSection": "right" }
+}
