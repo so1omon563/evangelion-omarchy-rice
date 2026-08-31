@@ -66,11 +66,13 @@ magi-context explain
 
 ## MAGI context foundation
 
-`magi-context` defines the local context contract without collecting hardware
-or activity data yet. SO1-364 adds capability-aware observations. Until then,
-enabled collectors explicitly report `unknown`; disabled collectors report
-`disabled`, and disabling every collector reports `unavailable`. This avoids
-inventing context from absent data.
+`magi-context` publishes capability-aware local observations for power and
+batteries, thermal pressure, displays and dock state, input/audio device counts,
+connectivity state, media activity, local time band, and the explicit operating
+profile. It deliberately excludes device names, player identities and metadata,
+network names and addresses, process/window titles, clipboard data, browser
+history, document paths, and other payload content. Published values pass a
+strict per-collector field, type, enum, and range allowlist.
 
 ```bash
 magi-context status --json       # Read current state; does not publish
@@ -90,7 +92,11 @@ separates signals, normalized facts, derived state, freshness, reasons, and
 recommendations. `unknown`, `unavailable`, `stale`, and `disabled` are explicit
 contract values. Concurrent refreshes use monotonic request IDs; a superseded
 request cannot overwrite newer state. The controller performs no network I/O,
-launches no subprocesses, and makes no system changes.
+and makes no system changes. Collectors run only for an explicit refresh, in a
+bounded four-worker pool with two-second command deadlines; disabled collectors
+do not run. Local IPC and sysfs are preferred, so there is no background polling
+loop. A transient failure retains a still-fresh cached observation; after
+`max_age_seconds` it is marked `stale` with an explicit reason.
 
 ## Interface motion
 

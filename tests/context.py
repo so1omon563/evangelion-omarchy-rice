@@ -47,10 +47,12 @@ def main():
 
         refreshed = json.loads(run(home, "refresh", "--json").stdout)
         assert refreshed["generation"] == 1 and refreshed["request_id"] == 1
-        assert all(item["availability"] == "unknown" for item in refreshed["signals"].values())
+        assert refreshed["signals"]["time"]["availability"] == "available"
+        assert all(item["availability"] in {"available", "unavailable"} for item in refreshed["signals"].values())
         state_path = home / ".local/state/evangelion-rice/context/state.json"
         assert state_path.stat().st_mode & 0o777 == 0o600
-        assert "awaiting-observations" in run(home, "explain").stdout
+        explanation = run(home, "explain").stdout
+        assert any(code in explanation for code in ("policy-pending", "collectors-unavailable"))
 
         disabled = json.loads(run(home, "disable", "--json").stdout)
         assert disabled["derived_state"]["status"] == "disabled"
@@ -68,7 +70,7 @@ def main():
         assert current["controller"]["automation_enabled"] is True
         assert current["controller"]["decorative_enabled"] is False
         assert current["signals"]["media"]["availability"] == "disabled"
-        assert current["signals"]["power"]["availability"] == "unknown"
+        assert current["signals"]["power"]["availability"] in {"available", "unavailable"}
 
         config["custom"] = {"keep": True}
         config_path.write_text(json.dumps(config))

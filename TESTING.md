@@ -24,11 +24,16 @@ concurrency coverage:
 
 ```bash
 ./tests/context.py
+./tests/context-collectors.py
 ```
 
 It uses a temporary home and asserts that read-only status creates no state,
 invalid configuration is not overwritten, private/network primitives are not
 imported, and a delayed older refresh cannot overwrite the latest request.
+`context-collectors.py` uses fake sysfs hardware and normalized observation
+fixtures to cover multi-battery power, thermal thresholds, missing commands,
+fresh-cache retention, stale transitions, strict privacy-schema rejection, and
+the exact normalized fact set without querying the live desktop.
 
 `motion-regression.py` is portable CI coverage for rapid Full/Reduced/Off
 changes, persistence, interruption/coalescing contracts, critical-state

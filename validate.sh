@@ -14,6 +14,7 @@ bash -n "$root/beta-report.sh" && pass "external beta evidence helper parses" ||
 python3 "$root/tests/capabilities.py" >/dev/null && pass "mocked hardware capability matrix" || fail "mocked hardware capability matrix"
 python3 "$root/tests/responsive-layouts.py" /tmp/evangelion-responsive-layouts.json >/dev/null && pass "responsive display geometry matrix" || fail "responsive display geometry matrix"
 python3 "$root/tests/context.py" >/dev/null && pass "local MAGI context controller" || fail "local MAGI context controller"
+python3 "$root/tests/context-collectors.py" >/dev/null && pass "capability-aware MAGI context collectors" || fail "capability-aware MAGI context collectors"
 python3 "$root/tests/motion.py" >/dev/null && pass "shared motion controller" || fail "shared motion controller"
 python3 "$root/tests/shell-motion.py" >/dev/null && pass "unified shell motion policy" || fail "unified shell motion policy"
 python3 "$root/tests/motion-regression.py" /tmp/evangelion-motion-regression.json >/dev/null && pass "motion accessibility and interruption regressions" || fail "motion accessibility and interruption regressions"
@@ -25,7 +26,7 @@ python3 "$root/tests/mode-transition.py" /tmp/evangelion-mode-transition.json >/
 python3 "$root/tests/bar-motion.py" /tmp/evangelion-bar-motion.json >/dev/null && pass "stateful MAGI bar motion contracts" || fail "stateful MAGI bar motion contracts"
 for mode in full reduced off; do lua "$root/tests/hypr-motion.lua" "$mode" >/dev/null && pass "Hyprland $mode motion profile" || fail "Hyprland $mode motion profile"; done
 python3 "$root/tests/documentation.py" >/dev/null && pass "public documentation contract" || fail "public documentation contract"
-if rg -n 'Work/evangelion-rice' "$root/bin" "$root/omarchy" >/dev/null; then fail "owner-specific project path remains"; else pass "no owner-specific project path"; fi
+if rg -n 'Work/evangelion-rice' "$root/bin" "$root/lib" "$root/omarchy" >/dev/null; then fail "owner-specific project path remains"; else pass "no owner-specific project path"; fi
 python3 -m py_compile "$root/preflight.py" 2>/dev/null && pass "compatibility preflight parses" || fail "compatibility preflight parse"
 awk -F '\t' 'BEGIN { ok=1 } /^#/ || NF==0 { next } NF!=5 || $1 !~ /^(required|recommended|optional|development)$/ { ok=0 } END { exit !ok }' "$root/dependencies.tsv" \
   && pass "dependency manifest schema" || fail "dependency manifest schema"
@@ -57,6 +58,7 @@ for file in "$root"/bin/*; do
   elif head -n1 "$file" | grep -Eq 'bash|sh'; then bash -n "$file" && pass "shell $(basename "$file")" || fail "shell $(basename "$file")"
   fi
 done
+for file in "$root"/lib/*.py; do python3 -m py_compile "$file" 2>/dev/null && pass "python lib/$(basename "$file")" || fail "python lib/$(basename "$file")"; done
 for file in "$root"/omarchy/*.json "$root"/omarchy/plugins/*/manifest.json; do jq empty "$file" 2>/dev/null && pass "json ${file#$root/}" || fail "json ${file#$root/}"; done
 legacy_plugin_dirs=$(find "$root/omarchy/plugins" -mindepth 1 -maxdepth 1 -type d -name 'so1omon.*' -print)
 [[ -z $legacy_plugin_dirs ]] && pass "public plugin namespace" || fail "legacy personal plugin namespace remains"

@@ -11,6 +11,13 @@ from copy import deepcopy
 from datetime import datetime, timezone
 from pathlib import Path
 
+for library in (Path(__file__).resolve().parents[1] / "lib",
+                Path.home() / ".local/lib/evangelion-rice"):
+    if library.is_dir():
+        sys.path.insert(0, str(library))
+
+from magi_context_collectors import collect_all
+
 CONFIG_HOME = Path(os.environ.get("XDG_CONFIG_HOME", Path.home() / ".config"))
 STATE_HOME = Path(os.environ.get("XDG_STATE_HOME", Path.home() / ".local/state"))
 CONFIG = CONFIG_HOME / "omarchy/evangelion.json"
@@ -121,21 +128,99 @@ def signal_contract(enabled):
     availability = "unknown" if enabled else "disabled"
     freshness = "unknown" if enabled else "disabled"
     return {"availability": availability, "freshness": {"status": freshness,
-            "observed_at": None, "expires_at": None}, "value": None}
+            "observed_at": None, "expires_at": None}, "value": None,
+            "reason": "awaiting-observation" if enabled else "disabled"}
 
 
-def build_state(request_id, generation=0):
+def parse_timestamp(value):
+    try:
+        return datetime.fromisoformat(value.replace("Z", "+00:00"))
+    except (AttributeError, TypeError, ValueError):
+        return None
+
+
+def observed_signal(observation, previous, max_age, now):
+    if observation and observation.get("available"):
+        expires = now.timestamp() + max_age
+        return {"availability": "available", "freshness": {"status": "fresh",
+                "observed_at": now.isoformat().replace("+00:00", "Z"),
+                "expires_at": datetime.fromtimestamp(expires, timezone.utc).isoformat().replace("+00:00", "Z")},
+                "value": observation["value"], "reason": "observed"}
+    old_time = parse_timestamp(previous.get("freshness", {}).get("observed_at")) if isinstance(previous, dict) else None
+    if old_time and previous.get("availability") == "available":
+        age = max(0, (now - old_time).total_seconds())
+        freshness = "stale" if age > max_age else "fresh"
+        carried = deepcopy(previous)
+        carried["freshness"]["status"] = freshness
+        carried["reason"] = "cached-observation" if freshness == "fresh" else "stale-observation"
+        return carried
+    return {"availability": "unavailable", "freshness": {"status": "unknown",
+            "observed_at": None, "expires_at": None}, "value": None,
+            "reason": str((observation or {}).get("reason", "collector-unavailable"))[:64]}
+
+
+def facts_from(signals):
+    facts = {}
+    mappings = {
+        "power": (("power_source", "source"), ("battery_percent", "battery_percent")),
+        "thermal": (("thermal_pressure", "pressure"),),
+        "displays": (("display_mode", "docked"),),
+        "connectivity": (("connectivity", "state"),),
+        "media": (("media_state", "state"),),
+        "time": (("time_band", "band"), ("weekend", "weekend")),
+        "operating_profile": (("operating_profile", "active"),),
+    }
+    for signal, pairs in mappings.items():
+        item = signals.get(signal, {})
+        if item.get("availability") != "available":
+            continue
+        value = item.get("value", {})
+        for fact, key in pairs:
+            if key in value and value[key] is not None:
+                facts[fact] = "docked" if fact == "display_mode" and value[key] else "mobile" if fact == "display_mode" else value[key]
+    device = signals.get("devices", {})
+    if device.get("availability") == "available":
+        facts["device_counts"] = device["value"]
+    return facts
+
+
+def build_state(request_id, generation=0, observations=None, previous=None):
     _, config = resolved_config()
     controller_enabled = config["enabled"]
     enabled_collectors = [name for name in COLLECTORS if config["collectors"][name]]
-    signals = {name: signal_contract(controller_enabled and config["collectors"][name])
-               for name in COLLECTORS}
+    observations = observations or {}
+    previous_signals = (previous or {}).get("signals", {})
+    now = datetime.now(timezone.utc)
+    signals = {}
+    for name in COLLECTORS:
+        enabled = controller_enabled and config["collectors"][name]
+        signals[name] = (observed_signal(observations.get(name), previous_signals.get(name, {}),
+                                         config["max_age_seconds"], now)
+                         if enabled else signal_contract(False))
+    facts = facts_from(signals)
+    available = sum(item["availability"] == "available" for item in signals.values())
+    stale = [name for name, item in signals.items() if item["freshness"]["status"] == "stale"]
+    unavailable = [name for name, item in signals.items() if item["availability"] == "unavailable"]
     if not controller_enabled:
         status, reason, summary = "disabled", "context-disabled", "Context processing is disabled"
     elif not enabled_collectors:
         status, reason, summary = "unavailable", "no-collectors-enabled", "No context collectors are enabled"
+    elif available == 0 and observations:
+        status, reason, summary = "unavailable", "collectors-unavailable", "Enabled context collectors are unavailable"
+    elif available:
+        status, reason, summary = "unknown", "policy-pending", "Local observations available; context policy is not yet evaluated"
     else:
         status, reason, summary = "unknown", "awaiting-observations", "No local observations have been published"
+    reasons = [{"code": reason, "summary": summary, "signals": []}]
+    if stale:
+        reasons.append({"code": "stale-observations", "summary": "Cached observations exceeded their freshness bound", "signals": stale})
+    if unavailable:
+        reasons.append({"code": "collectors-unavailable", "summary": "Some enabled collectors could not be observed", "signals": unavailable})
+    observed_at = [item["freshness"]["observed_at"] for item in signals.values()
+                   if item["freshness"]["observed_at"]]
+    expires_at = [item["freshness"]["expires_at"] for item in signals.values()
+                  if item["freshness"]["expires_at"]]
+    derived_freshness = "disabled" if status == "disabled" else "stale" if stale else "fresh" if available else "unknown"
     return {
         "schema_version": 1,
         "generation": generation,
@@ -145,11 +230,13 @@ def build_state(request_id, generation=0):
         "contract": {"availability_values": list(AVAILABILITY),
                      "freshness_values": list(FRESHNESS)},
         "signals": signals,
-        "facts": {},
-        "derived_state": {"status": status, "summary": summary, "confidence": 0.0,
-                          "freshness": {"status": "disabled" if status == "disabled" else "unknown",
-                                        "observed_at": None, "expires_at": None}},
-        "reasons": [{"code": reason, "summary": summary, "signals": []}],
+        "facts": facts,
+        "derived_state": {"status": status, "summary": summary,
+                          "confidence": round(available / max(1, len(enabled_collectors)), 3),
+                          "freshness": {"status": derived_freshness,
+                                        "observed_at": max(observed_at) if observed_at else None,
+                                        "expires_at": min(expires_at) if expires_at else None}},
+        "reasons": reasons,
         "recommendations": [],
     }
 
@@ -158,14 +245,18 @@ def publish_latest(request_id):
     delay = int(os.environ.get("MAGI_CONTEXT_TEST_DELAY_MS", "0") or 0)
     if delay > 0:
         time.sleep(min(delay, 5000) / 1000)
+    _, config = resolved_config()
+    enabled = [name for name in COLLECTORS if config["enabled"] and config["collectors"][name]]
+    observations = collect_all(enabled) if enabled else {}
     stream = locked()
     try:
         latest = read_object(REQUESTS, {"latest_request_id": 0}).get("latest_request_id", 0)
         if latest != request_id:
             return load_state(), False
-        previous = read_object(STATE, {}).get("generation", 0)
+        prior_state = read_object(STATE, {})
+        previous = prior_state.get("generation", 0)
         generation = previous + 1 if isinstance(previous, int) and previous >= 0 else 1
-        state = build_state(request_id, generation)
+        state = build_state(request_id, generation, observations, prior_state)
         atomic_json(STATE, state)
         return state, True
     finally:

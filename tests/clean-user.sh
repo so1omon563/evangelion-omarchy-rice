@@ -108,8 +108,9 @@ expect "pre-existing shell startup restored" grep -qx 'pre-existing bashrc' "$te
 expect "uninstall-equivalent rollback removes shell" test ! -e "$test_root/home/.config/omarchy/shell.json"
 expect "uninstall-equivalent rollback removes theme" test ! -e "$test_root/home/.config/omarchy/themes/evangelion/colors.toml"
 expect "uninstall-equivalent rollback removes tools" test ! -e "$test_root/home/.local/bin/magi-affinity"
+expect "uninstall-equivalent rollback removes context library" test ! -e "$test_root/home/.local/lib/evangelion-rice/magi_context_collectors.py"
 
-if rg -n '/home/so1omon|Work/evangelion-rice|ThinkPad T480' "$root/bin" "$root/omarchy" "$root/install.sh" >/dev/null; then
+if rg -n '/home/so1omon|Work/evangelion-rice|ThinkPad T480' "$root/bin" "$root/lib" "$root/omarchy" "$root/install.sh" >/dev/null; then
   fail "no original-machine runtime assumptions"
 fi
 pass "no original-machine runtime assumptions"
