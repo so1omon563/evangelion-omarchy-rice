@@ -17,6 +17,7 @@ Omarchy's complete live keybinding reference.
 | `Super + Alt + T` | Open the MAGI mission timer |
 | `Super + Alt + H` | Open the NERV system-health panel |
 | `Super + Alt + C` | Open the MAGI world and mission clock |
+| `Super + Alt + G` | Open the MAGI context inspector |
 | `Super + K` | Show every active Omarchy keybinding |
 
 ## Visual systems
@@ -160,6 +161,22 @@ magi-health status
 magi-health status --json
 magi-health preview --seconds 30
 ```
+
+## MAGI context inspector
+
+Press `Super + Alt + G`, click the compact context glyph immediately before the
+privacy indicator, or choose `MAGI Command Interface → Context Inspector`.
+Opening the panel explicitly refreshes the bounded local observations. The
+panel shows the selected state, freshness, stable reason, allowlisted
+contributing facts, per-capability availability, suppressed alternatives, and
+any recommended action. It deliberately does not display a confidence score.
+
+Use Tab and Shift+Tab to move through controls, Enter or Space to activate the
+focused control, and Escape to close. Recommendation buttons accept only the
+known docked/mobile operating-profile action and are the explicit confirmation;
+the inspector never runs an automatic action. Unknown, unavailable, disabled,
+and stale states are written plainly. The panel scrolls instead of overflowing
+on compact displays and follows the global Full, Reduced, or Off motion mode.
 
 ## MAGI world and mission clock
 

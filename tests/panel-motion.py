@@ -16,7 +16,7 @@ def read(plugin, relative="BarWidget.qml"):
 
 def main():
     popup = read("evangelion.motion", "MotionPopupCard.qml")
-    participants = ("media", "privacy", "communications", "health", "mission", "world-clock")
+    participants = ("media", "privacy", "communications", "health", "mission", "world-clock", "context")
     for name in participants:
         source = read(f"evangelion.{name}")
         assert 'import "../evangelion.motion" as Motion' in source, name

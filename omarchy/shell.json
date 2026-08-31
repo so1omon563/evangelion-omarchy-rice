@@ -18,6 +18,7 @@
         { "id": "evangelion.mission" }
       ],
       "right": [
+        { "id": "evangelion.context" },
         { "id": "evangelion.privacy" },
         { "id": "evangelion.health" },
         { "id": "evangelion.atfield" },

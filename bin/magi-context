@@ -321,13 +321,14 @@ def explain(state):
 
 
 def usage():
-    print("Usage: magi-context [status|explain|refresh|enable|disable|automation enable|disable|decorative enable|disable|collector NAME enable|disable] [--json]", file=sys.stderr)
+    print("Usage: magi-context [status|explain|refresh|enable|disable|automation enable|disable|decorative enable|disable|collector NAME enable|disable] [--json] [--compact]", file=sys.stderr)
     return 2
 
 
 def main():
-    args = [arg for arg in sys.argv[1:] if arg != "--json"]
+    args = [arg for arg in sys.argv[1:] if arg not in ("--json", "--compact")]
     json_output = "--json" in sys.argv[1:]
+    compact = "--compact" in sys.argv[1:]
     command = args[0] if args else "status"
     try:
         if command in ("status", "explain"):
@@ -344,7 +345,8 @@ def main():
             return usage()
 
         if json_output:
-            print(json.dumps(state, indent=2, sort_keys=True))
+            print(json.dumps(state, separators=(",", ":"), sort_keys=True) if compact
+                  else json.dumps(state, indent=2, sort_keys=True))
         elif command == "explain":
             print(explain(state))
         else:

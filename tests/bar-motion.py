@@ -16,6 +16,7 @@ widgets={name:(root/path).read_text() for name,path in {
  "communications":"omarchy/plugins/evangelion.communications/BarWidget.qml",
  "power":"omarchy/plugins/evangelion.power/Panel.qml",
  "atfield":"omarchy/plugins/evangelion.atfield/BarWidget.qml",
+ "context":"omarchy/plugins/evangelion.context/BarWidget.qml",
 }.items()}
 checks={
  "shared_fixed_geometry":'width: cueWidth' in cue and 'Behavior on opacity' in cue,

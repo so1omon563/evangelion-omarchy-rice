@@ -51,6 +51,8 @@ run_install --apply --preset full --yes >/dev/null
 [[ -x $test_root/home/.local/bin/magi-context ]] || fail "full preset omitted MAGI context controller"
 [[ -f $test_root/home/.local/lib/evangelion-rice/magi_context_collectors.py ]] || fail "full preset omitted MAGI context collectors"
 [[ -f $test_root/home/.local/lib/evangelion-rice/magi_context_policy.py ]] || fail "full preset omitted MAGI context policy"
+[[ -f $test_root/home/.config/omarchy/plugins/evangelion.context/BarWidget.qml ]] || fail "full preset omitted MAGI context inspector"
+jq -e '.bar.layout.right | any(.id == "evangelion.context")' "$test_root/home/.config/omarchy/shell.json" >/dev/null || fail "context inspector is absent from installed bar layout"
 jq -e '.plugins | any(.id == "evangelion.motion")' "$test_root/home/.config/omarchy/shell.json" >/dev/null || fail "motion service is not enabled"
 jq -e '.bar.layout.left | map(.id) | index("evangelion.media") as $media | index("evangelion.cava") == ($media + 1)' "$test_root/home/.config/omarchy/shell.json" >/dev/null || fail "Cava is not adjacent to media in installed layout"
 [[ ! -e $test_root/home/.config/omarchy/plugins/neon.overdrive ]] || fail "full preset installed undetected Neon Overdrive integration"

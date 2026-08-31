@@ -37,6 +37,8 @@ def main():
     with tempfile.TemporaryDirectory() as temporary:
         home = Path(temporary)
         initial = json.loads(run(home, "status", "--json").stdout)
+        compact = run(home, "status", "--json", "--compact").stdout
+        assert len(compact.splitlines()) == 1 and json.loads(compact)["schema_version"] == 1
         assert initial["schema_version"] == 1 and initial["generation"] == 0
         assert initial["derived_state"]["status"] == "unknown"
         assert set(initial["signals"]) == COLLECTORS

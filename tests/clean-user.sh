@@ -76,6 +76,7 @@ snapshot=$(<"$test_root/state/evangelion-rice/last-install-backup")
 expect "fresh clean-user full install" test -f "$test_root/home/.config/omarchy/shell.json"
 expect "portable user configuration preserved" grep -q '"project_dir":"/srv/operator/project"' "$test_root/home/.config/omarchy/evangelion.json"
 expect "shell plugins installed" test -f "$test_root/home/.config/omarchy/plugins/evangelion.cava/manifest.json"
+expect "context inspector installed" test -f "$test_root/home/.config/omarchy/plugins/evangelion.context/BarWidget.qml"
 expect "hotkeys installed" test -f "$test_root/home/.config/hypr/bindings.lua"
 expect "theme installed" test -f "$test_root/home/.config/omarchy/themes/evangelion/colors.toml"
 expect "start page installed" test -f "$test_root/home/.local/share/evangelion-rice/start-page/index.html"
@@ -110,6 +111,7 @@ expect "uninstall-equivalent rollback removes theme" test ! -e "$test_root/home/
 expect "uninstall-equivalent rollback removes tools" test ! -e "$test_root/home/.local/bin/magi-affinity"
 expect "uninstall-equivalent rollback removes context library" test ! -e "$test_root/home/.local/lib/evangelion-rice/magi_context_collectors.py"
 expect "uninstall-equivalent rollback removes context policy" test ! -e "$test_root/home/.local/lib/evangelion-rice/magi_context_policy.py"
+expect "uninstall-equivalent rollback removes context inspector" test ! -e "$test_root/home/.config/omarchy/plugins/evangelion.context/BarWidget.qml"
 
 if rg -n '/home/so1omon|Work/evangelion-rice|ThinkPad T480' "$root/bin" "$root/lib" "$root/omarchy" "$root/install.sh" >/dev/null; then
   fail "no original-machine runtime assumptions"

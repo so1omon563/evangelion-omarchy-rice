@@ -125,6 +125,13 @@ always empty at this stage—even if the preserved automation preference is
 enabled. SO1-367 owns bounded opt-in execution; the policy engine itself never
 changes the system.
 
+The bar's compact context glyph opens the responsive inspector. It reads the
+shared state rather than detecting anything itself and refreshes collectors only
+when the panel is opened or Refresh is explicitly selected. Displayed facts use
+a second fixed allowlist; raw signal values and the numeric confidence field are
+not rendered. The panel is also available with `Super + Alt + G` or from
+`MAGI Command Interface → Context Inspector`.
+
 ## Interface motion
 
 Choose `MAGI Command Interface → Interface Motion`, or use:

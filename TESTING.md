@@ -42,6 +42,11 @@ recommendation cooldown, contradictory-input convergence, stale-input
 exclusion, contributing facts, and the permanent separation of recommendations
 from automatic actions.
 
+`context-panel.py` enforces the inspector's compact-JSON transport, explicit
+refresh-only collection, fixed fact/signal/recommendation allowlists, bounded
+scrollable geometry, plain unknown/unavailable/disabled states, keyboard focus
+and activation, global motion integration, menu entry, and documented hotkey.
+
 `motion-regression.py` is portable CI coverage for rapid Full/Reduced/Off
 changes, persistence, interruption/coalescing contracts, critical-state
 immediacy, hidden-surface activity guards, duplicate polling signatures, and
