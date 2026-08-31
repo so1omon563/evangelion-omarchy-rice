@@ -15,7 +15,9 @@ write_results(){
     '[inputs | split("\t") | {name:.[0],status:.[1]}] | {schema_version:1,status:$status,mode:$mode,architecture:$architecture,checks:.}' \
     <"$results" >"$result_file"
 }
+mark_unexpected_failure(){ status=failed; printf 'unexpected harness termination\tfailed\n' >>"$results"; }
 cleanup(){ write_results; rm -rf -- "$test_root"; }
+trap mark_unexpected_failure ERR
 trap cleanup EXIT
 pass(){ printf '%s\tpassed\n' "$1" >>"$results"; printf 'PASS  %s\n' "$1"; }
 fail(){ status=failed; printf '%s\tfailed\n' "$1" >>"$results"; printf 'FAIL  %s\n' "$1" >&2; exit 1; }
@@ -44,7 +46,7 @@ exit 0
 EOF
   chmod +x "$test_root/stubs/$name"
 }
-for command in omarchy omarchy-shell hyprctl systemctl xdg-terminal-exec ghostty nvim fastfetch btop cava playerctl wpctl pactl wl-copy xdg-open pgrep nmcli busctl tailscale powerprofilesctl sensors brightnessctl socat bat setsid uwsm-app notify-send; do make_stub "$command"; done
+for command in omarchy omarchy-menu omarchy-shell hyprctl systemctl voxtype xdg-terminal-exec ghostty nvim fastfetch btop cava playerctl wpctl pactl wl-copy xdg-open pgrep nmcli busctl tailscale powerprofilesctl sensors brightnessctl socat bat setsid uwsm-app notify-send; do make_stub "$command"; done
 
 run_env=(env HOME="$test_root/home" XDG_CONFIG_HOME="$test_root/home/.config" XDG_STATE_HOME="$test_root/state"
   PATH="$test_root/stubs:$PATH" XDG_SESSION_TYPE=wayland XDG_CURRENT_DESKTOP=Hyprland
@@ -68,7 +70,8 @@ printf 'return "pre-existing-hypr-config"\n' >"$test_root/home/.config/hypr/hypr
 printf 'pre-existing bashrc\n' >"$test_root/home/.bashrc"
 printf '{"version":1,"terminal":"foot","editor":"nano","browser":"","project_dir":"/srv/operator/project","shell":"bash"}\n' >"$test_root/home/.config/omarchy/evangelion.json"
 
-run_install --apply --preset full --yes >/dev/null
+install_log=$test_root/full-install.log
+run_install --apply --preset full --yes >"$install_log" || { sed -n '1,240p' "$install_log" >&2; fail "fresh clean-user full install"; }
 snapshot=$(<"$test_root/state/evangelion-rice/last-install-backup")
 expect "fresh clean-user full install" test -f "$test_root/home/.config/omarchy/shell.json"
 expect "portable user configuration preserved" grep -q '"project_dir":"/srv/operator/project"' "$test_root/home/.config/omarchy/evangelion.json"
