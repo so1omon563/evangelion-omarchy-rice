@@ -15,6 +15,7 @@ Motion has two additional evidence layers:
 ./tests/lifecycle-motion.py test-results/lifecycle-motion.json
 ./tests/affinity-motion.py test-results/affinity-motion.json
 ./tests/mode-transition.py test-results/mode-transition.json
+./tests/bar-motion.py test-results/bar-motion.json
 ./tests/motion-observe.py test-results/motion-observation.json
 ```
 
@@ -38,6 +39,9 @@ and Off-mode instant presentation without changing any wallpaper asset.
 non-obscuring feedback, Full/Reduced/Off paths, exact-client restoration,
 duplicate suppression, partial-launch rollback, manual Angel exit, dock rescue,
 and wallpaper-aware presentation placement without launching applications.
+`bar-motion.py` checks shared fixed-geometry cues across every required widget,
+immediate safety-critical paths, still nominal state, no label/layout animation,
+independent Cava gating, affinity-without-width, and responsive bounds.
 
 `installer.sh` exercises individual transaction mechanics in a temporary home.
 `clean-user.sh` simulates a fresh, logged-in Omarchy user with isolated config,

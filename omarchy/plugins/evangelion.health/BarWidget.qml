@@ -26,6 +26,12 @@ BarWidget {
     Text { text:root.status.issues>0?"󰀦":"󰄬"; color:root.stateColor; font.family:root.bar.fontFamily; font.pixelSize:Style.font.body; font.bold:true }
     Text { text:"SYSTEM // "+root.status.summary; visible:!root.bar.vertical && root.status.issues>0; color:root.stateColor; font.family:root.bar.fontFamily; font.pixelSize:Style.font.caption; font.bold:true }
   }
+  Motion.StateCue {
+    anchors { left: parent.left; top: parent.top; bottom: parent.bottom }
+    active: root.status.issues > 0
+    critical: root.status.level === "critical" || root.status.level === "warning"
+    cueColor: root.stateColor
+  }
   MouseArea { anchors.fill:parent; acceptedButtons:Qt.LeftButton|Qt.RightButton; cursorShape:Qt.PointingHandCursor; onClicked:function(mouse){ if(mouse.button===Qt.RightButton) root.terminal(); else root.togglePopup() } }
 
   Motion.MotionPopupCard { anchorItem:root; bar:root.bar; owner:root; open:root.popupOpen; contentWidth:fittedContentWidth(Style.space(410)); contentHeight:fittedContentHeight(panel.implicitHeight)

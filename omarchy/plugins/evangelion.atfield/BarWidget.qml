@@ -3,6 +3,7 @@ import Quickshell
 import Quickshell.Io
 import qs.Ui
 import qs.Commons
+import "../evangelion.motion" as Motion
 
 BarWidget {
   id: root
@@ -53,6 +54,12 @@ BarWidget {
       font.letterSpacing: 0.5
       visible: !root.bar.vertical
     }
+  }
+
+  Motion.StateCue {
+    anchors { left: parent.left; top: parent.top; bottom: parent.bottom }
+    active: root.fieldActive
+    cueColor: "#F6A52F"
   }
 
   MouseArea {

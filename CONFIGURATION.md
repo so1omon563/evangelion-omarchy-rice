@@ -116,6 +116,16 @@ manual with `magi-intrusion exit` always authoritative, dock changes rescue
 windows from removed outputs, and presentation still follows wallpaper-safe
 placement.
 
+The MAGI bar uses a shared three-pixel state cue for workspace selection,
+playing media, mission activity, privacy capture, system health, Cava
+availability, communication faults, battery flow/reserve, and A.T. Field.
+Affinity changes reuse a two-pixel workspace edge cue and the bar's palette,
+adding no extra widget width. Full and Reduced use a single short opacity/color
+transition; Off snaps. Privacy, recording, thermal/health, offline network, and
+reserve/critical battery cues are synchronous in every mode. Nominal widgets
+do not loop or animate, labels retain their existing bounded/elided geometry,
+and Cava remains independently optional with its established process limits.
+
 Hyprland consumes the effective mode at reload. Full retains the v1.1 window
 pop, border/fade, directional workspace slide, special-workspace travel, and
 blur. Reduced keeps only short fades and border feedback. Off disables

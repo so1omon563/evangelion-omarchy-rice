@@ -60,6 +60,13 @@ BarWidget {
     Text { anchors.verticalCenter: parent.verticalCenter; text: root.barLabel; color: root.bar.barForeground; font.family: root.bar.fontFamily; font.pixelSize: Style.font.caption; font.bold: true; visible: !root.bar.vertical && root.bar.width >= 1600 }
   }
 
+  Motion.StateCue {
+    anchors { left: parent.left; top: parent.top; bottom: parent.bottom }
+    active: root.status.link !== "online" && root.status.link !== "unknown"
+    critical: root.status.link === "offline"
+    cueColor: root.stateColor
+  }
+
   MouseArea {
     anchors.fill: parent
     acceptedButtons: Qt.LeftButton | Qt.RightButton

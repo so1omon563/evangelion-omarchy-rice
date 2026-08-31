@@ -3,6 +3,7 @@ import QtQuick.Layouts
 import Quickshell.Hyprland
 import qs.Commons
 import qs.Ui
+import "../evangelion.motion" as Motion
 
 BarWidget {
   id: root
@@ -103,7 +104,22 @@ BarWidget {
         fixedHeight: root.barSize
         onPressed: function() { root.focusWorkspace(modelData) }
 
+        Motion.StateCue {
+          anchors { left: parent.left; top: parent.top; bottom: parent.bottom }
+          active: focused
+          cueColor: workspaceAccent
+        }
+
       }
     }
+  }
+
+  // The fixed edge cue also reflects affinity palette changes without adding
+  // a widget, label, or a single pixel of responsive bar width.
+  Motion.StateCue {
+    anchors { right: parent.right; top: parent.top; bottom: parent.bottom }
+    active: true
+    cueColor: Color.accent
+    cueWidth: 2
   }
 }

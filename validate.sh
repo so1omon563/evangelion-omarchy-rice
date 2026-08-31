@@ -21,6 +21,7 @@ python3 "$root/tests/lock-motion.py" /tmp/evangelion-lock-motion.json >/dev/null
 python3 "$root/tests/lifecycle-motion.py" /tmp/evangelion-lifecycle-motion.json >/dev/null && pass "boot idle screensaver lifecycle contracts" || fail "boot idle screensaver lifecycle contracts"
 python3 "$root/tests/affinity-motion.py" /tmp/evangelion-affinity-motion.json >/dev/null && pass "wallpaper affinity transition contracts" || fail "wallpaper affinity transition contracts"
 python3 "$root/tests/mode-transition.py" /tmp/evangelion-mode-transition.json >/dev/null && pass "reversible operating mode contracts" || fail "reversible operating mode contracts"
+python3 "$root/tests/bar-motion.py" /tmp/evangelion-bar-motion.json >/dev/null && pass "stateful MAGI bar motion contracts" || fail "stateful MAGI bar motion contracts"
 for mode in full reduced off; do lua "$root/tests/hypr-motion.lua" "$mode" >/dev/null && pass "Hyprland $mode motion profile" || fail "Hyprland $mode motion profile"; done
 python3 "$root/tests/documentation.py" >/dev/null && pass "public documentation contract" || fail "public documentation contract"
 if rg -n 'Work/evangelion-rice' "$root/bin" "$root/omarchy" >/dev/null; then fail "owner-specific project path remains"; else pass "no owner-specific project path"; fi

@@ -50,6 +50,12 @@ BarWidget {
     }
   }
 
+  Motion.StateCue {
+    anchors { left: parent.left; top: parent.top; bottom: parent.bottom }
+    active: root.player && root.player.isPlaying
+    cueColor: Color.accent
+  }
+
   MouseArea {
     anchors.fill: parent
     acceptedButtons: Qt.LeftButton | Qt.RightButton | Qt.MiddleButton

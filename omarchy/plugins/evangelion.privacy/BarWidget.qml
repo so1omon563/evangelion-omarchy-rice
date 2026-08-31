@@ -60,6 +60,12 @@ BarWidget {
   }
 
   Rectangle { anchors.fill: parent; color: root.alertColor; opacity: 0.18; border.color: root.alertColor; border.width: 1 }
+  Motion.StateCue {
+    anchors { left: parent.left; top: parent.top; bottom: parent.bottom }
+    active: root.status.active && !root.status.suppressed
+    critical: true
+    cueColor: root.alertColor
+  }
   Row {
     id: alertRow
     anchors.centerIn: parent

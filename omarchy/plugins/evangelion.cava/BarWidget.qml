@@ -3,6 +3,7 @@ import Quickshell
 import Quickshell.Io
 import qs.Ui
 import qs.Commons
+import "../evangelion.motion" as Motion
 
 BarWidget {
   id: root
@@ -65,6 +66,13 @@ BarWidget {
         ctx.fillRect(x, height - level, barWidth, level)
       }
     }
+  }
+
+  Motion.StateCue {
+    anchors { left: parent.left; top: parent.top; bottom: parent.bottom }
+    active: root.cavaAvailable
+    cueColor: Color.accent
+    cueWidth: 2
   }
 
   MouseArea {

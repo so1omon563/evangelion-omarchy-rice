@@ -330,6 +330,13 @@ Panel {
     }
   }
 
+  Motion.StateCue {
+    anchors { left: parent.left; top: parent.top; bottom: parent.bottom }
+    active: root.displayCharging || root.reservePower || root.internalPower
+    critical: root.reservePower || root.internalPower
+    cueColor: root.batteryStateColor
+  }
+
   KeyboardPanel {
     id: panel
     anchorItem: button
