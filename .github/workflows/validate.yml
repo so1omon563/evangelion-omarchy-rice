@@ -30,3 +30,6 @@ jobs:
         env:
           EVANGELION_SOURCE_ONLY: "1"
         run: ./validate.sh
+
+      - name: Test transactional installer
+        run: ./tests/installer.sh

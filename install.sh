@@ -1,56 +1,162 @@
 #!/usr/bin/env bash
-set -euo pipefail
+set -Eeuo pipefail
 root=$(cd -- "$(dirname -- "$0")" && pwd)
-if [[ ${1:-} != --apply && ${EVANGELION_SKIP_ACTIVATE:-0} != 1 ]]; then
-  echo "This installer snapshots and replaces managed desktop configuration." >&2
-  echo "Run: ./install.sh --apply" >&2
-  exit 2
-fi
-if [[ ${EVANGELION_SKIP_ACTIVATE:-0} == 1 ]]; then
-  "$root/preflight.py" --source-only
+state_root=${XDG_STATE_HOME:-$HOME/.local/state}/evangelion-rice
+dry_run=false apply=false assume_yes=false preset=default component_arg=
+transaction_started=false backup_root= manifest=
+readonly all_components=(theme tools shell hypr start-page services extras shell-integration)
+
+usage(){ cat <<'EOF'
+Usage: ./install.sh [--dry-run | --apply] [--preset minimal|default|full]
+                    [--components NAME[,NAME...]] [--yes]
+
+minimal: theme + tools
+default: minimal + shell + Hyprland + start page + services
+full:    default + application extras + Bash startup integration
+
+Use --list-components for selectable components. --components overrides the
+preset. Complete config replacements require interactive confirmation or --yes.
+EOF
+}
+list_components(){ cat <<'EOF'
+theme              Evangelion theme, palettes, and wallpapers
+tools              MAGI commands installed in ~/.local/bin
+shell              Omarchy plugins, menus, hooks, and shell configuration
+hypr               Hyprland bindings, behavior, and appearance configuration
+start-page         Local MAGI start-page application
+services           User systemd units for affinity and start-page activation
+extras             Fastfetch and Neovim integrations
+shell-integration  Evangelion Bash files and guarded ~/.bashrc source line
+EOF
+}
+while (($#)); do
+  case $1 in
+    --dry-run) dry_run=true;; --apply) apply=true;; --yes|-y) assume_yes=true;;
+    --preset) shift; preset=${1:-};; --components) shift; component_arg=${1:-};;
+    --list-components) list_components; exit 0;; -h|--help) usage; exit 0;;
+    *) printf 'Unknown option: %s\n' "$1" >&2; usage >&2; exit 2;;
+  esac
+  shift
+done
+$dry_run && $apply && { echo "Choose either --dry-run or --apply" >&2; exit 2; }
+$dry_run || $apply || { echo "Choose --dry-run to preview or --apply to install." >&2; exit 2; }
+
+declare -A selected=()
+select_component(){
+  local requested=$1 valid=false component
+  for component in "${all_components[@]}"; do [[ $requested == "$component" ]] && valid=true; done
+  $valid || { printf 'Unknown component: %s\n' "$requested" >&2; exit 2; }
+  selected[$requested]=1
+}
+if [[ -n $component_arg ]]; then
+  IFS=',' read -ra requested_components <<<"$component_arg"
+  for component in "${requested_components[@]}"; do select_component "$component"; done
 else
-  "$root/preflight.py"
+  case $preset in
+    minimal) preset_components=(theme tools);;
+    default) preset_components=(theme tools shell hypr start-page services);;
+    full) preset_components=("${all_components[@]}");;
+    *) printf 'Unknown preset: %s\n' "$preset" >&2; exit 2;;
+  esac
+  for component in "${preset_components[@]}"; do select_component "$component"; done
 fi
-stamp=$(date +%Y%m%d-%H%M%S)
-backup_root=${XDG_STATE_HOME:-$HOME/.local/state}/evangelion-rice/install-backups/$stamp
+
+if [[ ${EVANGELION_SKIP_ACTIVATE:-0} == 1 ]]; then "$root/preflight.py" --source-only; else "$root/preflight.py"; fi
+
+declare -a plan_component=() plan_source=() plan_target=() plan_mode=() plan_action=()
+add_file(){
+  local component=$1 source=$2 target=$3 mode=$4 action
+  [[ ${selected[$component]:-0} == 1 ]] || return 0
+  if [[ -f $target ]] && cmp -s "$source" "$target"; then action=unchanged
+  elif [[ -e $target || -L $target ]]; then action=replace
+  else action=create; fi
+  plan_component+=("$component"); plan_source+=("$source"); plan_target+=("$target"); plan_mode+=("$mode"); plan_action+=("$action")
+}
+add_tree(){
+  local component=$1 source_root=$2 target_root=$3 mode=$4 source rel
+  [[ ${selected[$component]:-0} == 1 ]] || return 0
+  while IFS= read -r source; do
+    rel=${source#"$source_root/"}
+    [[ $rel == __pycache__/* || $rel == *.pyc ]] || add_file "$component" "$source" "$target_root/$rel" "$mode"
+  done < <(find "$source_root" -type f | sort)
+}
+add_tree tools "$root/bin" "$HOME/.local/bin" 755
+add_tree theme "$root/theme" "$HOME/.config/omarchy/themes/evangelion" 644
+add_tree shell "$root/omarchy/plugins" "$HOME/.config/omarchy/plugins" 644
+add_file shell "$root/omarchy/extensions/omarchy-menu.jsonc" "$HOME/.config/omarchy/extensions/omarchy-menu.jsonc" 644
+for file in command-telemetry.json magi-clock.json magi-terminal-context.json operating-profiles.json shell.json thermal-alerts.json; do add_file shell "$root/omarchy/$file" "$HOME/.config/omarchy/$file" 644; done
+add_tree shell "$root/omarchy/hooks" "$HOME/.config/omarchy/hooks" 755
+for file in bindings.lua hyprland.lua looknfeel.lua; do add_file hypr "$root/hypr/$file" "$HOME/.config/hypr/$file" 644; done
+add_tree start-page "$root/start-page" "$HOME/.local/share/evangelion-rice/start-page" 644
+add_tree services "$root/systemd" "$HOME/.config/systemd/user" 644
+add_file extras "$root/fastfetch/config.jsonc" "$HOME/.config/fastfetch/config.jsonc" 644
+add_file extras "$root/nvim/lua/plugins/eva-terminal-profile.lua" "$HOME/.config/nvim/lua/plugins/eva-terminal-profile.lua" 644
+add_file shell-integration "$root/shell/magi-command-telemetry.bash" "$HOME/.config/omarchy/magi-command-telemetry.bash" 644
+add_file shell-integration "$root/shell/evangelion.bash" "$HOME/.config/omarchy/evangelion.bash" 644
+
+bashrc_line='[[ -r $HOME/.config/omarchy/evangelion.bash ]] && source "$HOME/.config/omarchy/evangelion.bash"'
+if [[ ${selected[shell-integration]:-0} == 1 ]]; then
+  if grep -qF "$bashrc_line" "$HOME/.bashrc" 2>/dev/null; then bashrc_action=unchanged
+  elif [[ -e $HOME/.bashrc ]]; then bashrc_action=append
+  else bashrc_action=create; fi
+else bashrc_action=skip; fi
+
+components=$(printf '%s\n' "${!selected[@]}" | sort | paste -sd, -)
+printf 'EVANGELION INSTALL PLAN // %s\n' "$components"
+changes=0 replacements=0
+for index in "${!plan_target[@]}"; do
+  printf '%-9s %-18s %s\n' "${plan_action[$index]^^}" "${plan_component[$index]}" "${plan_target[$index]}"
+  [[ ${plan_action[$index]} == unchanged ]] || changes=$((changes+1))
+  [[ ${plan_action[$index]} == replace ]] && replacements=$((replacements+1))
+done
+if [[ $bashrc_action != skip ]]; then
+  printf '%-9s %-18s %s\n' "${bashrc_action^^}" shell-integration "$HOME/.bashrc"
+  [[ $bashrc_action == unchanged ]] || changes=$((changes+1))
+fi
+printf '\nPLAN SUMMARY // %d changes · %d complete-file replacements\n' "$changes" "$replacements"
+$dry_run && { echo "DRY RUN COMPLETE // no target files changed"; exit 0; }
+
+((replacements)) && printf '\nWARNING // %d existing complete configuration files will be replaced.\n' "$replacements" >&2
+if ! $assume_yes; then
+  [[ -t 0 ]] || { echo "Confirmation required; rerun interactively or pass --yes." >&2; exit 2; }
+  read -r -p 'Apply this transaction? [y/N] ' answer
+  [[ $answer == [yY] || $answer == [yY][eE][sS] ]] || { echo "Installation cancelled."; exit 1; }
+fi
+
+stamp=$(date +%Y%m%d-%H%M%S)-$$
+backup_root=$state_root/install-backups/$stamp
 manifest=$backup_root/manifest.tsv
 mkdir -p "$backup_root/files"
-printf '# Evangelion Rice rollback manifest\n' >"$manifest"
-
+printf '# Evangelion Rice rollback manifest v2\n' >"$manifest"
+transaction_started=true
 backup_target(){
   local target=$1 rel=${1#/}
-  if [[ -e $target || -L $target ]]; then mkdir -p "$backup_root/files/$(dirname "$rel")"; cp -a "$target" "$backup_root/files/$rel"; printf 'restore\t%s\n' "$target" >>"$manifest"
+  if [[ -e $target || -L $target ]]; then
+    mkdir -p "$backup_root/files/$(dirname "$rel")"; cp -a "$target" "$backup_root/files/$rel"; printf 'restore\t%s\n' "$target" >>"$manifest"
   else printf 'remove\t%s\n' "$target" >>"$manifest"; fi
 }
-install_one(){
-  local source=$1 target=$2 mode=$3
-  backup_target "$target"
-  install -Dm"$mode" "$source" "$target"
+transaction_failed(){
+  local code=$?; trap - ERR; set +e
+  if $transaction_started; then printf 'INSTALL FAILED // automatically restoring %s\n' "$backup_root" >&2; EVANGELION_SKIP_ACTIVATE=1 "$root/rollback.sh" "$backup_root" >&2; fi
+  exit "$code"
 }
-
-for source in "$root"/bin/*; do [[ -f $source && ${source##*/} != __pycache__ ]] && install_one "$source" "$HOME/.local/bin/${source##*/}" 755; done
-while IFS= read -r source; do rel=${source#"$root/omarchy/plugins/"}; install_one "$source" "$HOME/.config/omarchy/plugins/$rel" 644; done < <(find "$root/omarchy/plugins" -type f | sort)
-install_one "$root/omarchy/extensions/omarchy-menu.jsonc" "$HOME/.config/omarchy/extensions/omarchy-menu.jsonc" 644
-for file in command-telemetry.json magi-clock.json magi-terminal-context.json operating-profiles.json shell.json thermal-alerts.json; do install_one "$root/omarchy/$file" "$HOME/.config/omarchy/$file" 644; done
-for file in bindings.lua hyprland.lua looknfeel.lua; do install_one "$root/hypr/$file" "$HOME/.config/hypr/$file" 644; done
-while IFS= read -r source; do rel=${source#"$root/theme/"}; install_one "$source" "$HOME/.config/omarchy/themes/evangelion/$rel" 644; done < <(find "$root/theme" -type f | sort)
-while IFS= read -r source; do rel=${source#"$root/start-page/"}; [[ $rel == __pycache__/* ]] || install_one "$source" "$HOME/.local/share/evangelion-rice/start-page/$rel" 644; done < <(find "$root/start-page" -type f | sort)
-install_one "$root/fastfetch/config.jsonc" "$HOME/.config/fastfetch/config.jsonc" 644
-install_one "$root/nvim/lua/plugins/eva-terminal-profile.lua" "$HOME/.config/nvim/lua/plugins/eva-terminal-profile.lua" 644
-install_one "$root/shell/magi-command-telemetry.bash" "$HOME/.config/omarchy/magi-command-telemetry.bash" 644
-install_one "$root/shell/evangelion.bash" "$HOME/.config/omarchy/evangelion.bash" 644
-if ! grep -qF 'source "$HOME/.config/omarchy/evangelion.bash"' "$HOME/.bashrc" 2>/dev/null; then
-  backup_target "$HOME/.bashrc"
-  printf '\n# Evangelion Rice\n[[ -r $HOME/.config/omarchy/evangelion.bash ]] && source "$HOME/.config/omarchy/evangelion.bash"\n' >>"$HOME/.bashrc"
+trap transaction_failed ERR
+for index in "${!plan_target[@]}"; do
+  [[ ${plan_action[$index]} == unchanged ]] && continue
+  backup_target "${plan_target[$index]}"
+  install -Dm"${plan_mode[$index]}" "${plan_source[$index]}" "${plan_target[$index]}"
+done
+if [[ $bashrc_action != skip && $bashrc_action != unchanged ]]; then
+  backup_target "$HOME/.bashrc"; mkdir -p "$HOME"; [[ -e $HOME/.bashrc ]] || : >"$HOME/.bashrc"
+  printf '\n# Evangelion Rice\n%s\n' "$bashrc_line" >>"$HOME/.bashrc"
 fi
-while IFS= read -r source; do rel=${source#"$root/omarchy/hooks/"}; install_one "$source" "$HOME/.config/omarchy/hooks/$rel" 755; done < <(find "$root/omarchy/hooks" -type f | sort)
-for source in "$root"/systemd/*; do install_one "$source" "$HOME/.config/systemd/user/${source##*/}" 644; done
+[[ ${EVANGELION_FORCE_INSTALL_FAILURE:-0} == 1 ]] && false
 if [[ ${EVANGELION_SKIP_ACTIVATE:-0} != 1 ]]; then
-  omarchy-shell -q shell rescanPlugins
-  hyprctl reload >/dev/null
-  systemctl --user daemon-reload
-  systemctl --user enable --now magi-affinity.path magi-start-page.service >/dev/null
+  [[ ${selected[shell]:-0} == 1 ]] && omarchy-shell -q shell rescanPlugins
+  [[ ${selected[hypr]:-0} == 1 ]] && hyprctl reload >/dev/null
+  if [[ ${selected[services]:-0} == 1 ]]; then systemctl --user daemon-reload; systemctl --user enable --now magi-affinity.path magi-start-page.service >/dev/null; fi
 fi
-printf '%s\n' "$backup_root" >"${XDG_STATE_HOME:-$HOME/.local/state}/evangelion-rice/last-install-backup"
-printf 'INSTALL COMPLETE // rollback snapshot: %s\n' "$backup_root"
 EVANGELION_SOURCE_ONLY=${EVANGELION_SKIP_ACTIVATE:-0} "$root/validate.sh"
+mkdir -p "$state_root"; printf '%s\n' "$backup_root" >"$state_root/last-install-backup"
+transaction_started=false; trap - ERR
+printf 'INSTALL COMPLETE // rollback snapshot: %s\n' "$backup_root"

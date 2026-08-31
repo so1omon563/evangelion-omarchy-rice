@@ -53,16 +53,32 @@ The report separates three levels:
 
 Every missing group includes an actionable Arch/Omarchy package command. The
 canonical machine-readable inventory is [dependencies.tsv](dependencies.tsv).
-After reviewing the report and repository, run:
+Preview the default installation without changing target files:
 
 ```bash
-./install.sh --apply
+./install.sh --dry-run
 ```
 
-The installer snapshots every file it manages before changing it, records the
-snapshot under `~/.local/state/evangelion-rice/install-backups/`, installs the
-theme and integrations, activates the user services, and runs validation.
-Running it again is supported and creates a new rollback point.
+Choose a preset or an explicit component list, then apply it:
+
+```bash
+./install.sh --apply --preset minimal
+./install.sh --apply --preset default
+./install.sh --apply --preset full
+./install.sh --apply --components theme,tools,shell
+```
+
+`minimal` installs the theme and MAGI tools. `default` adds Omarchy shell,
+Hyprland, start-page, and service integration. `full` adds Fastfetch, Neovim,
+and Bash startup integration. Run `./install.sh --list-components` for the
+complete selectable list.
+
+The installer completes preflight before its first backup or write, prints the
+exact change plan, and requires confirmation before replacing complete files.
+Each transaction snapshots only changed paths under
+`~/.local/state/evangelion-rice/install-backups/`. An activation or validation
+failure automatically restores that transaction. Repeated installation skips
+unchanged files. Use `--yes` only for reviewed, non-interactive automation.
 
 ## Validate
 

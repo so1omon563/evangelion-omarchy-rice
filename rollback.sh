@@ -6,7 +6,7 @@ snapshot=${1:-$(cat "$state/last-install-backup" 2>/dev/null || true)}
 while IFS=$'\t' read -r action target; do
   [[ $action == \#* || -z ${target:-} ]] && continue
   case $action in
-    restore) source=$snapshot/files/${target#/}; [[ -e $source || -L $source ]] || { echo "Missing backup: $source" >&2; exit 1; }; mkdir -p "$(dirname "$target")"; cp -a "$source" "$target" ;;
+    restore) source=$snapshot/files/${target#/}; [[ -e $source || -L $source ]] || { echo "Missing backup: $source" >&2; exit 1; }; mkdir -p "$(dirname "$target")"; rm -f -- "$target"; cp -a "$source" "$target" ;;
     remove) [[ -f $target || -L $target ]] && rm -f -- "$target" ;;
     *) echo "Invalid manifest action: $action" >&2; exit 1 ;;
   esac
