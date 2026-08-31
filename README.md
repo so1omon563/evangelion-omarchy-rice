@@ -124,12 +124,17 @@ unchanged files. Use `--yes` only for reviewed, non-interactive automation.
 
 ```bash
 ./validate.sh
+./tests/installer.sh
+./tests/clean-user.sh
 ```
 
 Validation is non-destructive. It checks scripts, JSON, Lua, custom hotkeys,
 the dependency manifest, widget sources, live binaries, the bar layout, and
 Hyprland configuration. CI can check only repository tooling with
-`./check-dependencies.sh --source-only`.
+`./check-dependencies.sh --source-only`. The isolated clean-user harness covers
+installation, session activation, upgrades, failures, rollback, and emits a
+machine-readable JSON result. See [TESTING.md](TESTING.md) for the repeatable
+procedure and scope boundaries.
 
 ## Compatibility
 

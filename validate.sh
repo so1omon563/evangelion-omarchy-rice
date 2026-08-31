@@ -9,6 +9,7 @@ warn(){ warnings=$((warnings+1)); printf 'WARN  %s\n' "$*"; }
 bash -n "$root/check-dependencies.sh" && pass "dependency checker parses" || fail "dependency checker parse"
 bash -n "$root/install.sh" && pass "transactional installer parses" || fail "transactional installer parse"
 bash -n "$root/tests/installer.sh" && pass "installer tests parse" || fail "installer tests parse"
+bash -n "$root/tests/clean-user.sh" && pass "clean-user tests parse" || fail "clean-user tests parse"
 python3 "$root/tests/capabilities.py" >/dev/null && pass "mocked hardware capability matrix" || fail "mocked hardware capability matrix"
 if rg -n 'Work/evangelion-rice' "$root/bin" "$root/omarchy" >/dev/null; then fail "owner-specific project path remains"; else pass "no owner-specific project path"; fi
 python3 -m py_compile "$root/preflight.py" 2>/dev/null && pass "compatibility preflight parses" || fail "compatibility preflight parse"

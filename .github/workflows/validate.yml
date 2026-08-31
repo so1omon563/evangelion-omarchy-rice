@@ -33,3 +33,14 @@ jobs:
 
       - name: Test transactional installer
         run: ./tests/installer.sh
+
+      - name: Test isolated clean-user lifecycle
+        run: ./tests/clean-user.sh test-results/clean-user.json
+
+      - name: Retain clean-user results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: clean-user-results
+          path: test-results/clean-user.json
+          if-no-files-found: error
