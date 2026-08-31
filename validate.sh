@@ -6,6 +6,22 @@ pass(){ checks=$((checks+1)); printf 'PASS  %s\n' "$*"; }
 fail(){ checks=$((checks+1)); failures=$((failures+1)); printf 'FAIL  %s\n' "$*"; }
 warn(){ warnings=$((warnings+1)); printf 'WARN  %s\n' "$*"; }
 
+bash -n "$root/check-dependencies.sh" && pass "dependency checker parses" || fail "dependency checker parse"
+awk -F '\t' 'BEGIN { ok=1 } /^#/ || NF==0 { next } NF!=5 || $1 !~ /^(required|recommended|optional)$/ { ok=0 } END { exit !ok }' "$root/dependencies.tsv" \
+  && pass "dependency manifest schema" || fail "dependency manifest schema"
+"$root/check-dependencies.sh" --source-only --quiet >/dev/null && pass "source validation dependencies" || fail "source validation dependencies"
+dependency_fixture=$(mktemp)
+trap 'rm -f "$dependency_fixture"' EXIT
+printf 'optional\ttest-feature\tcommand-that-does-not-exist\ttest-package\tOptional checker fixture\n' >"$dependency_fixture"
+EVANGELION_DEPENDENCIES_FILE=$dependency_fixture "$root/check-dependencies.sh" --quiet >/dev/null \
+  && pass "optional dependency gaps are non-fatal" || fail "optional dependency gaps are non-fatal"
+printf 'required\ttest-feature\tcommand-that-does-not-exist\ttest-package\tRequired checker fixture\n' >"$dependency_fixture"
+if EVANGELION_DEPENDENCIES_FILE=$dependency_fixture "$root/check-dependencies.sh" --quiet >/dev/null 2>&1; then
+  fail "required dependency gaps block"
+else
+  pass "required dependency gaps block"
+fi
+
 for file in "$root"/bin/*; do
   [[ -f $file ]] || continue
   if head -n1 "$file" | grep -q python; then python3 -m py_compile "$file" 2>/dev/null && pass "python $(basename "$file")" || fail "python $(basename "$file")"

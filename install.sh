@@ -6,6 +6,11 @@ if [[ ${1:-} != --apply && ${EVANGELION_SKIP_ACTIVATE:-0} != 1 ]]; then
   echo "Run: ./install.sh --apply" >&2
   exit 2
 fi
+if [[ ${EVANGELION_SKIP_ACTIVATE:-0} == 1 ]]; then
+  "$root/check-dependencies.sh" --source-only
+else
+  "$root/check-dependencies.sh"
+fi
 stamp=$(date +%Y%m%d-%H%M%S)
 backup_root=${XDG_STATE_HOME:-$HOME/.local/state}/evangelion-rice/install-backups/$stamp
 manifest=$backup_root/manifest.tsv

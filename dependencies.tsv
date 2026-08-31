@@ -1,0 +1,17 @@
+# level	feature	commands	arch_packages	description
+required	source-validation	bash,python3,jq,lua,sha256sum	bash,python,jq,lua,coreutils	Validates scripts, configuration, Lua, and wallpaper hashes
+required	omarchy-desktop	omarchy,omarchy-shell,hyprctl,systemctl	omarchy,hyprland,systemd	Installs and activates the theme inside a running Omarchy session
+recommended	terminal	ghostty	ghostty	Default terminal used by deployment, presentation, and screensaver layouts
+recommended	editor	nvim	neovim	Editor pane used by the EVA deployment layout
+recommended	presentation	fastfetch,btop	fastfetch,btop	System telemetry panes in presentation mode
+optional	media	playerctl	playerctl	Media widget and playback controls
+optional	audio	wpctl,pactl	wireplumber,pulseaudio-utils	Privacy mute response and operating-profile audio routing
+optional	clipboard	wl-copy	wl-clipboard	Download intake clipboard actions
+optional	capture	xdg-open,pgrep	xdg-utils,procps-ng	Capture destination actions and recording-state detection
+optional	communications	nmcli,busctl	NetworkManager,systemd	Network and Bluetooth status in communications telemetry
+optional	tailscale	tailscale	tailscale	Tailscale peer status in communications telemetry
+optional	power-profiles	powerprofilesctl	power-profiles-daemon	Docked/mobile power-profile switching
+optional	screensaver	socat	socat	Multi-monitor screensaver IPC discovery
+optional	control-reference	bat,setsid,uwsm-app,xdg-terminal-exec	bat,util-linux,uwsm,xdg-terminal-exec	Formatted hotkey guide launched in the preferred terminal
+optional	desktop-notifications	notify-send	libnotify	Native notifications from standalone MAGI tools
+optional	developer-telemetry	git	git	Repository status in the deployment telemetry pane

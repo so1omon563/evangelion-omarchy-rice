@@ -26,7 +26,26 @@ workspace identities, terminal profiles, menus, sounds, and operational tools.
 
 ## Install
 
-Review the repository, then run:
+This release targets Omarchy with Hyprland. Before changing any configuration,
+run the read-only dependency check:
+
+```bash
+./check-dependencies.sh
+```
+
+The report separates three levels:
+
+- **Required** — source-validation tools and the active Omarchy desktop. The
+  installer stops before its first write if one is missing.
+- **Recommended** — Ghostty, Neovim, Fastfetch, and btop provide the complete
+  reference experience, but are not required for the base theme.
+- **Optional** — feature-specific integrations such as media controls,
+  Tailscale, clipboard actions, power profiles, and multi-monitor screensaver
+  IPC. A missing optional tool disables only its listed integration.
+
+Every missing group includes an actionable Arch/Omarchy package command. The
+canonical machine-readable inventory is [dependencies.tsv](dependencies.tsv).
+After reviewing the report and repository, run:
 
 ```bash
 ./install.sh --apply
@@ -44,7 +63,9 @@ Running it again is supported and creates a new rollback point.
 ```
 
 Validation is non-destructive. It checks scripts, JSON, Lua, custom hotkeys,
-widget sources, live binaries, the bar layout, and Hyprland configuration.
+the dependency manifest, widget sources, live binaries, the bar layout, and
+Hyprland configuration. CI can check only repository tooling with
+`./check-dependencies.sh --source-only`.
 
 ## Roll back
 
