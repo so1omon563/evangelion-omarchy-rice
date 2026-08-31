@@ -61,6 +61,8 @@ sed '/^[[:space:]]*\/\//d' "$root/omarchy/extensions/omarchy-menu.jsonc" | jq em
 (cd "$root/media" && sha256sum --check --status release-media.sha256) && pass "privacy-reviewed release media hashes" || fail "release media hashes"
 jq -e '.final_release_allowed == true and .community_testing.required_reports == 0 and .community_testing.status == "optional-post-release"' "$root/release/v1.1.0.json" >/dev/null \
   && pass "final v1.1 release gate uses verified project evidence" || fail "final v1.1 release gate"
+jq -e '.plugins | any(.id == "evangelion.motion")' "$root/omarchy/shell.json" >/dev/null \
+  && pass "motion service enabled in shell" || fail "motion service shell enablement"
 
 duplicates=$(sed -n 's/.*o\.bind("\([^"]*\)".*/\1/p' "$root/hypr/bindings.lua" | sort | uniq -d)
 [[ -z $duplicates ]] && pass "no duplicate custom hotkeys" || fail "duplicate hotkeys: $duplicates"

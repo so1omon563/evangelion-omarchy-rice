@@ -44,6 +44,7 @@
     { "id": "evangelion.workspace-osd" },
     { "id": "evangelion.clipboard" },
     { "id": "evangelion.angel-intrusion" },
+    { "id": "evangelion.motion" },
     { "id": "evangelion.operating-profile" },
     { "id": "evangelion.power-sequence" },
     { "id": "evangelion.device-osd" },
