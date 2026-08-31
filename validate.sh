@@ -10,6 +10,7 @@ bash -n "$root/check-dependencies.sh" && pass "dependency checker parses" || fai
 bash -n "$root/install.sh" && pass "transactional installer parses" || fail "transactional installer parse"
 bash -n "$root/tests/installer.sh" && pass "installer tests parse" || fail "installer tests parse"
 bash -n "$root/tests/clean-user.sh" && pass "clean-user tests parse" || fail "clean-user tests parse"
+bash -n "$root/beta-report.sh" && pass "external beta evidence helper parses" || fail "external beta evidence helper parse"
 python3 "$root/tests/capabilities.py" >/dev/null && pass "mocked hardware capability matrix" || fail "mocked hardware capability matrix"
 python3 "$root/tests/responsive-layouts.py" /tmp/evangelion-responsive-layouts.json >/dev/null && pass "responsive display geometry matrix" || fail "responsive display geometry matrix"
 python3 "$root/tests/documentation.py" >/dev/null && pass "public documentation contract" || fail "public documentation contract"
@@ -56,6 +57,9 @@ pass "plugin ids match directories"
 lua -e "assert(loadfile('$root/hypr/bindings.lua')); assert(loadfile('$root/hypr/hyprland.lua')); assert(loadfile('$root/hypr/looknfeel.lua'))" 2>/dev/null && pass "Hyprland Lua parses" || fail "Hyprland Lua parse"
 sed '/^[[:space:]]*\/\//d' "$root/omarchy/extensions/omarchy-menu.jsonc" | jq empty 2>/dev/null && pass "MAGI menu JSONC parses" || fail "MAGI menu JSONC parse"
 (cd "$root/theme" && sha256sum --check --status backgrounds.sha256) && pass "wallpaper provenance hashes" || fail "wallpaper provenance hashes"
+(cd "$root/media" && sha256sum --check --status release-media.sha256) && pass "privacy-reviewed release media hashes" || fail "release media hashes"
+jq -e '.final_release_allowed == false and .external_beta.required_reports >= 2 and .external_beta.accepted_reports < .external_beta.required_reports' "$root/release/v1.1.0.json" >/dev/null \
+  && pass "final v1.1 release remains externally gated" || fail "final v1.1 release gate"
 
 duplicates=$(sed -n 's/.*o\.bind("\([^"]*\)".*/\1/p' "$root/hypr/bindings.lua" | sort | uniq -d)
 [[ -z $duplicates ]] && pass "no duplicate custom hotkeys" || fail "duplicate hotkeys: $duplicates"

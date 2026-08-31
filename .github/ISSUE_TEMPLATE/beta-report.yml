@@ -1,0 +1,77 @@
+name: v1.1 external beta report
+description: Report install, validation, and rollback results from an independent Omarchy environment
+title: "[v1.1 beta]: "
+labels: [beta]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thank you for testing. Do not include usernames, hostnames, serial numbers, addresses, account data, browser history, notification text, private window titles, or unreviewed logs/screenshots.
+  - type: input
+    id: candidate
+    attributes:
+      label: Candidate tag and commit
+      description: Output of `git describe --always --dirty` from the beta checkout.
+      placeholder: v1.1.0-rc.1 / abc1234
+    validations:
+      required: true
+  - type: checkboxes
+    id: independence
+    attributes:
+      label: Environment independence
+      options:
+        - label: This environment is not the original project ThinkPad T480 and did not inherit its live configuration.
+          required: true
+        - label: I reviewed this report and any attachments for private information.
+          required: true
+  - type: input
+    id: versions
+    attributes:
+      label: Omarchy and Hyprland versions
+      placeholder: Omarchy 4.x; Hyprland 0.56.x
+    validations:
+      required: true
+  - type: input
+    id: hardware
+    attributes:
+      label: Generic hardware profile
+      description: Broad class only; do not provide serial numbers or unique identifiers.
+      placeholder: AMD desktop, discrete GPU, no battery
+    validations:
+      required: true
+  - type: input
+    id: display
+    attributes:
+      label: Display and scaling
+      placeholder: 2560x1440 at 1.25x; single display
+    validations:
+      required: true
+  - type: input
+    id: selection
+    attributes:
+      label: Preset or components
+      placeholder: default preset
+    validations:
+      required: true
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Evidence summary
+      description: Paste the privacy-safe `report.json` or summarize every status.
+      placeholder: Preflight..., install..., validation..., rollback...
+    validations:
+      required: true
+  - type: textarea
+    id: restoration
+    attributes:
+      label: Post-rollback confirmation
+      description: Confirm the previous theme/config/services/shell startup state was restored.
+    validations:
+      required: true
+  - type: textarea
+    id: blockers
+    attributes:
+      label: Blockers, workarounds, and feedback
+      description: Include anything confusing or broken, how it was resolved, and qualitative feedback.
+    validations:
+      required: true

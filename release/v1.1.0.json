@@ -1,0 +1,25 @@
+{
+  "schema_version": 1,
+  "release": "v1.1.0",
+  "candidate": "v1.1.0-rc.1",
+  "final_release_allowed": false,
+  "external_beta": {
+    "status": "open",
+    "required_reports": 2,
+    "accepted_reports": 0,
+    "required_display_scale_combinations": 2,
+    "observed_display_scale_combinations": [],
+    "materially_different_hardware_observed": false,
+    "accepted_issue_urls": []
+  },
+  "gates": {
+    "candidate_ci": "pending",
+    "clean_install": "pending-external-beta",
+    "validation": "pending-external-beta",
+    "rollback": "pending-external-beta",
+    "blockers_resolved_or_documented": "pending-external-beta",
+    "compatibility_matrix_updated": "pending-external-beta",
+    "release_media_privacy_review": "passed",
+    "migration_notes": "passed"
+  }
+}

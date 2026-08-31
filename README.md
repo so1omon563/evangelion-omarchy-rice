@@ -2,6 +2,10 @@
 
 [![MAGI Integrity Check](https://github.com/so1omon563/evangelion-omarchy-rice/actions/workflows/validate.yml/badge.svg)](https://github.com/so1omon563/evangelion-omarchy-rice/actions/workflows/validate.yml)
 
+> **v1.1 external beta:** `v1.1.0-rc.1` is the current prerelease. Independent
+> Omarchy users can follow [BETA_TESTING.md](BETA_TESTING.md). The final v1.1
+> tag remains gated on two complete external install/validation/rollback reports.
+
 An unofficial *Neon Genesis Evangelion* desktop environment for Omarchy:
 seven wallpapers, EVA affinity palettes, MAGI shell plugins, responsive menus
 and overlays, terminal profiles, safety telemetry, sounds, and operator tools.
@@ -124,6 +128,8 @@ checks are:
 CI retains machine-readable clean-user and responsive-layout artifacts. See
 [AUDIT.md](AUDIT.md) for release verification and [theme/ARTWORK.md](theme/ARTWORK.md)
 for wallpaper provenance.
+
+Release history and migration highlights are in [RELEASE_NOTES.md](RELEASE_NOTES.md).
 
 ## License
 
