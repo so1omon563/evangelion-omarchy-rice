@@ -109,7 +109,7 @@ fi
 add_tree neon-overdrive "$root/omarchy/plugins/neon.overdrive" "$HOME/.config/omarchy/plugins/neon.overdrive" 644
 add_file shell "$root/omarchy/extensions/omarchy-menu.jsonc" "$HOME/.config/omarchy/extensions/omarchy-menu.jsonc" 644
 add_file shell "$root/omarchy/evangelion.json" "$HOME/.config/omarchy/evangelion.json" 644 preserve
-for file in command-telemetry.json magi-clock.json magi-terminal-context.json operating-profiles.json shell.json thermal-alerts.json; do add_file shell "$root/omarchy/$file" "$HOME/.config/omarchy/$file" 644; done
+for file in command-telemetry.json magi-clock.json magi-terminal-context.json motion.json operating-profiles.json shell.json thermal-alerts.json; do add_file shell "$root/omarchy/$file" "$HOME/.config/omarchy/$file" 644; done
 add_tree shell "$root/omarchy/hooks" "$HOME/.config/omarchy/hooks" 755
 for file in bindings.lua hyprland.lua looknfeel.lua; do add_file hypr "$root/hypr/$file" "$HOME/.config/hypr/$file" 644; done
 add_tree start-page "$root/start-page" "$HOME/.local/share/evangelion-rice/start-page" 644

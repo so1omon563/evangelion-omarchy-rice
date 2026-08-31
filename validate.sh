@@ -13,6 +13,7 @@ bash -n "$root/tests/clean-user.sh" && pass "clean-user tests parse" || fail "cl
 bash -n "$root/beta-report.sh" && pass "external beta evidence helper parses" || fail "external beta evidence helper parse"
 python3 "$root/tests/capabilities.py" >/dev/null && pass "mocked hardware capability matrix" || fail "mocked hardware capability matrix"
 python3 "$root/tests/responsive-layouts.py" /tmp/evangelion-responsive-layouts.json >/dev/null && pass "responsive display geometry matrix" || fail "responsive display geometry matrix"
+python3 "$root/tests/motion.py" >/dev/null && pass "shared motion controller" || fail "shared motion controller"
 python3 "$root/tests/documentation.py" >/dev/null && pass "public documentation contract" || fail "public documentation contract"
 if rg -n 'Work/evangelion-rice' "$root/bin" "$root/omarchy" >/dev/null; then fail "owner-specific project path remains"; else pass "no owner-specific project path"; fi
 python3 -m py_compile "$root/preflight.py" 2>/dev/null && pass "compatibility preflight parses" || fail "compatibility preflight parse"

@@ -11,6 +11,7 @@ The installer creates and then preserves `~/.config/omarchy/evangelion.json`:
   "shell": "auto",
   "shell_integration": true,
   "project_dir": "",
+  "motion": { "mode": "full" },
   "deployment": {
     "workspace": 4,
     "terminal_profile": "engineering",
@@ -27,6 +28,9 @@ The installer creates and then preserves `~/.config/omarchy/evangelion.json`:
 - `shell_integration`: preference for helpers; pass
   `--no-shell-integration` to prevent installer startup-file edits.
 - `project_dir`: EVA deployment directory; empty uses the invocation directory.
+- `motion.mode`: `full` preserves the current visual feel; `reduced` shortens
+  motion and removes blur, repeated movement, and most travel; `off` requests
+  immediate state changes from participating v1.2 surfaces.
 - `deployment`: workspace, temporary terminal palette, and browser URL.
 - `presentation.workspace`: Fastfetch/btop presentation workspace.
 
@@ -35,7 +39,32 @@ eva-user-config show
 eva-user-config terminal
 eva-user-config editor
 eva-user-config shell
+magi-motion status
+magi-motion set reduced
 ```
+
+## Interface motion
+
+Choose `MAGI Command Interface → Interface Motion`, or use:
+
+```bash
+magi-motion set full
+magi-motion set reduced
+magi-motion set off
+magi-motion cycle
+magi-motion show                 # Resolved mode and named tokens
+```
+
+The preference is written atomically to preserved `evangelion.json` and takes
+effect without logout. Shared definitions live in
+`~/.config/omarchy/motion.json`: named durations, delays, easing curves, travel
+distances, opacities, scales, and capability flags for each mode. Avoid changing these
+unless developing a coordinated motion profile. Invalid or incomplete token
+files fall back safely to built-in defaults.
+
+v1.1 surfaces retain their existing behavior until their v1.2 motion ticket
+adopts the controller. This prevents installing the foundation alone from
+silently changing an established desktop.
 
 ## Browser
 

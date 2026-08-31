@@ -1,0 +1,153 @@
+#!/usr/bin/env python3
+"""Control the shared Evangelion motion preference and resolve motion tokens."""
+
+import json
+import os
+import sys
+import tempfile
+from pathlib import Path
+
+CONFIG_HOME = Path(os.environ.get("XDG_CONFIG_HOME", Path.home() / ".config"))
+STATE_HOME = Path(os.environ.get("XDG_STATE_HOME", Path.home() / ".local/state"))
+CONFIG = CONFIG_HOME / "omarchy/evangelion.json"
+TOKENS = CONFIG_HOME / "omarchy/motion.json"
+STATE = STATE_HOME / "evangelion-rice/motion/state.json"
+MODES = ("off", "reduced", "full")
+
+DEFAULT_TOKENS = {
+    "schema_version": 1,
+    "durations_ms": {"instant": 0, "feedback": 90, "fast": 140, "standard": 180,
+                     "deliberate": 260, "lifecycle": 420},
+    "delays_ms": {"none": 0, "stagger": 24, "context": 60},
+    "easings": {"standard": [0.2, 0.0, 0.0, 1.0], "enter": [0.05, 0.7, 0.1, 1.0],
+                "exit": [0.3, 0.0, 1.0, 1.0], "linear": [0.0, 0.0, 1.0, 1.0]},
+    "travel_px": {"xs": 4, "sm": 8, "md": 16, "lg": 28},
+    "scales": {"subtle": 0.98, "enter": 0.94},
+    "opacities": {"hidden": 0.0, "muted": 0.6, "visible": 1.0},
+    "modes": {
+        "off": {"enabled": False, "duration_scale": 0.0, "travel_scale": 0.0,
+                "allow_scale": False, "allow_blur": False, "allow_repeated": False},
+        "reduced": {"enabled": True, "duration_scale": 0.65, "travel_scale": 0.25,
+                    "allow_scale": False, "allow_blur": False, "allow_repeated": False},
+        "full": {"enabled": True, "duration_scale": 1.0, "travel_scale": 1.0,
+                 "allow_scale": True, "allow_blur": True, "allow_repeated": True},
+    },
+}
+
+
+def read_object(path, fallback, strict=False):
+    try:
+        value = json.loads(path.read_text())
+    except FileNotFoundError:
+        return dict(fallback)
+    except (OSError, json.JSONDecodeError) as error:
+        if strict:
+            raise ValueError(f"Cannot safely update {path}: {error}") from error
+        return dict(fallback)
+    if not isinstance(value, dict):
+        if strict:
+            raise ValueError(f"Cannot safely update {path}: root must be a JSON object")
+        return dict(fallback)
+    return value
+
+
+def mode(config=None):
+    config = config if config is not None else read_object(CONFIG, {})
+    value = config.get("motion", {}).get("mode", "full")
+    return value if value in MODES else "full"
+
+
+def tokens():
+    value = read_object(TOKENS, DEFAULT_TOKENS)
+    required = ("durations_ms", "delays_ms", "easings", "travel_px", "scales", "opacities", "modes")
+    if not all(isinstance(value.get(key), dict) for key in required):
+        return DEFAULT_TOKENS
+    if not all(name in value["modes"] for name in MODES):
+        return DEFAULT_TOKENS
+    return value
+
+
+def atomic_json(path, value):
+    path.parent.mkdir(parents=True, exist_ok=True)
+    descriptor, temporary = tempfile.mkstemp(prefix=f".{path.name}.", dir=path.parent)
+    try:
+        with os.fdopen(descriptor, "w") as stream:
+            json.dump(value, stream, indent=2, sort_keys=True)
+            stream.write("\n")
+            stream.flush()
+            os.fsync(stream.fileno())
+        os.chmod(temporary, 0o600)
+        os.replace(temporary, path)
+    finally:
+        try:
+            os.unlink(temporary)
+        except FileNotFoundError:
+            pass
+
+
+def resolved(selected=None):
+    selected = selected or mode()
+    definitions = tokens()
+    return {"schema_version": 1, "mode": selected, "profile": definitions["modes"][selected],
+            "tokens": {key: definitions[key] for key in
+                       ("durations_ms", "delays_ms", "easings", "travel_px", "scales", "opacities")}}
+
+
+def publish(selected):
+    previous = read_object(STATE, {}).get("generation", 0)
+    state = resolved(selected)
+    state["generation"] = previous + 1 if isinstance(previous, int) else 1
+    atomic_json(STATE, state)
+    return state
+
+
+def set_mode(selected):
+    if selected not in MODES:
+        raise ValueError("Motion mode must be off, reduced, or full")
+    config = read_object(CONFIG, {}, strict=True)
+    motion = config.get("motion", {})
+    if not isinstance(motion, dict):
+        raise ValueError(f"Cannot safely update {CONFIG}: motion must be a JSON object")
+    config["motion"] = {**motion, "mode": selected}
+    atomic_json(CONFIG, config)
+    publish(selected)
+
+
+def usage():
+    print("Usage: magi-motion [status|show|set off|reduced|full|cycle|apply|tokens] [--json]",
+          file=sys.stderr)
+    return 2
+
+
+def main():
+    command = sys.argv[1] if len(sys.argv) > 1 else "status"
+    json_output = "--json" in sys.argv[2:]
+    try:
+        if command == "status":
+            selected = mode()
+            print(json.dumps(resolved(selected), indent=2, sort_keys=True) if json_output else selected)
+        elif command == "show":
+            print(json.dumps(resolved(), indent=2, sort_keys=True))
+        elif command == "tokens":
+            print(json.dumps(tokens(), indent=2, sort_keys=True))
+        elif command == "set" and len(sys.argv) >= 3:
+            set_mode(sys.argv[2])
+            print(sys.argv[2])
+        elif command == "cycle":
+            selected = MODES[(MODES.index(mode()) + 1) % len(MODES)]
+            set_mode(selected)
+            print(selected)
+        elif command == "apply":
+            selected = mode()
+            publish(selected)
+            print(selected)
+        else:
+            return usage()
+    except ValueError as error:
+        print(error, file=sys.stderr)
+        return 2
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

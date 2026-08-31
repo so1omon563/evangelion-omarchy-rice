@@ -4,6 +4,9 @@
   "shell": "auto",
   "shell_integration": true,
   "project_dir": "",
+  "motion": {
+    "mode": "full"
+  },
   "deployment": {
     "workspace": 4,
     "terminal_profile": "engineering",

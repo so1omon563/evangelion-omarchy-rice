@@ -1,0 +1,63 @@
+{
+  "schema_version": 1,
+  "durations_ms": {
+    "instant": 0,
+    "feedback": 90,
+    "fast": 140,
+    "standard": 180,
+    "deliberate": 260,
+    "lifecycle": 420
+  },
+  "delays_ms": {
+    "none": 0,
+    "stagger": 24,
+    "context": 60
+  },
+  "easings": {
+    "standard": [0.2, 0.0, 0.0, 1.0],
+    "enter": [0.05, 0.7, 0.1, 1.0],
+    "exit": [0.3, 0.0, 1.0, 1.0],
+    "linear": [0.0, 0.0, 1.0, 1.0]
+  },
+  "travel_px": {
+    "xs": 4,
+    "sm": 8,
+    "md": 16,
+    "lg": 28
+  },
+  "scales": {
+    "subtle": 0.98,
+    "enter": 0.94
+  },
+  "opacities": {
+    "hidden": 0.0,
+    "muted": 0.6,
+    "visible": 1.0
+  },
+  "modes": {
+    "off": {
+      "enabled": false,
+      "duration_scale": 0.0,
+      "travel_scale": 0.0,
+      "allow_scale": false,
+      "allow_blur": false,
+      "allow_repeated": false
+    },
+    "reduced": {
+      "enabled": true,
+      "duration_scale": 0.65,
+      "travel_scale": 0.25,
+      "allow_scale": false,
+      "allow_blur": false,
+      "allow_repeated": false
+    },
+    "full": {
+      "enabled": true,
+      "duration_scale": 1.0,
+      "travel_scale": 1.0,
+      "allow_scale": true,
+      "allow_blur": true,
+      "allow_repeated": true
+    }
+  }
+}

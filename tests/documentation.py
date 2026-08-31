@@ -40,7 +40,7 @@ def main():
                    "ThinkPad T480", "Support covers", "1280×720", "320×480"):
         assert phrase in readme, f"support statement missing: {phrase}"
     for key in ("terminal", "editor", "browser", "project_dir", "shell", "weather",
-                "operating-profiles.json", "Cava", "Neon"):
+                "operating-profiles.json", "motion.mode", "magi-motion", "Cava", "Neon"):
         assert key.lower() in config.lower(), f"configuration topic missing: {key}"
     for topic in ("Shell", "plugins", "Services", "Wallpaper", "Weather", "Media",
                   "Cava", "temperature", "Hotkey"):

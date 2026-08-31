@@ -52,6 +52,33 @@
     "label": "EVA-02 Production",
     "action": "magi-affinity set unit-02"
   },
+  "magi.motion": {
+    "icon": "󰔎",
+    "label": "Interface Motion",
+    "title": "MAGI // MOTION CONTROL",
+    "description": "Global animation level for participating Evangelion surfaces"
+  },
+  "magi.motion.full": {
+    "icon": "󰐊",
+    "label": "Full Motion",
+    "action": "magi-motion set full",
+    "checked": "[[ $(magi-motion status) == full ]]",
+    "description": "Current v1.1 feel and complete v1.2 motion language"
+  },
+  "magi.motion.reduced": {
+    "icon": "󰘖",
+    "label": "Reduced Motion",
+    "action": "magi-motion set reduced",
+    "checked": "[[ $(magi-motion status) == reduced ]]",
+    "description": "Short fades, minimal travel, no blur or repeated movement"
+  },
+  "magi.motion.off": {
+    "icon": "󰅖",
+    "label": "Motion Off",
+    "action": "magi-motion set off",
+    "checked": "[[ $(magi-motion status) == off ]]",
+    "description": "Immediate state changes without decorative animation"
+  },
   "magi.presentation": {
     "icon": "󰍹",
     "label": "Presentation Mode",

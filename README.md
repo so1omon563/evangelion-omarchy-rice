@@ -87,7 +87,7 @@ effects, transaction behavior, and first-run verification.
 Personal settings live in `~/.config/omarchy/evangelion.json`, which the
 installer creates once and preserves on upgrades. Terminal, editor, shell,
 project path, deployment, presentation, browser selection, weather, operating
-profiles, thermal thresholds, and optional integrations are documented in
+profiles, global motion level, thermal thresholds, and optional integrations are documented in
 [CONFIGURATION.md](CONFIGURATION.md).
 
 The browser always follows `omarchy launch browser`; no browser executable is
