@@ -8,7 +8,11 @@ fail(){ printf 'FAIL  %s\n' "$1" >&2; exit 1; }
 run_install(){ HOME=$test_root/home XDG_STATE_HOME=$test_root/state EVANGELION_SKIP_ACTIVATE=1 "$root/install.sh" "$@"; }
 run_rollback(){ HOME=$test_root/home XDG_STATE_HOME=$test_root/state EVANGELION_SKIP_ACTIVATE=1 "$root/rollback.sh" "$@"; }
 
-mkdir -p "$test_root/home"
+mkdir -p "$test_root/home" "$test_root/stubs"
+for command in foot nano; do
+  printf '#!/usr/bin/env sh\nexit 0\n' >"$test_root/stubs/$command"
+  chmod +x "$test_root/stubs/$command"
+done
 opt_out_plan=$(run_install --dry-run --preset full --no-shell-integration)
 [[ $opt_out_plan != *"shell-integration"* ]] || fail "shell opt-out remained selected"
 pass "shell integration opt-out"
@@ -58,8 +62,8 @@ run_rollback "$migration_snapshot" >/dev/null
 run_install --apply --components shell --yes >/dev/null
 resolved=$(HOME=$test_root/home XDG_CONFIG_HOME=$test_root/home/.config PATH="$test_root/home/.local/bin:$PATH" eva-user-config get project_dir)
 [[ $resolved == /tmp/custom-project ]] || fail "user configuration resolver ignored project override"
-HOME=$test_root/home XDG_CONFIG_HOME=$test_root/home/.config PATH="$test_root/home/.local/bin:$PATH" eva-user-config terminal >/dev/null || fail "terminal auto-discovery failed"
-HOME=$test_root/home XDG_CONFIG_HOME=$test_root/home/.config PATH="$test_root/home/.local/bin:$PATH" eva-user-config editor >/dev/null || fail "editor auto-discovery failed"
+HOME=$test_root/home XDG_CONFIG_HOME=$test_root/home/.config PATH="$test_root/stubs:$test_root/home/.local/bin:$PATH" eva-user-config terminal >/dev/null || fail "terminal auto-discovery failed"
+HOME=$test_root/home XDG_CONFIG_HOME=$test_root/home/.config PATH="$test_root/stubs:$test_root/home/.local/bin:$PATH" eva-user-config editor >/dev/null || fail "editor auto-discovery failed"
 pass "portable user configuration and application discovery"
 run_rollback "$initial_full_snapshot" >/dev/null
 [[ ! -e $test_root/home/.config/omarchy/shell.json && ! -e $test_root/home/.config/fastfetch/config.jsonc ]] || fail "full rollback incomplete"
