@@ -1,0 +1,63 @@
+#!/usr/bin/env python3
+"""Report optional hardware and service capabilities without changing state."""
+import argparse, json, os, shutil
+from pathlib import Path
+
+SYS = Path(os.environ.get("EVA_SYS_ROOT", "/sys"))
+HOME = Path.home()
+
+def commands():
+    names=("nmcli","busctl","tailscale","brightnessctl","powerprofilesctl","wpctl","pactl","cava")
+    search=os.environ.get("EVA_COMMAND_PATH")
+    return {name: bool(shutil.which(name,path=search)) for name in names}
+
+def batteries():
+    root=SYS/"class/power_supply"; values=[]
+    for path in sorted(root.glob("BAT*")):
+        try: capacity=int((path/"capacity").read_text())
+        except (OSError,ValueError): capacity=None
+        try: status=(path/"status").read_text().strip()
+        except OSError: status="unknown"
+        values.append({"name":path.name,"capacity":capacity,"status":status})
+    return values
+
+def thermal():
+    families={"coretemp":"intel","k10temp":"amd","zenpower":"amd"}; sensors=[]
+    for hw in sorted((SYS/"class/hwmon").glob("hwmon*")):
+        try: name=(hw/"name").read_text().strip()
+        except OSError: continue
+        inputs=list(hw.glob("temp*_input"))
+        if inputs: sensors.append({"name":name,"family":families.get(name,"generic"),"inputs":len(inputs)})
+    if not sensors:
+        for zone in sorted((SYS/"class/thermal").glob("thermal_zone*")):
+            try: name=(zone/"type").read_text().strip(); (zone/"temp").read_text()
+            except OSError: continue
+            family="intel" if name=="x86_pkg_temp" else "amd" if name in {"k10temp","zenpower"} else "generic"
+            sensors.append({"name":name,"family":family,"inputs":1})
+    families_found=sorted({item["family"] for item in sensors})
+    return {"available":bool(sensors),"families":families_found,"sensors":sensors}
+
+def neon():
+    theme=HOME/".config/omarchy/themes/neon-overdrive"
+    control=theme/"scripts/neon-control"
+    current=HOME/".local/state/omarchy/current/theme.name"
+    try: active=current.read_text().strip()=="neon-overdrive"
+    except OSError: active=False
+    return {"detected":control.is_file(),"active":active,"control":str(control)}
+
+def report():
+    found=commands(); audio="pipewire" if found["wpctl"] else "pulseaudio" if found["pactl"] else "unavailable"
+    return {"battery":{"available":bool(batteries()),"devices":batteries()},"thermal":thermal(),
+            "network_manager":found["nmcli"],"bluetooth_tools":found["busctl"],"tailscale":found["tailscale"],
+            "brightness":found["brightnessctl"],"power_profiles":found["powerprofilesctl"],"audio":audio,
+            "cava":found["cava"],"neon_overdrive":neon()}
+
+def main():
+    parser=argparse.ArgumentParser(); parser.add_argument("command",nargs="?",default="show",choices=("show","has")); parser.add_argument("feature",nargs="?"); args=parser.parse_args()
+    value=report()
+    if args.command=="show": print(json.dumps(value,indent=2,sort_keys=True)); return 0
+    if not args.feature: parser.error("has requires a feature")
+    aliases={"neon-overdrive":value["neon_overdrive"]["detected"],"battery":value["battery"]["available"],"thermal":value["thermal"]["available"]}
+    present=aliases.get(args.feature,value.get(args.feature,False))
+    return 0 if present is True else 1
+if __name__=="__main__": raise SystemExit(main())

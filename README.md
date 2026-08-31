@@ -88,6 +88,23 @@ disable all startup-file integration explicitly with `--no-shell-integration`.
 Generated configuration and startup-file changes are included in the same
 transaction manifest and are preserved or removed by rollback.
 
+### Optional hardware and integrations
+
+Run `eva-capabilities` for a JSON report of batteries, thermal sensor families,
+NetworkManager, Bluetooth tooling, Tailscale, brightness controls, power
+profiles, audio, Cava, and Neon Overdrive. Intel `coretemp`, AMD `k10temp` or
+`zenpower`, generic hwmon devices, and thermal-zone fallbacks are supported.
+Battery-less systems report battery telemetry as unavailable; multiple
+batteries are aggregated safely.
+
+Neon Overdrive is not part of any preset and is absent from the default bar.
+Its menu appears only when that theme's `neon-control` integration is detected.
+Existing users can request the compatibility widget with
+`--components neon-overdrive`; its included Cava configuration remains disabled
+until Cava is explicitly enabled in Neon Overdrive settings. Missing networking,
+Bluetooth, VPN, brightness, audio-routing, or power-profile tools affect only
+their corresponding optional controls.
+
 The installer completes preflight before its first backup or write, prints the
 exact change plan, and requires confirmation before replacing complete files.
 Each transaction snapshots only changed paths under

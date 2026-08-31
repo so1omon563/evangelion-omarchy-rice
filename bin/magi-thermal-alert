@@ -5,6 +5,7 @@ from pathlib import Path
 STATE_DIR=Path(os.environ.get("XDG_STATE_HOME",Path.home()/".local/state"))/"evangelion-rice/thermal"
 CONFIG=Path(os.environ.get("XDG_CONFIG_HOME",Path.home()/".config"))/"omarchy/thermal-alerts.json"
 DISABLED=STATE_DIR/"disabled"; STATE=STATE_DIR/"state.json"
+SYS_ROOT=Path(os.environ.get("EVA_SYS_ROOT","/sys"))
 DEFAULT={"warning_c":85,"critical_c":95,"warning_clear_c":78,"critical_clear_c":88,"warning_cooldown_seconds":1200,"critical_cooldown_seconds":300,"poll_seconds":30}
 
 def config():
@@ -12,25 +13,28 @@ def config():
     except (OSError,ValueError,TypeError): return DEFAULT.copy()
 
 def temperatures():
-    values=[]
-    for hw in Path("/sys/class/hwmon").glob("hwmon*"):
+    families={"coretemp":"intel","k10temp":"amd","zenpower":"amd"}; candidates=[]
+    for hw in (SYS_ROOT/"class/hwmon").glob("hwmon*"):
         try: name=(hw/"name").read_text().strip()
         except OSError: continue
-        if name != "coretemp": continue
+        values=[]
         for item in hw.glob("temp*_input"):
             try:
                 value=float(item.read_text().strip())/1000
                 if 10 <= value <= 110: values.append(value)
             except (OSError,ValueError): pass
-    if values: return max(values),"coretemp"
-    for zone in Path("/sys/class/thermal").glob("thermal_zone*"):
+        if values: candidates.append((max(values),f"{families.get(name,'generic')}:{name}"))
+    if candidates:
+        preferred=[item for item in candidates if item[1].startswith(("intel:","amd:"))]
+        return max(preferred or candidates,key=lambda item:item[0])
+    candidates=[]
+    for zone in (SYS_ROOT/"class/thermal").glob("thermal_zone*"):
         try:
             kind=(zone/"type").read_text().strip()
-            if kind not in {"x86_pkg_temp","acpitz"}: continue
             value=float((zone/"temp").read_text().strip())/1000
-            if 10 <= value <= 110: values.append(value)
+            if 10 <= value <= 110: candidates.append((value,f"thermal-zone:{kind}"))
         except (OSError,ValueError): pass
-    return (max(values),"thermal-zone") if values else (None,"unavailable")
+    return max(candidates,key=lambda item:item[0]) if candidates else (None,"unavailable")
 
 def load_state():
     try: return {"tier":"nominal","last_warning":0,"last_critical":0}|json.loads(STATE.read_text())
@@ -42,9 +46,9 @@ def save_state(state):
 
 def notify(tier,temp,dry=False):
     if tier=="warning":
-        args=["omarchy-notification-send","--app-name","NERV Thermal","-g","▲","-u","normal","-t","15000","THERMAL LOAD // ELEVATED",f"CPU package is {temp:.0f}°C. Pause heavy work and verify vents are unobstructed."]
+        args=["omarchy-notification-send","--app-name","NERV Thermal","-g","▲","-u","normal","-t","15000","THERMAL LOAD // ELEVATED",f"System sensor reports {temp:.0f}°C. Pause heavy work and verify cooling and airflow."]
     else:
-        args=["omarchy-notification-send","--app-name","NERV Thermal","-g","▲","-u","critical","THERMAL LIMIT // CRITICAL",f"CPU package is {temp:.0f}°C. Save work, stop sustained load, and allow the ThinkPad to cool."]
+        args=["omarchy-notification-send","--app-name","NERV Thermal","-g","▲","-u","critical","THERMAL LIMIT // CRITICAL",f"System sensor reports {temp:.0f}°C. Save work, stop sustained load, and allow the device to cool."]
     if dry: print("notify="+tier)
     else:
         subprocess.run(args,check=False,stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL)

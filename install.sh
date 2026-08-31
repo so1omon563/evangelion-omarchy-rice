@@ -4,7 +4,7 @@ root=$(cd -- "$(dirname -- "$0")" && pwd)
 state_root=${XDG_STATE_HOME:-$HOME/.local/state}/evangelion-rice
 dry_run=false apply=false assume_yes=false preset=default component_arg= shell_choice=auto shell_opt_out=false
 transaction_started=false backup_root= manifest=
-readonly all_components=(theme tools shell hypr start-page services extras shell-integration)
+readonly all_components=(theme tools shell hypr start-page services extras shell-integration neon-overdrive)
 
 usage(){ cat <<'EOF'
 Usage: ./install.sh [--dry-run | --apply] [--preset minimal|default|full]
@@ -28,6 +28,7 @@ start-page         Local MAGI start-page application
 services           User systemd units for affinity and start-page activation
 extras             Fastfetch and Neovim integrations
 shell-integration  Bash, Zsh, or Fish startup integration (optional)
+neon-overdrive     Compatibility widget for a detected Neon Overdrive theme
 EOF
 }
 while (($#)); do
@@ -57,7 +58,7 @@ else
   case $preset in
     minimal) preset_components=(theme tools);;
     default) preset_components=(theme tools shell hypr start-page services);;
-    full) preset_components=("${all_components[@]}");;
+    full) preset_components=(theme tools shell hypr start-page services extras shell-integration);;
     *) printf 'Unknown preset: %s\n' "$preset" >&2; exit 2;;
   esac
   for component in "${preset_components[@]}"; do select_component "$component"; done
@@ -65,6 +66,10 @@ fi
 $shell_opt_out && unset 'selected[shell-integration]'
 
 if [[ ${EVANGELION_SKIP_ACTIVATE:-0} == 1 ]]; then "$root/preflight.py" --source-only; else "$root/preflight.py"; fi
+if [[ ${selected[neon-overdrive]:-0} == 1 ]] && ! "$root/bin/eva-capabilities" has neon-overdrive; then
+  echo "Neon Overdrive integration was requested but ~/.config/omarchy/themes/neon-overdrive/scripts/neon-control was not detected." >&2
+  exit 1
+fi
 
 declare -a plan_component=() plan_source=() plan_target=() plan_mode=() plan_action=()
 add_file(){
@@ -87,6 +92,12 @@ add_tree(){
 add_tree tools "$root/bin" "$HOME/.local/bin" 755
 add_tree theme "$root/theme" "$HOME/.config/omarchy/themes/evangelion" 644
 add_tree shell "$root/omarchy/plugins" "$HOME/.config/omarchy/plugins" 644
+if [[ ${selected[shell]:-0} == 1 ]]; then
+  for index in "${!plan_target[@]}"; do
+    [[ ${plan_target[$index]} == "$HOME/.config/omarchy/plugins/neon.overdrive/"* ]] && plan_action[$index]=omit
+  done
+fi
+add_tree neon-overdrive "$root/omarchy/plugins/neon.overdrive" "$HOME/.config/omarchy/plugins/neon.overdrive" 644
 add_file shell "$root/omarchy/extensions/omarchy-menu.jsonc" "$HOME/.config/omarchy/extensions/omarchy-menu.jsonc" 644
 add_file shell "$root/omarchy/evangelion.json" "$HOME/.config/omarchy/evangelion.json" 644 preserve
 for file in command-telemetry.json magi-clock.json magi-terminal-context.json operating-profiles.json shell.json thermal-alerts.json; do add_file shell "$root/omarchy/$file" "$HOME/.config/omarchy/$file" 644; done
@@ -119,7 +130,7 @@ printf 'EVANGELION INSTALL PLAN // %s\n' "$components"
 changes=0 replacements=0
 for index in "${!plan_target[@]}"; do
   printf '%-9s %-18s %s\n' "${plan_action[$index]^^}" "${plan_component[$index]}" "${plan_target[$index]}"
-  [[ ${plan_action[$index]} == unchanged || ${plan_action[$index]} == preserve ]] || changes=$((changes+1))
+  [[ ${plan_action[$index]} == unchanged || ${plan_action[$index]} == preserve || ${plan_action[$index]} == omit ]] || changes=$((changes+1))
   [[ ${plan_action[$index]} == replace ]] && replacements=$((replacements+1))
 done
 if [[ $rc_action != skip ]]; then
@@ -155,7 +166,7 @@ transaction_failed(){
 }
 trap transaction_failed ERR
 for index in "${!plan_target[@]}"; do
-  [[ ${plan_action[$index]} == unchanged || ${plan_action[$index]} == preserve ]] && continue
+  [[ ${plan_action[$index]} == unchanged || ${plan_action[$index]} == preserve || ${plan_action[$index]} == omit ]] && continue
   backup_target "${plan_target[$index]}"
   install -Dm"${plan_mode[$index]}" "${plan_source[$index]}" "${plan_target[$index]}"
 done

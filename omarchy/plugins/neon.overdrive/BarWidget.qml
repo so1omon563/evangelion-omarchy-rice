@@ -9,7 +9,7 @@ Item {
   property var settings: ({})
   property var levels: [2,4,7,10,13,16,18,20,18,16,13,10,7,4,2,1]
   property var neonSettings: ({})
-  readonly property bool cavaEnabled: neonSettings.cava !== false
+  readonly property bool cavaEnabled: neonSettings.cava === true
   readonly property real sensitivity: neonSettings.sensitivity === undefined ? 1.0 : Number(neonSettings.sensitivity)
   implicitWidth: bar && bar.vertical ? bar.barSize : 150
   implicitHeight: bar ? bar.barSize : 30
@@ -40,7 +40,7 @@ Item {
 
   Process {
     running: root.cavaEnabled
-    command: [Quickshell.env("HOME") + "/.local/bin/cava", "-p", Quickshell.env("HOME") + "/.config/omarchy/plugins/neon.overdrive/cava.conf"]
+    command: ["cava", "-p", Quickshell.env("HOME") + "/.config/omarchy/plugins/neon.overdrive/cava.conf"]
     stdout: SplitParser { onRead: function(line) { root.ingest(line) } }
   }
 
@@ -80,7 +80,7 @@ Item {
   MouseArea {
     anchors.fill: parent
     hoverEnabled: true
-    onEntered: if (root.bar) root.bar.showTooltip(root, "SYNCHRONIZATION · live audio spectrum")
+    onEntered: if (root.bar) root.bar.showTooltip(root, root.cavaEnabled ? "SYNCHRONIZATION · live audio spectrum" : "SYNCHRONIZATION · disabled; enable Cava in Neon Overdrive controls")
     onExited: if (root.bar) root.bar.hideTooltip(root)
     onClicked: if (root.bar) root.bar.run("xdg-terminal-exec cava")
   }

@@ -14,8 +14,7 @@
       "center": [
         { "id": "omarchy.clock", "format": "ddd d MMM  HH:mm", "formatAlt": "d MMMM  'W'ww  yyyy", "verticalFormat": "HH\n—\nmm" },
         { "id": "so1omon.world-clock" },
-        { "id": "so1omon.mission" },
-        { "id": "neon.overdrive" }
+        { "id": "so1omon.mission" }
       ],
       "right": [
         { "id": "so1omon.privacy" },

@@ -12,6 +12,8 @@ mkdir -p "$test_root/home"
 opt_out_plan=$(run_install --dry-run --preset full --no-shell-integration)
 [[ $opt_out_plan != *"shell-integration"* ]] || fail "shell opt-out remained selected"
 pass "shell integration opt-out"
+if run_install --dry-run --components neon-overdrive >/dev/null 2>&1; then fail "undetected Neon Overdrive integration was accepted"; fi
+pass "Neon Overdrive requires detected integration"
 run_install --dry-run --preset minimal >/dev/null
 [[ ! -e $test_root/home/.config && ! -e $test_root/state ]] || fail "dry-run changed target state"
 pass "dry-run is target-read-only"
@@ -41,6 +43,7 @@ run_install --apply --preset full --yes >/dev/null
 [[ -f $test_root/home/.config/omarchy/shell.json && -f $test_root/home/.config/systemd/user/magi-start-page.service ]] || fail "full preset omitted default components"
 [[ -f $test_root/home/.config/fastfetch/config.jsonc && -f $test_root/home/.config/nvim/lua/plugins/eva-terminal-profile.lua ]] || fail "full preset omitted extras"
 [[ -f $test_root/home/.config/omarchy/evangelion.json ]] || fail "full preset omitted portable user configuration"
+[[ ! -e $test_root/home/.config/omarchy/plugins/neon.overdrive ]] || fail "full preset installed undetected Neon Overdrive integration"
 grep -qF 'source "$HOME/.config/omarchy/evangelion.bash"' "$test_root/home/.bashrc" || fail "full preset omitted shell integration"
 initial_full_snapshot=$(cat "$test_root/state/evangelion-rice/last-install-backup")
 sed -i 's#"project_dir": ""#"project_dir": "/tmp/custom-project"#' "$test_root/home/.config/omarchy/evangelion.json"

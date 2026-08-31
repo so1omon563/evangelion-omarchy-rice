@@ -439,7 +439,7 @@ Item {
 
   Process {
     id: blankProcess
-    command: ["bash", "-c", "omarchy-brightness-keyboard off; omarchy-brightness-display off"]
+    command: ["bash", "-c", "command -v omarchy-brightness-keyboard >/dev/null && omarchy-brightness-keyboard off; command -v omarchy-brightness-display >/dev/null && omarchy-brightness-display off; true"]
   }
 
   Timer {

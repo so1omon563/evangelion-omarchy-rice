@@ -6,6 +6,7 @@ from pathlib import Path
 
 STATE_DIR = Path(os.environ.get("XDG_STATE_HOME", Path.home()/".local/state"))/"evangelion-rice"
 CACHE = STATE_DIR/"health-updates.json"; PREVIEW = STATE_DIR/"health-preview.json"
+SYS_ROOT = Path(os.environ.get("EVA_SYS_ROOT", "/sys"))
 
 def run(args, timeout=5):
     try: return subprocess.run(args,text=True,capture_output=True,timeout=timeout).stdout.strip()
@@ -15,15 +16,22 @@ def item(name, available, value, detail, tier="nominal", action="No action requi
     return {"name":name,"available":available,"value":value,"detail":detail,"tier":tier,"action":action}
 
 def temperature():
-    vals=[]
-    for hw in Path("/sys/class/hwmon").glob("hwmon*"):
+    vals=[]; preferred=[]; sources=[]
+    for hw in (SYS_ROOT/"class/hwmon").glob("hwmon*"):
         try:
-            if (hw/"name").read_text().strip() != "coretemp": continue
-            vals += [float(p.read_text())/1000 for p in hw.glob("temp*_input")]
+            name=(hw/"name").read_text().strip(); readings=[float(p.read_text())/1000 for p in hw.glob("temp*_input")]
+            valid=[value for value in readings if 5 <= value <= 120]; vals += valid; sources.append(name)
+            if name in {"coretemp","k10temp","zenpower"}: preferred += valid
         except (OSError,ValueError): pass
-    if not vals: return item("THERMAL",False,"--","No supported CPU sensor")
-    value=max(v for v in vals if 5 <= v <= 120); tier="critical" if value>=95 else "warning" if value>=85 else "nominal"
-    return item("THERMAL",True,f"{value:.0f}°C","CPU package",tier,"Stop sustained load and check airflow" if tier!="nominal" else "No action required")
+    if not vals:
+        for zone in (SYS_ROOT/"class/thermal").glob("thermal_zone*"):
+            try:
+                value=float((zone/"temp").read_text())/1000; name=(zone/"type").read_text().strip()
+                if 5 <= value <= 120: vals.append(value); sources.append(name)
+            except (OSError,ValueError): pass
+    if not vals: return item("THERMAL",False,"--","No readable temperature sensor")
+    value=max(preferred or vals); detail_source=next((name for name in sources if name in {"coretemp","k10temp","zenpower"}),sources[0]); tier="critical" if value>=95 else "warning" if value>=85 else "nominal"
+    return item("THERMAL",True,f"{value:.0f}°C",f"System sensor · {detail_source}",tier,"Stop sustained load and check cooling" if tier!="nominal" else "No action required")
 
 def memory():
     data={}
@@ -41,15 +49,17 @@ def storage():
     except OSError: return item("STORAGE",False,"--","Filesystem data unavailable")
 
 def battery():
-    bats=[p for p in Path("/sys/class/power_supply").glob("BAT*") if (p/"capacity").exists()]
+    bats=[p for p in (SYS_ROOT/"class/power_supply").glob("BAT*") if (p/"capacity").exists()]
     if not bats: return item("BATTERY",False,"--","No battery reported")
-    b=bats[0]
     try:
-        charge=int((b/"capacity").read_text()); status=(b/"status").read_text().strip(); health=None
-        for full,design in (("energy_full","energy_full_design"),("charge_full","charge_full_design")):
-            if (b/full).exists() and (b/design).exists(): health=100*int((b/full).read_text())/int((b/design).read_text()); break
+        charges=[int((b/"capacity").read_text()) for b in bats]; statuses=[(b/"status").read_text().strip() for b in bats]
+        charge=round(sum(charges)/len(charges)); status="Discharging" if "Discharging" in statuses else "Charging" if "Charging" in statuses else statuses[0]; health_values=[]
+        for b in bats:
+            for full,design in (("energy_full","energy_full_design"),("charge_full","charge_full_design")):
+                if (b/full).exists() and (b/design).exists(): health_values.append(100*int((b/full).read_text())/int((b/design).read_text())); break
+        health=sum(health_values)/len(health_values) if health_values else None
         tier="critical" if status=="Discharging" and charge<=7 else "warning" if status=="Discharging" and charge<=15 else "warning" if health is not None and health<70 else "nominal"
-        detail=status+(f" · health {health:.0f}%" if health is not None else "")
+        detail=(f"{len(bats)} batteries · " if len(bats)>1 else "")+status+(f" · health {health:.0f}%" if health is not None else "")
         return item("BATTERY",True,f"{charge}%",detail,tier,"Connect power or review battery condition" if tier!="nominal" else "No action required")
     except (OSError,ValueError,ZeroDivisionError): return item("BATTERY",False,"--","Battery data unavailable")
 

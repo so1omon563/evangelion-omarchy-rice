@@ -176,7 +176,7 @@ magi-clock reset
 
 ## Media controls
 
-The standard ThinkPad media keys continue to work. MAGI also provides:
+Standard hardware media keys continue to work when exposed by the device. MAGI also provides:
 
 | Shortcut | Action |
 |---|---|
@@ -457,8 +457,8 @@ replacing it and sets `__MAGI_COMMAND_TELEMETRY_CONFLICT=1` in that shell.
 
 ## NERV thermal monitoring
 
-The T480 CPU package is sampled from Linux `coretemp` every 30 seconds. Normal
-temperatures remain silent. A warning begins at 85°C and clears below 78°C; a
+Available Intel, AMD, generic hwmon, or Linux thermal-zone sensors are sampled
+every 30 seconds. Normal temperatures remain silent. A warning begins at 85°C and clears below 78°C; a
 critical condition begins at 95°C and de-escalates below 88°C. Warning and
 critical cooldowns are 20 and 5 minutes respectively, in addition to the state
 hysteresis, so a fluctuating workload cannot spam alerts.
@@ -473,8 +473,8 @@ magi-thermal-alert enable
 
 Thresholds, recovery bands, cooldowns, and polling interval are explicit in
 `~/.config/omarchy/thermal-alerts.json`. Alerts recommend reducing load and
-checking airflow; they do not claim to control the ThinkPad fan. If no valid CPU
-sensor exists, checks report `available:false` and generate no warning.
+checking cooling and airflow; they do not claim to control device fans. If no
+valid temperature sensor exists, checks report `available:false` and generate no warning.
 
 ## MAGI clipboard archive
 

@@ -530,7 +530,7 @@
     "icon": "󰢮",
     "label": "Neon Overdrive",
     "title": "Neon Overdrive Controls",
-    "when": "[[ $(cat ~/.local/state/omarchy/current/theme.name 2>/dev/null) == neon-overdrive ]]"
+    "when": "eva-capabilities has neon-overdrive"
   },
   "style.neon-overdrive.preset": {"icon":"󰏘","label":"Preset"},
   "style.neon-overdrive.preset.static": {"icon":"󰖔","label":"Static","checked":"~/.config/omarchy/themes/neon-overdrive/scripts/neon-control is-preset static","action":"~/.config/omarchy/themes/neon-overdrive/scripts/neon-control preset static"},
