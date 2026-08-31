@@ -18,8 +18,17 @@ sed '/^[[:space:]]*\/\//d' "$root/omarchy/extensions/omarchy-menu.jsonc" | jq em
 
 duplicates=$(sed -n 's/.*o\.bind("\([^"]*\)".*/\1/p' "$root/hypr/bindings.lua" | sort | uniq -d)
 [[ -z $duplicates ]] && pass "no duplicate custom hotkeys" || fail "duplicate hotkeys: $duplicates"
-while IFS= read -r command; do command -v "$command" >/dev/null 2>&1 || [[ -x $root/bin/$command ]] || fail "missing hotkey command: $command"; done < <(sed -n 's/.*o\.bind([^,]*,[^,]*, "\([^ "|;]*\).*/\1/p' "$root/hypr/bindings.lua" | sort -u)
-pass "custom hotkey commands resolved"
+missing_commands=()
+while IFS= read -r command; do
+  [[ -f $root/bin/$command ]] && continue
+  command -v "$command" >/dev/null 2>&1 && continue
+  if [[ ${EVANGELION_SOURCE_ONLY:-0} == 1 ]]; then
+    case $command in omarchy-menu|omarchy-shell|voxtype) continue;; esac
+  fi
+  missing_commands+=("$command")
+done < <(sed -n 's/.*o\.bind([^,]*,[^,]*, "\([^ "|;]*\).*/\1/p' "$root/hypr/bindings.lua" | sort -u)
+if ((${#missing_commands[@]})); then fail "missing hotkey commands: ${missing_commands[*]}"
+else pass "custom hotkey commands resolved"; fi
 
 widgets=$(jq -r '.bar.layout[][]|.id' "$root/omarchy/shell.json")
 while IFS= read -r id; do
