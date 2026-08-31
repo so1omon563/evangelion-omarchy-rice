@@ -1,6 +1,6 @@
 # Release notes
 
-## v1.1.0-rc.1 — external beta
+## v1.1.0 — portable release
 
 This candidate turns the original machine-specific rice into a portable,
 transactional Omarchy package. It adds read-only compatibility preflight,
@@ -18,6 +18,8 @@ Before upgrading, read [UPGRADING.md](UPGRADING.md), run `./preflight.py`, and
 review `./install.sh --dry-run` with the intended selection. Every applied
 transaction prints and records its rollback snapshot.
 
-This is a prerelease. The final v1.1 compatibility matrix will include only
-observations from accepted external beta reports. See
-[BETA_TESTING.md](BETA_TESTING.md) for the protocol and release gate.
+The supported matrix is based on the reference Omarchy system plus isolated
+clean-user, hardware-capability, and responsive-layout simulations. It does not
+claim verification on every physical hardware combination. Community reports
+are welcome through [BETA_TESTING.md](BETA_TESTING.md) and will inform future
+compatibility updates.

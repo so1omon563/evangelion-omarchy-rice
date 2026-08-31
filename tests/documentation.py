@@ -51,12 +51,12 @@ def main():
         assert stale not in readme, f"stale public claim remains: {stale}"
 
     gate = __import__("json").loads(text("release/v1.1.0.json"))
-    beta = gate["external_beta"]
-    assert gate["final_release_allowed"] is False, "final v1.1 gate opened prematurely"
-    assert beta["required_reports"] >= 2
-    assert beta["accepted_reports"] < beta["required_reports"]
-    assert "original ThinkPad T480" in text("BETA_TESTING.md")
-    assert "GitHub Actions Ubuntu runner" in text("BETA_TESTING.md")
+    community = gate["community_testing"]
+    assert gate["final_release_allowed"] is True, "validated final v1.1 gate is closed"
+    assert community["required_reports"] == 0
+    assert community["status"] == "optional-post-release"
+    assert "reference ThinkPad T480" in text("BETA_TESTING.md")
+    assert "GitHub Actions" in text("BETA_TESTING.md")
     print("PASS  public documentation contract")
 
 

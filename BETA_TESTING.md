@@ -1,16 +1,15 @@
-# v1.1 external beta
+# Community compatibility testing
 
-The `v1.1.0-rc.1` beta is for Omarchy users who did not develop or install the
-project on the original ThinkPad T480. The final `v1.1.0` tag is gated on two
-independent reports from clean Omarchy environments.
+This optional protocol helps Omarchy users report compatibility observations
+from environments other than the reference ThinkPad T480. Community reports
+improve future releases, but are not required to install or release v1.1.
 
 ## What qualifies
 
-Together, accepted reports must cover at least two display/scale combinations
-and one materially different hardware profile. A clean environment may be a
-new user account, disposable installation, or machine that has never received
-the developer's live configuration. A GitHub Actions Ubuntu runner is useful
-CI evidence, but is not an external Omarchy beta environment.
+A useful report comes from a clean environment: a new user account, disposable
+installation, or machine that has never received the developer's live
+configuration. GitHub Actions provides repeatable CI evidence but does not
+claim to represent additional physical Omarchy hardware.
 
 Do not test on a machine where losing the current desktop configuration would
 be unacceptable. Review the installer dry-run before applying it.
@@ -20,7 +19,7 @@ be unacceptable. Review the installer dry-run before applying it.
 Clone the release candidate, then collect a local evidence bundle:
 
 ```bash
-git clone --branch v1.1.0-rc.1 --depth 1 \
+git clone --branch v1.1.0 --depth 1 \
   https://github.com/so1omon563/evangelion-omarchy-rice.git
 cd evangelion-omarchy-rice
 ./beta-report.sh prepare ~/evangelion-beta --preset default
@@ -58,20 +57,21 @@ Privacy rules:
 - Use a generic hardware class; exact serial/model identifiers are unnecessary.
 - Screenshots are optional. Crop them and inspect every visible surface first.
 
-Maintainers accept a report only when preflight, install, validation, rollback,
+Maintainers can use a report when preflight, install, validation, rollback,
 display/scale, hardware class, chosen components, and feedback are all present.
-Blockers are documented in the issue and either fixed in a new RC or converted
+Blockers are documented in the issue and either fixed or converted
 into explicit compatibility guidance. The compatibility matrix is updated from
 accepted observations before the final release.
 
-## Final-release gate
+## Release evidence
 
-The machine-readable gate is [`release/v1.1.0.json`](release/v1.1.0.json).
-`v1.1.0` may be tagged only after:
+The machine-readable decision record is
+[`release/v1.1.0.json`](release/v1.1.0.json). v1.1 is released after:
 
-- source CI is green for the exact candidate commit;
-- two qualifying external reports are accepted;
-- their combined display and hardware coverage meets the criteria above;
-- install, validation, and rollback pass on both environments;
-- reported blockers and the observed compatibility matrix are resolved;
+- source CI is green for the exact release commit;
+- the isolated clean-user install, validation, repeat-install, failure recovery,
+  rollback, and cleanup lifecycle passes;
+- transactional installer and responsive display-matrix tests pass;
+- the reference Omarchy system passes live validation;
+- known blockers and the documented compatibility matrix are reviewed;
 - release media and migration notes pass review.

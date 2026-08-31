@@ -25,5 +25,6 @@ test-results/clean-user.json
 
 Pass another output path as the first argument when running in CI or a disposable
 VM. GitHub Actions uploads this JSON report as the `clean-user-results` artifact.
-Real hardware and display-matrix testing remains separate from this isolated
-harness and is tracked by the responsive-layout and external-beta roadmap work.
+Physical hardware coverage beyond the reference T480 is not asserted by this
+harness. Responsive layouts have a separate automated matrix, and optional
+community compatibility reports can extend observed physical-hardware coverage.

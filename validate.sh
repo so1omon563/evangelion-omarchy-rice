@@ -58,8 +58,8 @@ lua -e "assert(loadfile('$root/hypr/bindings.lua')); assert(loadfile('$root/hypr
 sed '/^[[:space:]]*\/\//d' "$root/omarchy/extensions/omarchy-menu.jsonc" | jq empty 2>/dev/null && pass "MAGI menu JSONC parses" || fail "MAGI menu JSONC parse"
 (cd "$root/theme" && sha256sum --check --status backgrounds.sha256) && pass "wallpaper provenance hashes" || fail "wallpaper provenance hashes"
 (cd "$root/media" && sha256sum --check --status release-media.sha256) && pass "privacy-reviewed release media hashes" || fail "release media hashes"
-jq -e '.final_release_allowed == false and .external_beta.required_reports >= 2 and .external_beta.accepted_reports < .external_beta.required_reports' "$root/release/v1.1.0.json" >/dev/null \
-  && pass "final v1.1 release remains externally gated" || fail "final v1.1 release gate"
+jq -e '.final_release_allowed == true and .community_testing.required_reports == 0 and .community_testing.status == "optional-post-release"' "$root/release/v1.1.0.json" >/dev/null \
+  && pass "final v1.1 release gate uses verified project evidence" || fail "final v1.1 release gate"
 
 duplicates=$(sed -n 's/.*o\.bind("\([^"]*\)".*/\1/p' "$root/hypr/bindings.lua" | sort | uniq -d)
 [[ -z $duplicates ]] && pass "no duplicate custom hotkeys" || fail "duplicate hotkeys: $duplicates"

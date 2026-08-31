@@ -1,6 +1,6 @@
-name: v1.1 external beta report
-description: Report install, validation, and rollback results from an independent Omarchy environment
-title: "[v1.1 beta]: "
+name: Community compatibility report
+description: Report install, validation, and rollback results from an Omarchy environment
+title: "[compatibility]: "
 labels: [beta]
 body:
   - type: markdown
@@ -11,8 +11,8 @@ body:
     id: candidate
     attributes:
       label: Candidate tag and commit
-      description: Output of `git describe --always --dirty` from the beta checkout.
-      placeholder: v1.1.0-rc.1 / abc1234
+      description: Output of `git describe --always --dirty` from the checkout.
+      placeholder: v1.1.0 / abc1234
     validations:
       required: true
   - type: checkboxes
