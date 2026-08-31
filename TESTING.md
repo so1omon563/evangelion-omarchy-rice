@@ -19,6 +19,17 @@ Motion has two additional evidence layers:
 ./tests/motion-observe.py test-results/motion-observation.json
 ```
 
+The local context foundation has isolated schema, preference, atomic-write, and
+concurrency coverage:
+
+```bash
+./tests/context.py
+```
+
+It uses a temporary home and asserts that read-only status creates no state,
+invalid configuration is not overwritten, private/network primitives are not
+imported, and a delayed older refresh cannot overwrite the latest request.
+
 `motion-regression.py` is portable CI coverage for rapid Full/Reduced/Off
 changes, persistence, interruption/coalescing contracts, critical-state
 immediacy, hidden-surface activity guards, duplicate polling signatures, and

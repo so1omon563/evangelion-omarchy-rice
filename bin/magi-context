@@ -1,0 +1,253 @@
+#!/usr/bin/env python3
+"""Publish and explain the local MAGI context contract without collecting data."""
+
+import fcntl
+import json
+import os
+import sys
+import tempfile
+import time
+from copy import deepcopy
+from datetime import datetime, timezone
+from pathlib import Path
+
+CONFIG_HOME = Path(os.environ.get("XDG_CONFIG_HOME", Path.home() / ".config"))
+STATE_HOME = Path(os.environ.get("XDG_STATE_HOME", Path.home() / ".local/state"))
+CONFIG = CONFIG_HOME / "omarchy/evangelion.json"
+STATE_DIR = STATE_HOME / "evangelion-rice/context"
+STATE = STATE_DIR / "state.json"
+REQUESTS = STATE_DIR / "requests.json"
+LOCK = STATE_DIR / "controller.lock"
+
+COLLECTORS = ("power", "thermal", "displays", "devices", "connectivity",
+              "media", "time", "operating_profile")
+AVAILABILITY = ("unknown", "available", "unavailable", "disabled")
+FRESHNESS = ("unknown", "fresh", "stale", "disabled")
+DEFAULT_CONTEXT = {
+    "enabled": True,
+    "automation_enabled": False,
+    "decorative_enabled": True,
+    "max_age_seconds": 300,
+    "collectors": {name: True for name in COLLECTORS},
+}
+
+
+def utc_now():
+    return datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
+
+
+def atomic_json(path, value):
+    path.parent.mkdir(parents=True, exist_ok=True)
+    descriptor, temporary = tempfile.mkstemp(prefix=f".{path.name}.", dir=path.parent)
+    try:
+        with os.fdopen(descriptor, "w") as stream:
+            json.dump(value, stream, indent=2, sort_keys=True)
+            stream.write("\n")
+            stream.flush()
+            os.fsync(stream.fileno())
+        os.chmod(temporary, 0o600)
+        os.replace(temporary, path)
+    finally:
+        try:
+            os.unlink(temporary)
+        except FileNotFoundError:
+            pass
+
+
+def read_object(path, fallback, strict=False):
+    try:
+        value = json.loads(path.read_text())
+    except FileNotFoundError:
+        return deepcopy(fallback)
+    except (OSError, json.JSONDecodeError) as error:
+        if strict:
+            raise ValueError(f"Cannot safely update {path}: {error}") from error
+        return deepcopy(fallback)
+    if not isinstance(value, dict):
+        if strict:
+            raise ValueError(f"Cannot safely update {path}: root must be a JSON object")
+        return deepcopy(fallback)
+    return value
+
+
+def resolved_config(strict=False):
+    root = read_object(CONFIG, {}, strict=strict)
+    supplied = root.get("context", {})
+    if not isinstance(supplied, dict):
+        if strict:
+            raise ValueError(f"Cannot safely update {CONFIG}: context must be a JSON object")
+        supplied = {}
+    result = deepcopy(DEFAULT_CONTEXT)
+    for key in ("enabled", "automation_enabled", "decorative_enabled", "max_age_seconds"):
+        if key in supplied:
+            result[key] = supplied[key]
+    configured_collectors = supplied.get("collectors", {})
+    if isinstance(configured_collectors, dict):
+        for name in COLLECTORS:
+            if name in configured_collectors:
+                result["collectors"][name] = configured_collectors[name]
+
+    for key in ("enabled", "automation_enabled", "decorative_enabled"):
+        if not isinstance(result[key], bool):
+            raise ValueError(f"context.{key} must be true or false")
+    if not isinstance(result["max_age_seconds"], int) or not 1 <= result["max_age_seconds"] <= 86400:
+        raise ValueError("context.max_age_seconds must be an integer from 1 to 86400")
+    if not all(isinstance(value, bool) for value in result["collectors"].values()):
+        raise ValueError("context.collectors values must be true or false")
+    return root, result
+
+
+def locked():
+    STATE_DIR.mkdir(parents=True, exist_ok=True)
+    stream = LOCK.open("a+")
+    os.chmod(LOCK, 0o600)
+    fcntl.flock(stream.fileno(), fcntl.LOCK_EX)
+    return stream
+
+
+def reserve_request():
+    stream = locked()
+    try:
+        previous = read_object(REQUESTS, {"latest_request_id": 0}).get("latest_request_id", 0)
+        request_id = previous + 1 if isinstance(previous, int) and previous >= 0 else 1
+        atomic_json(REQUESTS, {"schema_version": 1, "latest_request_id": request_id,
+                               "requested_at": utc_now()})
+        return request_id
+    finally:
+        stream.close()
+
+
+def signal_contract(enabled):
+    availability = "unknown" if enabled else "disabled"
+    freshness = "unknown" if enabled else "disabled"
+    return {"availability": availability, "freshness": {"status": freshness,
+            "observed_at": None, "expires_at": None}, "value": None}
+
+
+def build_state(request_id, generation=0):
+    _, config = resolved_config()
+    controller_enabled = config["enabled"]
+    enabled_collectors = [name for name in COLLECTORS if config["collectors"][name]]
+    signals = {name: signal_contract(controller_enabled and config["collectors"][name])
+               for name in COLLECTORS}
+    if not controller_enabled:
+        status, reason, summary = "disabled", "context-disabled", "Context processing is disabled"
+    elif not enabled_collectors:
+        status, reason, summary = "unavailable", "no-collectors-enabled", "No context collectors are enabled"
+    else:
+        status, reason, summary = "unknown", "awaiting-observations", "No local observations have been published"
+    return {
+        "schema_version": 1,
+        "generation": generation,
+        "request_id": request_id,
+        "published_at": utc_now(),
+        "controller": config,
+        "contract": {"availability_values": list(AVAILABILITY),
+                     "freshness_values": list(FRESHNESS)},
+        "signals": signals,
+        "facts": {},
+        "derived_state": {"status": status, "summary": summary, "confidence": 0.0,
+                          "freshness": {"status": "disabled" if status == "disabled" else "unknown",
+                                        "observed_at": None, "expires_at": None}},
+        "reasons": [{"code": reason, "summary": summary, "signals": []}],
+        "recommendations": [],
+    }
+
+
+def publish_latest(request_id):
+    delay = int(os.environ.get("MAGI_CONTEXT_TEST_DELAY_MS", "0") or 0)
+    if delay > 0:
+        time.sleep(min(delay, 5000) / 1000)
+    stream = locked()
+    try:
+        latest = read_object(REQUESTS, {"latest_request_id": 0}).get("latest_request_id", 0)
+        if latest != request_id:
+            return load_state(), False
+        previous = read_object(STATE, {}).get("generation", 0)
+        generation = previous + 1 if isinstance(previous, int) and previous >= 0 else 1
+        state = build_state(request_id, generation)
+        atomic_json(STATE, state)
+        return state, True
+    finally:
+        stream.close()
+
+
+def refresh():
+    return publish_latest(reserve_request())
+
+
+def load_state():
+    state = read_object(STATE, {})
+    if state.get("schema_version") == 1:
+        return state
+    return build_state(0, 0)
+
+
+def update_config(target, enabled):
+    root, context = resolved_config(strict=True)
+    if target == "context":
+        context["enabled"] = enabled
+    elif target == "automation":
+        context["automation_enabled"] = enabled
+    elif target == "decorative":
+        context["decorative_enabled"] = enabled
+    elif target.startswith("collector:"):
+        name = target.split(":", 1)[1]
+        if name not in COLLECTORS:
+            raise ValueError(f"Unknown collector: {name}")
+        context["collectors"][name] = enabled
+    else:
+        raise ValueError(f"Unknown context control: {target}")
+    root["context"] = context
+    atomic_json(CONFIG, root)
+    return refresh()[0]
+
+
+def explain(state):
+    derived = state["derived_state"]
+    lines = [f"MAGI CONTEXT // {derived['status'].upper()}", derived["summary"],
+             f"GENERATION // {state['generation']} · REQUEST // {state['request_id']}"]
+    for reason in state["reasons"]:
+        lines.append(f"REASON // {reason['code']} · {reason['summary']}")
+    lines.append(f"AUTOMATION // {'ENABLED' if state['controller']['automation_enabled'] else 'DISABLED'}")
+    lines.append(f"RECOMMENDATIONS // {len(state['recommendations'])}")
+    return "\n".join(lines)
+
+
+def usage():
+    print("Usage: magi-context [status|explain|refresh|enable|disable|automation enable|disable|decorative enable|disable|collector NAME enable|disable] [--json]", file=sys.stderr)
+    return 2
+
+
+def main():
+    args = [arg for arg in sys.argv[1:] if arg != "--json"]
+    json_output = "--json" in sys.argv[1:]
+    command = args[0] if args else "status"
+    try:
+        if command in ("status", "explain"):
+            state = load_state()
+        elif command == "refresh":
+            state, _ = refresh()
+        elif command in ("enable", "disable") and len(args) == 1:
+            state = update_config("context", command == "enable")
+        elif command in ("automation", "decorative") and len(args) == 2 and args[1] in ("enable", "disable"):
+            state = update_config(command, args[1] == "enable")
+        elif command == "collector" and len(args) == 3 and args[2] in ("enable", "disable"):
+            state = update_config(f"collector:{args[1]}", args[2] == "enable")
+        else:
+            return usage()
+
+        if json_output:
+            print(json.dumps(state, indent=2, sort_keys=True))
+        elif command == "explain":
+            print(explain(state))
+        else:
+            print(state["derived_state"]["status"])
+    except (ValueError, OSError) as error:
+        print(error, file=sys.stderr)
+        return 2
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

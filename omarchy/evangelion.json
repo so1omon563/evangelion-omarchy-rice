@@ -7,6 +7,22 @@
   "motion": {
     "mode": "full"
   },
+  "context": {
+    "enabled": true,
+    "automation_enabled": false,
+    "decorative_enabled": true,
+    "max_age_seconds": 300,
+    "collectors": {
+      "power": true,
+      "thermal": true,
+      "displays": true,
+      "devices": true,
+      "connectivity": true,
+      "media": true,
+      "time": true,
+      "operating_profile": true
+    }
+  },
   "deployment": {
     "workspace": 4,
     "terminal_profile": "engineering",

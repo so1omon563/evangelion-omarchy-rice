@@ -12,6 +12,22 @@ The installer creates and then preserves `~/.config/omarchy/evangelion.json`:
   "shell_integration": true,
   "project_dir": "",
   "motion": { "mode": "full" },
+  "context": {
+    "enabled": true,
+    "automation_enabled": false,
+    "decorative_enabled": true,
+    "max_age_seconds": 300,
+    "collectors": {
+      "power": true,
+      "thermal": true,
+      "displays": true,
+      "devices": true,
+      "connectivity": true,
+      "media": true,
+      "time": true,
+      "operating_profile": true
+    }
+  },
   "deployment": {
     "workspace": 4,
     "terminal_profile": "engineering",
@@ -31,6 +47,9 @@ The installer creates and then preserves `~/.config/omarchy/evangelion.json`:
 - `motion.mode`: `full` preserves the current visual feel; `reduced` shortens
   motion and removes blur, repeated movement, and most travel; `off` requests
   immediate state changes from participating v1.2 surfaces.
+- `context`: global v1.3 context processing, automation, decorative-surface,
+  freshness, and per-collector preferences. Automation defaults off. This
+  preserved configuration is authoritative across upgrades.
 - `deployment`: workspace, temporary terminal palette, and browser URL.
 - `presentation.workspace`: Fastfetch/btop presentation workspace.
 
@@ -41,7 +60,37 @@ eva-user-config editor
 eva-user-config shell
 magi-motion status
 magi-motion set reduced
+magi-context status
+magi-context explain
 ```
+
+## MAGI context foundation
+
+`magi-context` defines the local context contract without collecting hardware
+or activity data yet. SO1-364 adds capability-aware observations. Until then,
+enabled collectors explicitly report `unknown`; disabled collectors report
+`disabled`, and disabling every collector reports `unavailable`. This avoids
+inventing context from absent data.
+
+```bash
+magi-context status --json       # Read current state; does not publish
+magi-context explain             # Human-readable state and reason
+magi-context refresh --json      # Atomically publish the latest request
+magi-context disable             # Global kill switch
+magi-context enable
+magi-context automation enable   # Opt-in; defaults disabled
+magi-context automation disable
+magi-context decorative disable
+magi-context collector media disable
+```
+
+Published state lives at
+`~/.local/state/evangelion-rice/context/state.json` with mode `0600`. Schema v1
+separates signals, normalized facts, derived state, freshness, reasons, and
+recommendations. `unknown`, `unavailable`, `stale`, and `disabled` are explicit
+contract values. Concurrent refreshes use monotonic request IDs; a superseded
+request cannot overwrite newer state. The controller performs no network I/O,
+launches no subprocesses, and makes no system changes.
 
 ## Interface motion
 

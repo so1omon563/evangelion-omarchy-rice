@@ -6,6 +6,10 @@ from pathlib import Path
 CONFIG = Path(os.environ.get("XDG_CONFIG_HOME", Path.home() / ".config")) / "omarchy/evangelion.json"
 DEFAULTS = {"terminal":"auto","editor":[],"shell":"auto","shell_integration":True,"project_dir":"",
             "motion":{"mode":"full"},
+            "context":{"enabled":True,"automation_enabled":False,"decorative_enabled":True,
+                       "max_age_seconds":300,
+                       "collectors":{name:True for name in ("power","thermal","displays","devices",
+                                     "connectivity","media","time","operating_profile")}},
             "deployment":{"workspace":4,"terminal_profile":"engineering","browser_url":"about:blank"},
             "presentation":{"workspace":5}}
 

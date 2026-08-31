@@ -13,6 +13,7 @@ bash -n "$root/tests/clean-user.sh" && pass "clean-user tests parse" || fail "cl
 bash -n "$root/beta-report.sh" && pass "external beta evidence helper parses" || fail "external beta evidence helper parse"
 python3 "$root/tests/capabilities.py" >/dev/null && pass "mocked hardware capability matrix" || fail "mocked hardware capability matrix"
 python3 "$root/tests/responsive-layouts.py" /tmp/evangelion-responsive-layouts.json >/dev/null && pass "responsive display geometry matrix" || fail "responsive display geometry matrix"
+python3 "$root/tests/context.py" >/dev/null && pass "local MAGI context controller" || fail "local MAGI context controller"
 python3 "$root/tests/motion.py" >/dev/null && pass "shared motion controller" || fail "shared motion controller"
 python3 "$root/tests/shell-motion.py" >/dev/null && pass "unified shell motion policy" || fail "unified shell motion policy"
 python3 "$root/tests/motion-regression.py" /tmp/evangelion-motion-regression.json >/dev/null && pass "motion accessibility and interruption regressions" || fail "motion accessibility and interruption regressions"

@@ -48,6 +48,7 @@ run_install --apply --preset full --yes >/dev/null
 [[ -f $test_root/home/.config/fastfetch/config.jsonc && -f $test_root/home/.config/nvim/lua/plugins/eva-terminal-profile.lua ]] || fail "full preset omitted extras"
 [[ -f $test_root/home/.config/omarchy/evangelion.json ]] || fail "full preset omitted portable user configuration"
 [[ -f $test_root/home/.config/omarchy/motion.json && -f $test_root/home/.config/omarchy/plugins/evangelion.motion/manifest.json ]] || fail "full preset omitted motion foundation"
+[[ -x $test_root/home/.local/bin/magi-context ]] || fail "full preset omitted MAGI context controller"
 jq -e '.plugins | any(.id == "evangelion.motion")' "$test_root/home/.config/omarchy/shell.json" >/dev/null || fail "motion service is not enabled"
 [[ ! -e $test_root/home/.config/omarchy/plugins/neon.overdrive ]] || fail "full preset installed undetected Neon Overdrive integration"
 grep -qF 'source "$HOME/.config/omarchy/evangelion.bash"' "$test_root/home/.bashrc" || fail "full preset omitted shell integration"
