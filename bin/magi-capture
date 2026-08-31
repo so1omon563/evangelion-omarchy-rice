@@ -12,6 +12,8 @@ notify_saved() {
 
 case $kind in
 screenshot)
+  magi-motion hold screenshot >/dev/null 2>&1 || true
+  trap 'magi-motion release screenshot >/dev/null 2>&1 || true' EXIT
   include=false
   args=()
   for arg in "$@"; do
@@ -20,7 +22,7 @@ screenshot)
   if ! $include; then
     magi-privacy suppress
     omarchy-shell -q magi-privacy suppress
-    trap 'magi-privacy restore; omarchy-shell -q magi-privacy restore' EXIT
+    trap 'magi-privacy restore; omarchy-shell -q magi-privacy restore; magi-motion release screenshot >/dev/null 2>&1 || true' EXIT
     sleep 0.15
   fi
   command=${MAGI_SCREENSHOT_COMMAND:-omarchy-capture-screenshot}
@@ -44,10 +46,14 @@ recording)
   (( result == 0 )) || exit "$result"
   destination=$(printf '%s\n' "$output" | tail -n1)
   if [[ -f $destination ]]; then
+    magi-motion release recording >/dev/null 2>&1 || true
     notify_saved "RECORDING SECURED" "$destination"
   elif pgrep -f '^gpu-screen-recorder' >/dev/null; then
+    magi-motion hold recording >/dev/null 2>&1 || true
     omarchy-shell -q magi-privacy refresh
     omarchy-notification-send --app-name "NERV Capture" -g "●" -t 3500 "RECORDING ACTIVE" "Persistent REC telemetry engaged" || true
+  else
+    magi-motion release recording >/dev/null 2>&1 || true
   fi
   ;;
 *) usage ;;

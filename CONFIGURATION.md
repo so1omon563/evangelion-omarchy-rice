@@ -53,6 +53,8 @@ magi-motion set reduced
 magi-motion set off
 magi-motion cycle
 magi-motion show                 # Resolved mode and named tokens
+magi-motion hold screen-share    # Temporarily reduce expensive effects
+magi-motion release screen-share # Restore the selected mode
 ```
 
 The preference is written atomically to preserved `evangelion.json` and takes
@@ -65,6 +67,18 @@ files fall back safely to built-in defaults.
 v1.1 surfaces retain their existing behavior until their v1.2 motion ticket
 adopts the controller. This prevents installing the foundation alone from
 silently changing an established desktop.
+
+Hyprland consumes the effective mode at reload. Full retains the v1.1 window
+pop, border/fade, directional workspace slide, special-workspace travel, and
+blur. Reduced keeps only short fades and border feedback. Off disables
+compositor animation and blur. Changing the selected mode reloads Hyprland
+automatically when an active session is available.
+
+Temporary holds reduce Full to Reduced without overwriting the preference.
+Screenshot and recording workflows manage their own `screenshot` and
+`recording` holds. Use a short generic reason such as `screen-share`, `game`, or
+`presentation` for other expensive/fullscreen work; multiple holds may coexist,
+and Full resumes only after the last one is released.
 
 ## Browser
 

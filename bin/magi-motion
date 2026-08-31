@@ -3,6 +3,8 @@
 
 import json
 import os
+import shutil
+import subprocess
 import sys
 import tempfile
 from pathlib import Path
@@ -12,6 +14,7 @@ STATE_HOME = Path(os.environ.get("XDG_STATE_HOME", Path.home() / ".local/state")
 CONFIG = CONFIG_HOME / "omarchy/evangelion.json"
 TOKENS = CONFIG_HOME / "omarchy/motion.json"
 STATE = STATE_HOME / "evangelion-rice/motion/state.json"
+HOLDS = STATE_HOME / "evangelion-rice/motion/holds.json"
 MODES = ("off", "reduced", "full")
 
 DEFAULT_TOKENS = {
@@ -57,6 +60,16 @@ def mode(config=None):
     return value if value in MODES else "full"
 
 
+def holds():
+    value = read_object(HOLDS, {"reasons": []}).get("reasons", [])
+    return sorted({item for item in value if isinstance(item, str) and item}) if isinstance(value, list) else []
+
+
+def effective(selected=None):
+    selected = selected or mode()
+    return "reduced" if selected == "full" and holds() else selected
+
+
 def tokens():
     value = read_object(TOKENS, DEFAULT_TOKENS)
     required = ("durations_ms", "delays_ms", "easings", "travel_px", "scales", "opacities", "modes")
@@ -87,8 +100,10 @@ def atomic_json(path, value):
 
 def resolved(selected=None):
     selected = selected or mode()
+    active = effective(selected)
     definitions = tokens()
-    return {"schema_version": 1, "mode": selected, "profile": definitions["modes"][selected],
+    return {"schema_version": 1, "selected_mode": selected, "mode": active,
+            "holds": holds(), "profile": definitions["modes"][active],
             "tokens": {key: definitions[key] for key in
                        ("durations_ms", "delays_ms", "easings", "travel_px", "scales", "opacities")}}
 
@@ -101,6 +116,18 @@ def publish(selected):
     return state
 
 
+def apply_runtime():
+    if os.environ.get("EVANGELION_SKIP_RUNTIME") == "1":
+        return
+    if os.environ.get("HYPRLAND_INSTANCE_SIGNATURE") and shutil.which("hyprctl"):
+        subprocess.run(["hyprctl", "reload"], stdout=subprocess.DEVNULL,
+                       stderr=subprocess.DEVNULL, timeout=4, check=False)
+    if shutil.which("omarchy-shell"):
+        subprocess.run(["omarchy-shell", "-q", "magi-motion", "refresh"],
+                       stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+                       timeout=4, check=False)
+
+
 def set_mode(selected):
     if selected not in MODES:
         raise ValueError("Motion mode must be off, reduced, or full")
@@ -111,10 +138,24 @@ def set_mode(selected):
     config["motion"] = {**motion, "mode": selected}
     atomic_json(CONFIG, config)
     publish(selected)
+    apply_runtime()
+
+
+def update_hold(reason, enabled):
+    if not reason or any(character not in "abcdefghijklmnopqrstuvwxyz0123456789-_" for character in reason):
+        raise ValueError("Hold reason must use lowercase letters, digits, dashes, or underscores")
+    reasons = set(holds())
+    if enabled:
+        reasons.add(reason)
+    else:
+        reasons.discard(reason)
+    atomic_json(HOLDS, {"reasons": sorted(reasons)})
+    publish(mode())
+    apply_runtime()
 
 
 def usage():
-    print("Usage: magi-motion [status|show|set off|reduced|full|cycle|apply|tokens] [--json]",
+    print("Usage: magi-motion [status|effective|show|set MODE|cycle|apply|tokens|hold REASON|release REASON|holds] [--json]",
           file=sys.stderr)
     return 2
 
@@ -126,6 +167,8 @@ def main():
         if command == "status":
             selected = mode()
             print(json.dumps(resolved(selected), indent=2, sort_keys=True) if json_output else selected)
+        elif command == "effective":
+            print(effective())
         elif command == "show":
             print(json.dumps(resolved(), indent=2, sort_keys=True))
         elif command == "tokens":
@@ -140,7 +183,16 @@ def main():
         elif command == "apply":
             selected = mode()
             publish(selected)
+            apply_runtime()
             print(selected)
+        elif command == "hold" and len(sys.argv) >= 3:
+            update_hold(sys.argv[2], True)
+            print(effective())
+        elif command == "release" and len(sys.argv) >= 3:
+            update_hold(sys.argv[2], False)
+            print(effective())
+        elif command == "holds":
+            print(json.dumps(holds()) if json_output else "\n".join(holds()))
         else:
             return usage()
     except ValueError as error:

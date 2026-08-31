@@ -29,6 +29,12 @@ Omarchy's complete live keybinding reference.
 | `Super + Ctrl + P` | Open the battery and power-profile panel |
 | `Super + Ctrl + N` | Toggle night light |
 
+Choose `MAGI Command Interface → Interface Motion` for Full, Reduced, or Off.
+Full preserves the established v1.1 compositor feel. Reduced removes blur,
+workspace travel, and window pop/scale while retaining short fades; Off uses
+immediate compositor state changes. Capture operations temporarily request the
+Reduced profile and restore the selected level afterward.
+
 ## Capture operations
 
 | Shortcut | Action |
