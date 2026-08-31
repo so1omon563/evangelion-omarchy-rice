@@ -5,6 +5,7 @@ import QtQuick
 import qs.Commons
 import qs.Ui
 import "ClipboardHistory.js" as ClipboardHistory
+import "../evangelion.motion" as Motion
 
 Item {
   id: root
@@ -15,7 +16,10 @@ Item {
   property int selectedIndex: 0
   property bool cursorActive: false
   property bool clearConfirmOpen: false
+  property bool panelReady: false
   property var history: []
+
+  Motion.MotionState { id: motion }
 
   property string historyPath: Quickshell.env("HOME") + "/.local/state/omarchy/clipboard-history.json"
   property string captureScript: root.omarchyPath + "/shell/plugins/clipboard/capture.sh"
@@ -40,17 +44,22 @@ Item {
   property int historyLimit: 300
 
   function open(payloadJson) {
+    root.panelReady = false
     root.opened = true
     root.filterText = ""
     root.selectedIndex = 0
     root.cursorActive = true
     root.disarmPointer()
     root.rebuildDisplay()
-    Qt.callLater(function() { keyCatcher.forceActiveFocus() })
+    Qt.callLater(function() {
+      root.panelReady = true
+      keyCatcher.forceActiveFocus()
+    })
   }
 
   function close() {
     root.cancelClearHistory()
+    root.panelReady = false
     root.opened = false
   }
 
@@ -374,6 +383,12 @@ Item {
       color: root.background
       borderSpec: root.borderSpec
       padding: root.contentMargin
+      opacity: motion.off || root.panelReady ? 1 : 0
+
+      Behavior on opacity {
+        enabled: !motion.off
+        NumberAnimation { duration: motion.standardMs; easing.type: Easing.OutCubic }
+      }
 
       MouseArea { anchors.fill: parent; onClicked: {} }
 

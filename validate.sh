@@ -16,6 +16,7 @@ python3 "$root/tests/responsive-layouts.py" /tmp/evangelion-responsive-layouts.j
 python3 "$root/tests/motion.py" >/dev/null && pass "shared motion controller" || fail "shared motion controller"
 python3 "$root/tests/shell-motion.py" >/dev/null && pass "unified shell motion policy" || fail "unified shell motion policy"
 python3 "$root/tests/motion-regression.py" /tmp/evangelion-motion-regression.json >/dev/null && pass "motion accessibility and interruption regressions" || fail "motion accessibility and interruption regressions"
+python3 "$root/tests/panel-motion.py" /tmp/evangelion-panel-motion.json >/dev/null && pass "interactive panel motion contracts" || fail "interactive panel motion contracts"
 for mode in full reduced off; do lua "$root/tests/hypr-motion.lua" "$mode" >/dev/null && pass "Hyprland $mode motion profile" || fail "Hyprland $mode motion profile"; done
 python3 "$root/tests/documentation.py" >/dev/null && pass "public documentation contract" || fail "public documentation contract"
 if rg -n 'Work/evangelion-rice' "$root/bin" "$root/omarchy" >/dev/null; then fail "owner-specific project path remains"; else pass "no owner-specific project path"; fi

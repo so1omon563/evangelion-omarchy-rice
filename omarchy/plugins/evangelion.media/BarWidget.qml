@@ -2,6 +2,7 @@ import QtQuick
 import Quickshell
 import qs.Ui
 import qs.Commons
+import "../evangelion.motion" as Motion
 
 BarWidget {
   id: root
@@ -68,7 +69,7 @@ BarWidget {
     onExited: if (root.bar) root.bar.hideTooltip(root)
   }
 
-  PopupCard {
+  Motion.MotionPopupCard {
     anchorItem: root
     bar: root.bar
     owner: root

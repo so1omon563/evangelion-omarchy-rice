@@ -72,6 +72,12 @@ alerts always appear immediately in every mode, never pulse, and retain their
 normal dwell or manual-dismiss behavior. Updating an existing notification
 coalesces in place instead of replaying its entrance.
 
+MAGI bar popups use the same effective mode without moving actionable content:
+Full adds a single anchor-edge acquisition cue, Reduced shortens the content
+fade, and Off keeps the established v1.1 popup fade without extra decoration.
+Clipboard and power controls acquire keyboard focus immediately; closing is
+logical and immediate even while an entrance is still fading.
+
 Hyprland consumes the effective mode at reload. Full retains the v1.1 window
 pop, border/fade, directional workspace slide, special-workspace travel, and
 blur. Reduced keeps only short fades and border feedback. Off disables

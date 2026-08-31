@@ -121,8 +121,8 @@ def activity_contracts():
     power = source("evangelion.power", "Panel.qml")
     cava = source("evangelion.cava", "BarWidget.qml")
     notification = source("evangelion.notifications")
-    assert "running: root.opened && root.rotatingPhrases" in power
-    assert "root.charging && !root.fullyCharged && root.opened" in power
+    assert "running: motion.full && root.opened && root.rotatingPhrases" in power
+    assert "motion.full && root.charging && !root.fullyCharged && root.opened" in power
     assert "running: root.cavaAvailable" in cava
     assert "readonly property bool ticking: cardSlot.lifetime > 0 && !card.hovered" in notification
     return {"inventoried": len(findings), "duplicate_timer_signatures": 0,

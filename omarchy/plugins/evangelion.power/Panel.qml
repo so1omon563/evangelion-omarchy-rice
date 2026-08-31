@@ -5,9 +5,11 @@ import Quickshell.Services.UPower
 import qs.Commons
 import qs.Ui
 import "Model.js" as Model
+import "../evangelion.motion" as Motion
 
 Panel {
   id: root
+  Motion.MotionState { id: motion }
   moduleName: "omarchy.power"
   ipcTarget: "omarchy.power"
   // manageIpc: false so this panel can own the single IpcHandler the target
@@ -264,7 +266,7 @@ Panel {
   Timer {
     id: phraseTimer
     interval: 2800
-    running: root.opened && root.rotatingPhrases
+    running: motion.full && root.opened && root.rotatingPhrases
     repeat: true
     triggeredOnStart: false
     onTriggered: phraseSwap.restart()
@@ -371,7 +373,7 @@ Panel {
             anchors.left: parent.left
             anchors.verticalCenter: parent.verticalCenter
 
-            Behavior on color { ColorAnimation { duration: 200 } }
+            Behavior on color { enabled: !motion.off; ColorAnimation { duration: motion.reduced ? 80 : 200 } }
           }
 
           Column {
@@ -416,7 +418,7 @@ Panel {
             anchors.right: parent.right
             anchors.verticalCenter: parent.verticalCenter
 
-            Behavior on color { ColorAnimation { duration: 200 } }
+            Behavior on color { enabled: !motion.off; ColorAnimation { duration: motion.reduced ? 80 : 200 } }
           }
         }
 
@@ -441,12 +443,12 @@ Panel {
             color: root.batteryFillColor
             width: Math.max(barTrack.height, barTrack.width * root.batteryFraction)
 
-            Behavior on width { NumberAnimation { duration: 320; easing.type: Easing.OutCubic } }
-            Behavior on color { ColorAnimation { duration: 220 } }
+            Behavior on width { enabled: motion.full; NumberAnimation { duration: 320; easing.type: Easing.OutCubic } }
+            Behavior on color { enabled: !motion.off; ColorAnimation { duration: motion.reduced ? 80 : 220 } }
 
             // Subtle pulse while charging — visible signal that energy is flowing in.
             SequentialAnimation on opacity {
-              running: root.charging && !root.fullyCharged && root.opened
+              running: motion.full && root.charging && !root.fullyCharged && root.opened
               loops: Animation.Infinite
               alwaysRunToEnd: true
               NumberAnimation { from: 1.0; to: 0.55; duration: 950; easing.type: Easing.InOutSine }

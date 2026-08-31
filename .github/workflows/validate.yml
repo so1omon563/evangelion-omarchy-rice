@@ -35,6 +35,9 @@ jobs:
       - name: Test motion accessibility and interruption
         run: ./tests/motion-regression.py test-results/motion-regression.json
 
+      - name: Test interactive panel motion
+        run: ./tests/panel-motion.py test-results/panel-motion.json
+
       - name: Retain clean-user results
         if: always()
         uses: actions/upload-artifact@v4

@@ -3,6 +3,7 @@ import Quickshell
 import Quickshell.Io
 import qs.Ui
 import qs.Commons
+import "../evangelion.motion" as Motion
 
 BarWidget {
   id: root
@@ -27,7 +28,7 @@ BarWidget {
   }
   MouseArea { anchors.fill:parent; acceptedButtons:Qt.LeftButton|Qt.RightButton; cursorShape:Qt.PointingHandCursor; onClicked:function(mouse){ if(mouse.button===Qt.RightButton) root.terminal(); else root.togglePopup() } }
 
-  PopupCard { anchorItem:root; bar:root.bar; owner:root; open:root.popupOpen; contentWidth:fittedContentWidth(Style.space(410)); contentHeight:fittedContentHeight(panel.implicitHeight)
+  Motion.MotionPopupCard { anchorItem:root; bar:root.bar; owner:root; open:root.popupOpen; contentWidth:fittedContentWidth(Style.space(410)); contentHeight:fittedContentHeight(panel.implicitHeight)
     Column { id:panel; anchors.fill:parent; spacing:Style.space(8)
       Text { text:"NERV // SYSTEM HEALTH"; color:Color.accent; font.family:root.bar.fontFamily; font.pixelSize:Style.font.caption; font.bold:true; font.letterSpacing:1 }
       Text { text:root.status.issues>0?"INTERVENTION REQUIRED":"ALL SYSTEMS NOMINAL"; color:root.stateColor; font.family:root.bar.fontFamily; font.pixelSize:Style.font.heading; font.bold:true }

@@ -3,6 +3,7 @@ import Quickshell
 import Quickshell.Io
 import qs.Ui
 import qs.Commons
+import "../evangelion.motion" as Motion
 
 BarWidget {
   id:root; moduleName:"evangelion.world-clock"; property bool popupOpen:false
@@ -17,7 +18,7 @@ BarWidget {
   IpcHandler{target:"magi-clock";function toggle():string{root.togglePopup();return root.popupOpen?"open":"closed"}function open():string{root.popupOpen=true;root.refresh();return"open"}function close():string{root.close();return"closed"}function refresh():string{root.refresh();return"ok"}}
   Row{id:row;anchors.centerIn:parent;spacing:Style.space(5);Text{text:"󰥔";color:root.status.met.running?Color.accent:root.bar.barForeground;font.family:root.bar.fontFamily;font.pixelSize:Style.font.body}Text{text:"UTC // "+root.status.utc;visible:!root.bar.vertical&&root.bar.width>=1600;color:root.bar.barForeground;font.family:root.bar.fontFamily;font.pixelSize:Style.font.caption;font.bold:true}}
   MouseArea{anchors.fill:parent;acceptedButtons:Qt.LeftButton|Qt.MiddleButton;cursorShape:Qt.PointingHandCursor;onClicked:function(mouse){if(mouse.button===Qt.MiddleButton)root.action("toggle");else root.togglePopup()}}
-  PopupCard{anchorItem:root;bar:root.bar;owner:root;open:root.popupOpen;contentWidth:fittedContentWidth(Style.space(390));contentHeight:fittedContentHeight(panel.implicitHeight)
+  Motion.MotionPopupCard{anchorItem:root;bar:root.bar;owner:root;open:root.popupOpen;contentWidth:fittedContentWidth(Style.space(390));contentHeight:fittedContentHeight(panel.implicitHeight)
     Column{id:panel;anchors.fill:parent;spacing:Style.space(8)
       Text{text:"MAGI // WORLD CHRONOMETER";color:Color.accent;font.family:root.bar.fontFamily;font.pixelSize:Style.font.caption;font.bold:true;font.letterSpacing:1}
       Text{text:"TIME COORDINATION MATRIX";color:root.bar.foreground;font.family:root.bar.fontFamily;font.pixelSize:Style.font.heading;font.bold:true}
