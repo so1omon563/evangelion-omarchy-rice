@@ -1,5 +1,6 @@
 import QtQuick
 import Quickshell
+import Quickshell.Hyprland
 import Quickshell.Io
 import Quickshell.Services.UPower
 import Quickshell.Wayland
@@ -20,6 +21,12 @@ Item {
   property string metric: ""
   property color accent: "#9cf23a"
   readonly property int flapCooldownMs: 10000
+  readonly property var targetScreen: {
+    var focused = Hyprland.focusedMonitor
+    var screens = Quickshell.screens || []
+    if (focused) for (var i = 0; i < screens.length; i++) if (screens[i].name === focused.name) return screens[i]
+    return screens.length ? screens[0] : null
+  }
 
   function percentage() {
     var device = UPower.displayDevice
@@ -152,6 +159,7 @@ Item {
   Component.onCompleted: Qt.callLater(root.observePower)
 
   PanelWindow {
+    screen: root.targetScreen
     visible: root.opened
     anchors { top: true; right: true; bottom: true; left: true }
     color: "transparent"
@@ -163,10 +171,10 @@ Item {
 
     Rectangle {
       id: card
-      width: Math.min(520, parent.width * 0.45)
+      width: Math.min(520, parent.width - 32, Math.max(280, parent.width * 0.45))
       height: root.metric === "" ? 132 : 154
       anchors.left: parent.left
-      anchors.leftMargin: Math.max(34, parent.width * 0.055)
+      anchors.leftMargin: Math.min(Math.max(16, parent.width * 0.055), (parent.width - width) / 2)
       anchors.verticalCenter: parent.verticalCenter
       radius: 3
       color: "#ed080710"

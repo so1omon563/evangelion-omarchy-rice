@@ -19,8 +19,9 @@ Item {
   property bool syncingPasswordText: false
 
   readonly property string placeholderText: "ENTER IDENTITY KEY"
-  readonly property int fieldWidth: 381
-  readonly property int fieldHeight: 67
+  readonly property bool compactLayout: width < 700 || height < 600
+  readonly property int fieldWidth: Math.min(381, Math.max(240, width - 64))
+  readonly property int fieldHeight: compactLayout ? 58 : 67
   readonly property int outlineThickness: 3
   readonly property int fieldFontSize: Math.round(Style.font.heading * 1.125)
   readonly property int passwordDotFontSize: Math.round(Style.font.heading * 1.33)
@@ -142,8 +143,8 @@ Item {
     }
 
     Rectangle {
-      width: 590
-      height: 330
+      width: Math.min(590, parent.width - 32)
+      height: Math.min(330, parent.height - 48)
       anchors.centerIn: parent
       color: "#D90B0810"
       border.width: 1
@@ -154,7 +155,7 @@ Item {
     Text {
       anchors.horizontalCenter: parent.horizontalCenter
       anchors.bottom: inputField.top
-      anchors.bottomMargin: 54
+      anchors.bottomMargin: root.compactLayout ? 42 : 54
       text: "NERV // MAGI SYSTEM"
       color: Color.lock.textError
       font.family: Style.font.family
@@ -273,7 +274,7 @@ Item {
     Text {
       anchors.horizontalCenter: parent.horizontalCenter
       anchors.top: inputField.bottom
-      anchors.topMargin: 24
+      anchors.topMargin: root.compactLayout ? 18 : 24
       text: "MELCHIOR 1  •  BALTHASAR 2  •  CASPER 3"
       color: root.errorState ? Color.lock.textError : Color.lock.placeholder
       font.family: Style.font.family
@@ -284,7 +285,7 @@ Item {
     Text {
       anchors.horizontalCenter: parent.horizontalCenter
       anchors.bottom: parent.bottom
-      anchors.bottomMargin: 38
+      anchors.bottomMargin: root.compactLayout ? 18 : 38
       text: "NERV CONFIDENTIAL // TERMINAL SECURED"
       color: Color.lock.placeholder
       opacity: 0.72

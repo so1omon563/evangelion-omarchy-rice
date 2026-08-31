@@ -1,5 +1,6 @@
 import QtQuick
 import Quickshell
+import Quickshell.Hyprland
 import Quickshell.Io
 import Quickshell.Wayland
 
@@ -11,6 +12,12 @@ Item {
   property bool expanded: false
   property bool reducedMotion: false
   readonly property bool displayed: root.active || root.previewActive
+  readonly property var targetScreen: {
+    var focused = Hyprland.focusedMonitor
+    var screens = Quickshell.screens || []
+    if (focused) for (var i = 0; i < screens.length; i++) if (screens[i].name === focused.name) return screens[i]
+    return screens.length ? screens[0] : null
+  }
 
   function enter(preview) {
     if (preview) root.previewActive = true
@@ -82,6 +89,7 @@ Item {
   PanelWindow {
     id: panel
     visible: root.displayed
+    screen: root.targetScreen
     anchors { top: true; right: true; bottom: true; left: true }
     color: "transparent"
     exclusionMode: ExclusionMode.Ignore
@@ -92,9 +100,9 @@ Item {
 
     Rectangle {
       id: card
-      width: root.expanded ? Math.min(580, panel.width * 0.46) : 318
-      height: root.expanded ? 238 : 42
-      x: root.expanded ? Math.max(44, panel.width * 0.055) : panel.width - width - 22
+      width: root.expanded ? Math.min(580, panel.width - 32, Math.max(280, panel.width * 0.46)) : Math.min(318, panel.width - 24)
+      height: root.expanded ? Math.min(238, panel.height - 48) : 42
+      x: root.expanded ? Math.min(Math.max(16, panel.width * 0.055), (panel.width - width) / 2) : panel.width - width - 12
       y: root.expanded ? (panel.height - height) / 2 : 46
       radius: 3
       color: "#f20b0508"

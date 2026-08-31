@@ -1,0 +1,12 @@
+{
+  "schema_version": 1,
+  "profiles": [
+    {"name":"small-laptop","monitor":{"name":"eDP-1","x":0,"y":0,"width":1366,"height":768,"scale":1.0},"fallback":"standard"},
+    {"name":"full-hd","monitor":{"name":"eDP-1","x":0,"y":0,"width":1920,"height":1080,"scale":1.0},"fallback":"standard"},
+    {"name":"qhd-125","monitor":{"name":"DP-1","x":0,"y":0,"width":3200,"height":1800,"scale":1.25},"fallback":"standard"},
+    {"name":"uhd-hidpi","monitor":{"name":"DP-1","x":0,"y":0,"width":3840,"height":2160,"scale":2.0},"fallback":"standard"},
+    {"name":"ultrawide-150","monitor":{"name":"DP-2","x":0,"y":0,"width":3440,"height":1440,"scale":1.5},"fallback":"standard"},
+    {"name":"vertical-125","monitor":{"name":"HDMI-A-1","x":2293,"y":0,"width":1350,"height":2400,"scale":1.25},"fallback":"compact"},
+    {"name":"small-secondary","monitor":{"name":"HDMI-A-2","x":1920,"y":180,"width":1280,"height":720,"scale":1.0},"fallback":"standard"}
+  ]
+}

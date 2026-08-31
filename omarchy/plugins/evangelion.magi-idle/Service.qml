@@ -1,5 +1,6 @@
 import QtQuick
 import Quickshell
+import Quickshell.Hyprland
 import Quickshell.Io
 import Quickshell.Services.UPower
 import Quickshell.Wayland
@@ -19,6 +20,12 @@ Item {
   readonly property int batteryPercent: UPower.displayDevice
     ? Math.round(UPower.displayDevice.percentage * 100) : -1
   readonly property string powerState: UPower.onBattery ? "INTERNAL RESERVE" : "UMBILICAL POWER"
+  readonly property var targetScreen: {
+    var focused = Hyprland.focusedMonitor
+    var screens = Quickshell.screens || []
+    if (focused) for (var i = 0; i < screens.length; i++) if (screens[i].name === focused.name) return screens[i]
+    return screens.length ? screens[0] : null
+  }
 
   function validSeconds(value, fallback) {
     var parsed = Number(value)
@@ -92,6 +99,7 @@ Item {
   }
 
   PanelWindow {
+    screen: root.targetScreen
     visible: root.opened
     anchors { top: true; right: true; bottom: true; left: true }
     color: "transparent"
@@ -103,10 +111,10 @@ Item {
     WlrLayershell.keyboardFocus: WlrKeyboardFocus.None
 
     Rectangle {
-      width: Math.min(520, parent.width * 0.42)
-      height: 324
+      width: Math.min(520, parent.width - 32, Math.max(280, parent.width * 0.42))
+      height: Math.min(324, parent.height - 48)
       anchors.left: parent.left
-      anchors.leftMargin: Math.max(32, parent.width * 0.045)
+      anchors.leftMargin: Math.min(Math.max(16, parent.width * 0.045), (parent.width - width) / 2)
       anchors.verticalCenter: parent.verticalCenter
       radius: 4
       color: "#e6080710"

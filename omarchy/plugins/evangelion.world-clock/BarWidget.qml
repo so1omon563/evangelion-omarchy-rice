@@ -15,7 +15,7 @@ BarWidget {
   Timer{interval:30000;running:!root.status.met.running&&!root.popupOpen;repeat:true;onTriggered:root.refresh()}
   Timer{id:actionRefresh;interval:300;repeat:false;onTriggered:root.refresh()}
   IpcHandler{target:"magi-clock";function toggle():string{root.togglePopup();return root.popupOpen?"open":"closed"}function open():string{root.popupOpen=true;root.refresh();return"open"}function close():string{root.close();return"closed"}function refresh():string{root.refresh();return"ok"}}
-  Row{id:row;anchors.centerIn:parent;spacing:Style.space(5);Text{text:"󰥔";color:root.status.met.running?Color.accent:root.bar.barForeground;font.family:root.bar.fontFamily;font.pixelSize:Style.font.body}Text{text:"UTC // "+root.status.utc;visible:!root.bar.vertical;color:root.bar.barForeground;font.family:root.bar.fontFamily;font.pixelSize:Style.font.caption;font.bold:true}}
+  Row{id:row;anchors.centerIn:parent;spacing:Style.space(5);Text{text:"󰥔";color:root.status.met.running?Color.accent:root.bar.barForeground;font.family:root.bar.fontFamily;font.pixelSize:Style.font.body}Text{text:"UTC // "+root.status.utc;visible:!root.bar.vertical&&root.bar.width>=1600;color:root.bar.barForeground;font.family:root.bar.fontFamily;font.pixelSize:Style.font.caption;font.bold:true}}
   MouseArea{anchors.fill:parent;acceptedButtons:Qt.LeftButton|Qt.MiddleButton;cursorShape:Qt.PointingHandCursor;onClicked:function(mouse){if(mouse.button===Qt.MiddleButton)root.action("toggle");else root.togglePopup()}}
   PopupCard{anchorItem:root;bar:root.bar;owner:root;open:root.popupOpen;contentWidth:fittedContentWidth(Style.space(390));contentHeight:fittedContentHeight(panel.implicitHeight)
     Column{id:panel;anchors.fill:parent;spacing:Style.space(8)

@@ -56,7 +56,7 @@ BarWidget {
     anchors.centerIn: parent
     spacing: Style.space(5)
     Text { anchors.verticalCenter: parent.verticalCenter; text: root.glyph; color: root.stateColor; font.family: root.bar.fontFamily; font.pixelSize: Style.font.body }
-    Text { anchors.verticalCenter: parent.verticalCenter; text: root.barLabel; color: root.bar.barForeground; font.family: root.bar.fontFamily; font.pixelSize: Style.font.caption; font.bold: true; visible: !root.bar.vertical }
+    Text { anchors.verticalCenter: parent.verticalCenter; text: root.barLabel; color: root.bar.barForeground; font.family: root.bar.fontFamily; font.pixelSize: Style.font.caption; font.bold: true; visible: !root.bar.vertical && root.bar.width >= 1600 }
   }
 
   MouseArea {

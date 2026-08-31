@@ -1,5 +1,6 @@
 import QtQuick
 import Quickshell
+import Quickshell.Hyprland
 import Quickshell.Io
 import Quickshell.Wayland
 
@@ -18,6 +19,12 @@ Item {
   property color accent: "#62d8ff"
   property var recent: ({})
   readonly property int cooldownMs: 5000
+  readonly property var targetScreen: {
+    var focused = Hyprland.focusedMonitor
+    var screens = Quickshell.screens || []
+    if (focused) for (var i = 0; i < screens.length; i++) if (screens[i].name === focused.name) return screens[i]
+    return screens.length ? screens[0] : null
+  }
 
   function copy(kind) {
     var values={storage:["EXTERNAL STORAGE","󰋊"],dock:["UMBILICAL DOCK","󰚥"],display:["DISPLAY LINK","󰍹"],keyboard:["CONTROL INTERFACE","󰌌"],pointer:["POINTING DEVICE","󰍽"],audio:["AUDIO INTERFACE","󰕾"]}
@@ -60,13 +67,14 @@ Item {
   }
 
   PanelWindow {
+    screen: root.targetScreen
     visible: root.opened
     anchors { top:true; right:true; bottom:true; left:true }
     color:"transparent"; exclusionMode:ExclusionMode.Ignore; mask:Region {}
     WlrLayershell.namespace:"magi-device-osd"; WlrLayershell.layer:WlrLayer.Overlay; WlrLayershell.keyboardFocus:WlrKeyboardFocus.None
     Rectangle {
-      width:Math.min(520,parent.width*0.45); height:root.actionHint===""?132:154
-      anchors.left:parent.left; anchors.leftMargin:Math.max(34,parent.width*0.055); anchors.verticalCenter:parent.verticalCenter
+      width:Math.min(520,parent.width-32,Math.max(280,parent.width*0.45)); height:root.actionHint===""?132:154
+      anchors.left:parent.left; anchors.leftMargin:Math.min(Math.max(16,parent.width*0.055),(parent.width-width)/2); anchors.verticalCenter:parent.verticalCenter
       radius:3; color:"#ed080710"; border.width:2; border.color:root.accent
       opacity:root.opened?1:0
       Behavior on opacity { enabled:!root.reducedMotion; NumberAnimation{duration:140} }

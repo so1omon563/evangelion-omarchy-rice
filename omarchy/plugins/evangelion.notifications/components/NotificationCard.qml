@@ -66,7 +66,7 @@ BorderSurface {
     return Quickshell.iconPath(value, true)
   }
 
-  implicitWidth: Style.space(420)
+  implicitWidth: Math.max(280, Math.min(Style.space(420), Screen.width - Style.space(24)))
   // Add vertical border insets so mainColumn (inset by border on top/left/right)
   // doesn't push content under the bottom edge.
   implicitHeight: mainColumn.implicitHeight + borderTop + borderBottom

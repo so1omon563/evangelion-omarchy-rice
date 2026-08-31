@@ -31,6 +31,8 @@ BarWidget {
     4: "#FF4055", // ENTRY — synchronization red
     5: "#42C8FF"  // TERMINAL — telemetry cyan
   })
+  readonly property bool compactBar: !root.vertical && root.bar && root.bar.width < 1600
+  readonly property bool minimalBar: !root.vertical && root.bar && root.bar.width < 1200
 
   function workspaceById(id) {
     var values = Hyprland.workspaces.values
@@ -52,13 +54,15 @@ BarWidget {
 
   function labelFor(id, focused) {
     if (root.vertical) return id === 10 ? "0" : String(id)
+    if (root.minimalBar) return id === 10 ? "0" : String(id)
     var label = root.magiLabels[id] || String(id).padStart(2, "0")
     return label
   }
 
   function widthFor(id) {
     if (root.vertical) return root.barSize
-    if (id >= 1 && id <= 5) return 70
+    if (root.minimalBar) return 30
+    if (id >= 1 && id <= 5) return root.compactBar ? 48 : 70
     return 34
   }
 

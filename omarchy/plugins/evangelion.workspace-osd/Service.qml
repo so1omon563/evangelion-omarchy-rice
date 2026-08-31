@@ -16,6 +16,12 @@ Item {
   property int showCount: 0
   property string heading: "MAGI // AUXILIARY"
   property string channel: "UNCLASSIFIED OPERATIONS CHANNEL"
+  readonly property var targetScreen: {
+    var focused = Hyprland.focusedMonitor
+    var screens = Quickshell.screens || []
+    if (focused) for (var i = 0; i < screens.length; i++) if (screens[i].name === focused.name) return screens[i]
+    return screens.length ? screens[0] : null
+  }
 
   function workspaceCopy(id) {
     var entries = {
@@ -131,6 +137,7 @@ Item {
   Component.onCompleted: Qt.callLater(root.observeWorkspace)
 
   PanelWindow {
+    screen: root.targetScreen
     visible: root.opened
     anchors { top: true; right: true; bottom: true; left: true }
     color: "transparent"
@@ -143,10 +150,10 @@ Item {
 
     Rectangle {
       id: card
-      width: Math.min(510, parent.width * 0.44)
+      width: Math.min(510, parent.width - 32, Math.max(280, parent.width * 0.44))
       height: 126
       anchors.left: parent.left
-      anchors.leftMargin: Math.max(34, parent.width * 0.055)
+      anchors.leftMargin: Math.min(Math.max(16, parent.width * 0.055), (parent.width - width) / 2)
       anchors.verticalCenter: parent.verticalCenter
       radius: 3
       color: "#ed080710"

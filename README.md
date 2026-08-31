@@ -126,6 +126,7 @@ unchanged files. Use `--yes` only for reviewed, non-interactive automation.
 ./validate.sh
 ./tests/installer.sh
 ./tests/clean-user.sh
+./tests/responsive-layouts.py
 ```
 
 Validation is non-destructive. It checks scripts, JSON, Lua, custom hotkeys,
@@ -135,6 +136,9 @@ Hyprland configuration. CI can check only repository tooling with
 installation, session activation, upgrades, failures, rollback, and emits a
 machine-readable JSON result. See [TESTING.md](TESTING.md) for the repeatable
 procedure and scope boundaries.
+
+See [RESPONSIVE.md](RESPONSIVE.md) for the tested resolution/scale matrix,
+minimum logical dimensions, focused-monitor behavior, and compact fallbacks.
 
 ## Compatibility
 

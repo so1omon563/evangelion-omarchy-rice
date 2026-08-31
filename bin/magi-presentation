@@ -36,11 +36,45 @@ layout_for_background() {
   esac
 }
 
+geometry_for_monitor() {
+  local monitor_json=$1 side=$2 width_pct=$3 top_height_pct=$4
+  jq -cn --argjson monitor "$monitor_json" --arg side "$side" \
+    --argjson widthPct "$width_pct" --argjson topPct "$top_height_pct" '
+    def clamp($low; $high): if . < $low then $low elif . > $high then $high else . end;
+    ($monitor.scale // 1) as $scale |
+    ($monitor.width / $scale | floor) as $width |
+    ($monitor.height / $scale | floor) as $height |
+    (($width * 0.012 + 12) | floor | clamp(12; 32)) as $margin |
+    (($height * 0.05) | floor | clamp(36; 64)) as $topReserve |
+    (($height * 0.015) | floor | clamp(10; 18)) as $gap |
+    16 as $bottomMargin |
+    ([($width * $widthPct / 100), 760] | min | [., 280] | max |
+      [., ($width - 2 * $margin)] | min | floor) as $panelWidth |
+    ($height - $topReserve - $bottomMargin - $gap) as $usableHeight |
+    (($usableHeight * $topPct / 100) | floor | [., 180] | max |
+      [., ($usableHeight - 180)] | min) as $topHeight |
+    ($usableHeight - $topHeight) as $bottomHeight |
+    (($monitor.x // 0) + (if $side == "left" then $margin else $width - $panelWidth - $margin end)) as $left |
+    (($monitor.y // 0) + $topReserve) as $top |
+    {screen:{name:($monitor.name // "unknown"),logicalWidth:$width,logicalHeight:$height,scale:$scale},
+     fallback:(if $width < 1200 then "compact" else "standard" end),
+     fastfetch:{x:$left,y:$top,width:$panelWidth,height:$topHeight},
+     btop:{x:$left,y:($top + $topHeight + $gap),width:$panelWidth,height:$bottomHeight},
+     margins:{outer:$margin,top:$topReserve,bottom:$bottomMargin,gap:$gap}}
+  '
+}
+
 if [[ ${1:-} == "--print-layout" ]]; then
   background_path=${2:-$(current_background_path)}
   read -r side width_pct top_height_pct layout_name < <(layout_for_background "$background_path")
   printf 'background=%s\nprofile=%s\nside=%s\nwidth=%s%%\ntop-height=%s%%\n' \
     "${background_path:-Unknown}" "$layout_name" "$side" "$width_pct" "$top_height_pct"
+  exit 0
+fi
+
+if [[ ${1:-} == "--print-geometry" ]]; then
+  [[ $# -eq 5 ]] || { echo 'Usage: magi-presentation --print-geometry MONITOR_JSON SIDE WIDTH_PCT TOP_HEIGHT_PCT' >&2; exit 2; }
+  geometry_for_monitor "$2" "$3" "$4" "$5"
   exit 0
 fi
 
@@ -85,30 +119,18 @@ done
 
 if [[ -n ${fastfetch_address:-} && -n ${btop_address:-} ]]; then
   monitor=$(hyprctl monitors -j | jq -c 'map(select(.focused))[0] // .[0]')
-  monitor_x=$(jq -r '.x' <<<"$monitor")
-  monitor_y=$(jq -r '.y' <<<"$monitor")
-  monitor_width=$(jq -r '.width / .scale | floor' <<<"$monitor")
-  monitor_height=$(jq -r '.height / .scale | floor' <<<"$monitor")
-
-  margin=$((monitor_width * 12 / 1000 + 12))
-  top=$((monitor_y + 48))
-  bottom_margin=20
-  gap=14
-  panel_width=$((monitor_width * width_pct / 100))
-  usable_height=$((monitor_height - 48 - bottom_margin - gap))
-  top_height=$((usable_height * top_height_pct / 100))
-  bottom_height=$((usable_height - top_height))
-
-  if [[ $side == left ]]; then
-    left=$((monitor_x + margin))
-  else
-    left=$((monitor_x + monitor_width - panel_width - margin))
-  fi
+  geometry=$(geometry_for_monitor "$monitor" "$side" "$width_pct" "$top_height_pct")
+  left=$(jq -r '.fastfetch.x' <<<"$geometry")
+  top=$(jq -r '.fastfetch.y' <<<"$geometry")
+  panel_width=$(jq -r '.fastfetch.width' <<<"$geometry")
+  top_height=$(jq -r '.fastfetch.height' <<<"$geometry")
+  bottom_height=$(jq -r '.btop.height' <<<"$geometry")
+  bottom_top=$(jq -r '.btop.y' <<<"$geometry")
 
   hyprctl dispatch resizewindowpixel "exact $panel_width $top_height,address:$fastfetch_address" >/dev/null
   hyprctl dispatch movewindowpixel "exact $left $top,address:$fastfetch_address" >/dev/null
   hyprctl dispatch resizewindowpixel "exact $panel_width $bottom_height,address:$btop_address" >/dev/null
-  hyprctl dispatch movewindowpixel "exact $left $((top + top_height + gap)),address:$btop_address" >/dev/null
+  hyprctl dispatch movewindowpixel "exact $left $bottom_top,address:$btop_address" >/dev/null
 fi
 
 omarchy-notification-send -g "󱚣" "MAGI PRESENTATION" "Workspace $(printf '%02d' "$workspace") · $layout_name layout initialized"

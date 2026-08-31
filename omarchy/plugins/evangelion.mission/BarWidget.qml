@@ -45,7 +45,7 @@ BarWidget {
     Text { text: root.glyph; color: root.stateColor; font.family: root.bar.fontFamily; font.pixelSize: Style.font.body }
     Text {
       text: root.active ? (root.status.paused ? "PAUSED // " : (root.status.phase === "work" ? "MISSION // " : "RECOVERY // ")) + root.status.display : root.status.label
-      visible: !root.bar.vertical
+      visible: !root.bar.vertical && root.bar.width >= 1600
       color: root.stateColor; font.family: root.bar.fontFamily; font.pixelSize: Style.font.caption; font.bold: true
     }
   }

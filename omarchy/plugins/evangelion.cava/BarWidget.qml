@@ -9,9 +9,10 @@ BarWidget {
   moduleName: "evangelion.cava"
   property bool cavaAvailable: false
   property var levels: [3,5,8,12,17,22,16,11,7,4,4,7,11,16,22,17,12,8]
+  readonly property bool compactBar: bar && !bar.vertical && bar.width < 1600
 
   visible: cavaAvailable
-  implicitWidth: cavaAvailable ? (bar && bar.vertical ? barSize : Style.space(126)) : 0
+  implicitWidth: cavaAvailable ? (bar && bar.vertical ? barSize : Style.space(compactBar ? 72 : 126)) : 0
   implicitHeight: barSize
 
   function ingest(line) {
