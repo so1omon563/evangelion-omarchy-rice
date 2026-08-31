@@ -1,5 +1,7 @@
 # Evangelion Omarchy Rice
 
+[![MAGI Integrity Check](https://github.com/so1omon563/evangelion-omarchy-rice/actions/workflows/validate.yml/badge.svg)](https://github.com/so1omon563/evangelion-omarchy-rice/actions/workflows/validate.yml)
+
 Complete Neon Genesis Evangelion desktop environment for Omarchy, including
 seven wallpapers, EVA affinity palettes, MAGI shell plugins, safety telemetry,
 workspace identities, terminal profiles, menus, sounds, and operational tools.
