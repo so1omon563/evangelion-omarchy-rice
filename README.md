@@ -6,6 +6,20 @@ Complete Neon Genesis Evangelion desktop environment for Omarchy, including
 seven wallpapers, EVA affinity palettes, MAGI shell plugins, safety telemetry,
 workspace identities, terminal profiles, menus, sounds, and operational tools.
 
+![Evangelion Omarchy desktop](media/desktop-hero.png)
+
+## Gallery
+
+| MAGI start page | Session controls |
+|---|---|
+| ![MAGI start page](media/start-page.png) | ![NERV session controls](media/session-menu.png) |
+
+| Lock screen | Terminal profile switching |
+|---|---|
+| ![MAGI lock screen](media/lock-screen.png) | ![MAGI terminal profiles](media/profile-switching.gif) |
+
+![Seven included wallpapers](media/wallpaper-gallery.png)
+
 > Unofficial fan project. Not affiliated with or endorsed by the owners of
 > *Neon Genesis Evangelion*. See [ASSETS_LICENSE.md](ASSETS_LICENSE.md) before
 > redistributing wallpaper assets.

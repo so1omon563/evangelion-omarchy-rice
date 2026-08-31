@@ -1,9 +1,28 @@
 const $ = id => document.getElementById(id);
+const demoMode = new URLSearchParams(location.search).get('demo') === '1';
 let currentData = null;
 let densityIndex = 1;
 
+const demoData = {
+  theme: {accent: '#9cf23a', selection: '#6c2b8f', background: '#15111c', dark_background: '#09070d', foreground: '#f2edf5', dark_foreground: '#8f8498', orange: '#f6a52f', cyan: '#4bd7d0', bright_red: '#ff304f'},
+  thermal: {available: true, temperature_c: 57, tier: 'nominal'},
+  battery: 88,
+  network: {online: true, interface: 'magi-link'},
+  media: {available: true, status: 'Playing', artist: 'NERV SYMPHONIC CHANNEL', title: 'DECISIVE BATTLE', length: 238, position: 76, player: 'demo', volume: 72, players: ['demo']},
+  weather: {available: true, message: 'TOKYO-3 · Temp 24°C · Wind E 12km/h', stale: false},
+  workspace: {id: 1, name: 'MELCHIOR'},
+  affinity: {mode: 'manual', active: 'unit-01'},
+  profile: 'engineering',
+  uptime: 273720,
+  events: [
+    {time: '19:01:28', type: 'SYSTEM', message: 'MAGI DASHBOARD LINK ESTABLISHED'},
+    {time: '19:01:24', type: 'AFFINITY', message: 'UNIT-01 COLOR LINK'},
+    {time: '19:01:19', type: 'WORKSPACE', message: 'CHANNEL MELCHIOR ACTIVE'},
+  ],
+};
+
 function clock() {
-  const date = new Date();
+  const date = demoMode ? new Date('2026-08-30T19:01:28') : new Date();
   $('time').textContent = date.toLocaleTimeString([], {hour: '2-digit', minute: '2-digit', hour12: false});
   $('seconds').textContent = date.getSeconds().toString().padStart(2, '0');
   $('minute-ring').style.setProperty('--minute', `${date.getSeconds() * 6}deg`);
@@ -112,7 +131,7 @@ function paintAlert(data) {
 
 async function sync() {
   try {
-    const data = await fetch('/api/status').then(response => response.json());
+    const data = demoMode ? structuredClone(demoData) : await fetch('/api/status').then(response => response.json());
     currentData = data;
     const map = {background: 'bg', dark_background: 'dark', foreground: 'fg', dark_foreground: 'muted', bright_red: 'red'};
     Object.entries(data.theme).forEach(([key, value]) => document.documentElement.style.setProperty(`--${map[key] || key}`, value));
