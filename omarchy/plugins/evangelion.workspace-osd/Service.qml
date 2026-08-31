@@ -3,6 +3,7 @@ import Quickshell
 import Quickshell.Hyprland
 import Quickshell.Io
 import Quickshell.Wayland
+import "../evangelion.motion" as Motion
 
 Item {
   id: root
@@ -11,7 +12,8 @@ Item {
   property bool initialized: false
   property bool opened: false
   property bool enabled: true
-  property bool reducedMotion: false
+  Motion.MotionState { id: motion }
+  readonly property bool reducedMotion: !motion.full
   property int lastWorkspaceId: -1
   property int showCount: 0
   property string heading: "MAGI // AUXILIARY"
@@ -75,22 +77,13 @@ Item {
     onFileChanged: root.refreshPreferences()
   }
 
-  FileView {
-    path: Quickshell.env("HOME") + "/.config/omarchy/evangelion-screensaver.json"
-    watchChanges: true
-    printErrors: false
-    onFileChanged: root.refreshPreferences()
-  }
-
   Process {
     id: preferenceProbe
     running: true
-    command: ["bash", "-c", "disabled=no; reduced=no; [[ -e $HOME/.local/state/evangelion-rice/workspace-osd/disabled ]] && disabled=yes; jq -e '.reduced_motion == true' $HOME/.config/omarchy/evangelion-screensaver.json >/dev/null 2>&1 && reduced=yes; printf '%s %s\\n' \"$disabled\" \"$reduced\""]
+    command: ["bash", "-c", "[[ -e $HOME/.local/state/evangelion-rice/workspace-osd/disabled ]] && echo yes || echo no"]
     stdout: SplitParser {
       onRead: function(line) {
-        var fields = String(line).trim().split(" ")
-        root.enabled = fields[0] !== "yes"
-        root.reducedMotion = fields[1] === "yes"
+        root.enabled = String(line).trim() !== "yes"
         if (!root.enabled) {
           root.opened = false
           retireTimer.stop()
@@ -101,7 +94,7 @@ Item {
 
   Timer {
     id: retireTimer
-    interval: root.reducedMotion ? 480 : 780
+    interval: motion.full ? 780 : 900
     repeat: false
     onTriggered: root.opened = false
   }
@@ -125,7 +118,7 @@ Item {
       return JSON.stringify({
         visible: root.opened,
         enabled: root.enabled,
-        reducedMotion: root.reducedMotion,
+        motionMode: motion.mode,
         workspace: root.lastWorkspaceId,
         showCount: root.showCount,
         heading: root.heading,
@@ -162,8 +155,8 @@ Item {
       opacity: root.opened ? 1 : 0
 
       Behavior on opacity {
-        enabled: !root.reducedMotion
-        NumberAnimation { duration: 120; easing.type: Easing.OutCubic }
+        enabled: !motion.off
+        NumberAnimation { duration: motion.standardMs; easing.type: Easing.OutCubic }
       }
 
       Rectangle {

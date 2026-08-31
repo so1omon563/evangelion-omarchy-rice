@@ -4,6 +4,7 @@ import Quickshell.Hyprland
 import Quickshell.Io
 import Quickshell.Services.UPower
 import Quickshell.Wayland
+import "../evangelion.motion" as Motion
 
 Item {
   id: root
@@ -11,7 +12,8 @@ Item {
   property var shell: null
   property bool initialized: false
   property bool opened: false
-  property bool reducedMotion: false
+  Motion.MotionState { id: motion }
+  readonly property bool reducedMotion: !motion.full
   property bool lastOnBattery: false
   property bool pendingOnBattery: false
   property double lastShownAt: 0
@@ -102,34 +104,16 @@ Item {
     show(current, true)
   }
 
-  function refreshPreferences() {
-    if (!preferenceProbe.running) preferenceProbe.running = true
-  }
-
   Connections {
     target: UPower
     function onOnBatteryChanged() { root.observePower() }
-  }
-
-  FileView {
-    path: Quickshell.env("HOME") + "/.config/omarchy/evangelion-screensaver.json"
-    watchChanges: true
-    printErrors: false
-    onFileChanged: root.refreshPreferences()
-  }
-
-  Process {
-    id: preferenceProbe
-    running: true
-    command: ["bash", "-c", "if jq -e '.reduced_motion == true' $HOME/.config/omarchy/evangelion-screensaver.json >/dev/null 2>&1; then echo yes; else echo no; fi"]
-    stdout: SplitParser { onRead: function(line) { root.reducedMotion = String(line).trim() === "yes" } }
   }
 
   Process { id: soundProcess }
 
   Timer { id: settleTimer; interval: 1200; repeat: false; onTriggered: root.commitTransition() }
   Timer { id: cooldownTimer; interval: root.flapCooldownMs; repeat: false; onTriggered: root.commitTransition() }
-  Timer { id: retireTimer; interval: root.reducedMotion ? 1800 : 2800; repeat: false; onTriggered: root.opened = false }
+  Timer { id: retireTimer; interval: motion.full ? 2800 : 3000; repeat: false; onTriggered: root.opened = false }
 
   IpcHandler {
     target: "power-sequence"
@@ -139,14 +123,14 @@ Item {
       return root.heading
     }
     function hide(): string { root.opened = false; retireTimer.stop(); return "hidden" }
-    function reload(): string { root.refreshPreferences(); return "reloading" }
+    function reload(): string { motion.refresh(); return "reloading" }
     function state(): string {
       return JSON.stringify({
         initialized: root.initialized,
         visible: root.opened,
         source: root.lastOnBattery ? "battery" : "ac",
         pendingSource: root.pendingOnBattery ? "battery" : "ac",
-        reducedMotion: root.reducedMotion,
+        motionMode: motion.mode,
         transitionCount: root.transitionCount,
         cooldownMs: root.flapCooldownMs,
         settleMs: settleTimer.interval,
@@ -182,7 +166,7 @@ Item {
       border.color: root.accent
       opacity: root.opened ? 1 : 0
 
-      Behavior on opacity { enabled: !root.reducedMotion; NumberAnimation { duration: 140; easing.type: Easing.OutCubic } }
+      Behavior on opacity { enabled: !motion.off; NumberAnimation { duration: motion.standardMs; easing.type: Easing.OutCubic } }
 
       Rectangle {
         width: 8

@@ -3,6 +3,7 @@ import Quickshell
 import Quickshell.Hyprland
 import Quickshell.Io
 import Quickshell.Wayland
+import "../evangelion.motion" as Motion
 
 Item {
   id: root
@@ -10,7 +11,8 @@ Item {
   property bool active: false
   property bool previewActive: false
   property bool expanded: false
-  property bool reducedMotion: false
+  Motion.MotionState { id: motion }
+  readonly property bool reducedMotion: !motion.full
   readonly property bool displayed: root.active || root.previewActive
   readonly property var targetScreen: {
     var focused = Hyprland.focusedMonitor
@@ -44,22 +46,13 @@ Item {
     onFileChanged: root.refresh()
   }
 
-  FileView {
-    path: Quickshell.env("HOME") + "/.config/omarchy/evangelion-screensaver.json"
-    watchChanges: true
-    printErrors: false
-    onFileChanged: root.refresh()
-  }
-
   Process {
     id: probe
     running: true
-    command: ["bash", "-c", "active=no; reduced=no; [[ -e $HOME/.local/state/evangelion-rice/angel-intrusion/active ]] && active=yes; jq -e '.reduced_motion == true' $HOME/.config/omarchy/evangelion-screensaver.json >/dev/null 2>&1 && reduced=yes; printf '%s %s\\n' \"$active\" \"$reduced\""]
+    command: ["bash", "-c", "[[ -e $HOME/.local/state/evangelion-rice/angel-intrusion/active ]] && echo yes || echo no"]
     stdout: SplitParser {
       onRead: function(line) {
-        var fields = String(line).trim().split(" ")
-        var nextActive = fields[0] === "yes"
-        root.reducedMotion = fields[1] === "yes"
+        var nextActive = String(line).trim() === "yes"
         if (nextActive && !root.active) root.enter(false)
         else if (!nextActive && root.active) root.leave()
       }
@@ -68,7 +61,7 @@ Item {
 
   Timer {
     id: collapseTimer
-    interval: root.reducedMotion ? 1800 : 3200
+    interval: motion.full ? 3200 : 3600
     onTriggered: {
       if (root.previewActive) root.leave()
       else root.expanded = false
@@ -82,7 +75,7 @@ Item {
     function preview(): string { root.enter(true); return "preview" }
     function state(): string {
       return JSON.stringify({active:root.active,preview:root.previewActive,
-        expanded:root.expanded,reducedMotion:root.reducedMotion})
+        expanded:root.expanded,motionMode:motion.mode})
     }
   }
 
@@ -110,10 +103,8 @@ Item {
       border.color: "#ff153d"
       clip: true
 
-      Behavior on width { enabled: !root.reducedMotion; NumberAnimation { duration: 180; easing.type: Easing.OutCubic } }
-      Behavior on height { enabled: !root.reducedMotion; NumberAnimation { duration: 180; easing.type: Easing.OutCubic } }
-      Behavior on x { enabled: !root.reducedMotion; NumberAnimation { duration: 180; easing.type: Easing.OutCubic } }
-      Behavior on y { enabled: !root.reducedMotion; NumberAnimation { duration: 180; easing.type: Easing.OutCubic } }
+      // Critical alerts are immediate in every motion mode. The dwell/collapse
+      // remains long enough to read and use the documented safe-exit action.
 
       Rectangle {
         width: 9

@@ -64,9 +64,13 @@ distances, opacities, scales, and capability flags for each mode. Avoid changing
 unless developing a coordinated motion profile. Invalid or incomplete token
 files fall back safely to built-in defaults.
 
-v1.1 surfaces retain their existing behavior until their v1.2 motion ticket
-adopts the controller. This prevents installing the foundation alone from
-silently changing an established desktop.
+Notifications, workspace/device OSDs, power transitions, update telemetry, and
+the intrusion alert follow the effective mode. Full uses the established short
+fade and subtle notification scale; Reduced uses a short fade without travel or
+scale; Off changes visibility immediately. Critical notifications and intrusion
+alerts always appear immediately in every mode, never pulse, and retain their
+normal dwell or manual-dismiss behavior. Updating an existing notification
+coalesces in place instead of replaying its entrance.
 
 Hyprland consumes the effective mode at reload. Full retains the v1.1 window
 pop, border/fade, directional workspace slide, special-workspace travel, and

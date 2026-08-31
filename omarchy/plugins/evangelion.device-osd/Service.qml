@@ -3,13 +3,15 @@ import Quickshell
 import Quickshell.Hyprland
 import Quickshell.Io
 import Quickshell.Wayland
+import "../evangelion.motion" as Motion
 
 Item {
   id: root
   property var shell: null
   property bool initialized: false
   property bool opened: false
-  property bool reducedMotion: false
+  Motion.MotionState { id: motion }
+  readonly property bool reducedMotion: !motion.full
   property int lastScreenCount: 0
   property int screenCount: Quickshell.screens.length
   property int eventCount: 0
@@ -48,7 +50,7 @@ Item {
   Component.onCompleted: { lastScreenCount=screenCount; initialized=true }
 
   Timer { id: displaySettle; interval: 1400; onTriggered: { var action=root.screenCount>root.lastScreenCount?"connected":"disconnected"; if(root.screenCount!==root.lastScreenCount) root.show("display",action,root.screenCount+" ACTIVE OUTPUT"+(root.screenCount===1?"":"S"),true); root.lastScreenCount=root.screenCount } }
-  Timer { id: retire; interval: root.reducedMotion?1600:2600; onTriggered: root.opened=false }
+  Timer { id: retire; interval: motion.full ? 2600 : 2800; onTriggered: root.opened=false }
 
   Process {
     id: monitor
@@ -56,14 +58,12 @@ Item {
     command: ["magi-device-monitor"]
     stdout: SplitParser { onRead: function(line) { try { var e=JSON.parse(String(line)); root.show(e.kind,e.action,e.label,true) } catch(err) {} } }
   }
-  FileView { path: Quickshell.env("HOME")+"/.config/omarchy/evangelion-screensaver.json"; watchChanges:true; printErrors:false; onFileChanged: prefs.running=true }
-  Process { id:prefs; running:true; command:["bash","-c","jq -e '.reduced_motion == true' $HOME/.config/omarchy/evangelion-screensaver.json >/dev/null 2>&1 && echo yes || echo no"]; stdout:SplitParser{onRead:function(line){root.reducedMotion=String(line).trim()==="yes"}} }
 
   IpcHandler {
     target: "device-osd"
     function preview(kind:string, action:string):string { root.show(kind,action,kind.replace("-"," "),false); return root.heading }
     function hide():string { root.opened=false; retire.stop(); return "hidden" }
-    function state():string { return JSON.stringify({initialized:root.initialized,visible:root.opened,screens:root.screenCount,eventCount:root.eventCount,cooldownMs:root.cooldownMs,reducedMotion:root.reducedMotion,heading:root.heading}) }
+    function state():string { return JSON.stringify({initialized:root.initialized,visible:root.opened,screens:root.screenCount,eventCount:root.eventCount,cooldownMs:root.cooldownMs,motionMode:motion.mode,heading:root.heading}) }
   }
 
   PanelWindow {
@@ -77,7 +77,7 @@ Item {
       anchors.left:parent.left; anchors.leftMargin:Math.min(Math.max(16,parent.width*0.055),(parent.width-width)/2); anchors.verticalCenter:parent.verticalCenter
       radius:3; color:"#ed080710"; border.width:2; border.color:root.accent
       opacity:root.opened?1:0
-      Behavior on opacity { enabled:!root.reducedMotion; NumberAnimation{duration:140} }
+      Behavior on opacity { enabled:!motion.off; NumberAnimation{duration:motion.standardMs} }
       Rectangle {
         width: 8
         anchors { top: parent.top; bottom: parent.bottom; left: parent.left }

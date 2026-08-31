@@ -10,9 +10,12 @@ import qs.Commons
 
 import "components"
 import "NotificationLogic.js" as NotificationLogic
+import "../evangelion.motion" as Motion
 
 Item {
   id: service
+
+  Motion.MotionState { id: motion }
 
   // Injected by omarchy-shell (the first-party service loader).
   property var shell: null
@@ -1051,6 +1054,8 @@ Item {
               cornerRadius: service.cornerRadius
               fontFamily: service.shell && service.shell.bar ? service.shell.bar.fontFamily : ""
               glyph: cardSlot.glyph
+              popupAnimated: true
+              motionMode: motion.mode
 
               onCloseRequested: service.dismissPopup(cardSlot.index)
               onCardClicked: service.invokePopupDefault(cardSlot.index)

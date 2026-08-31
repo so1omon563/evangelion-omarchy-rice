@@ -26,6 +26,8 @@ BorderSurface {
   property int urgency: 1
   property double timestamp: 0
   property int cornerRadius: 0
+  property bool popupAnimated: false
+  property string motionMode: "full"
 
   // System monospace font injected by the container.
   property string fontFamily: ""
@@ -74,6 +76,35 @@ BorderSurface {
   color: Color.notifications.background
   borderSpec: cardBorderSpec
   clip: true
+
+  // In-place notification replacements keep the same delegate, so repeated
+  // events coalesce without replaying an entrance. Critical cards and Off
+  // mode are visible immediately; Reduced uses only a short fade.
+  opacity: popupAnimated && urgency !== 2 && motionMode !== "off" ? 0 : 1
+  scale: popupAnimated && urgency !== 2 && motionMode === "full" ? 0.985 : 1
+
+  Component.onCompleted: {
+    if (!popupAnimated || urgency === 2 || motionMode === "off") return
+    entrance.start()
+  }
+
+  ParallelAnimation {
+    id: entrance
+    NumberAnimation {
+      target: root
+      property: "opacity"
+      to: 1
+      duration: root.motionMode === "reduced" ? 80 : 140
+      easing.type: Easing.OutCubic
+    }
+    NumberAnimation {
+      target: root
+      property: "scale"
+      to: 1
+      duration: root.motionMode === "full" ? 140 : 0
+      easing.type: Easing.OutCubic
+    }
+  }
 
   HoverHandler { id: hoverTracker }
 
