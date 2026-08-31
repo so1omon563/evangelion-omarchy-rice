@@ -2,177 +2,130 @@
 
 [![MAGI Integrity Check](https://github.com/so1omon563/evangelion-omarchy-rice/actions/workflows/validate.yml/badge.svg)](https://github.com/so1omon563/evangelion-omarchy-rice/actions/workflows/validate.yml)
 
-Complete Neon Genesis Evangelion desktop environment for Omarchy, including
-seven wallpapers, EVA affinity palettes, MAGI shell plugins, safety telemetry,
-workspace identities, terminal profiles, menus, sounds, and operational tools.
+An unofficial *Neon Genesis Evangelion* desktop environment for Omarchy:
+seven wallpapers, EVA affinity palettes, MAGI shell plugins, responsive menus
+and overlays, terminal profiles, safety telemetry, sounds, and operator tools.
 
 ![Evangelion Omarchy desktop](media/desktop-hero.png)
-
-## Gallery
 
 | MAGI start page | Session controls |
 |---|---|
 | ![MAGI start page](media/start-page.png) | ![NERV session controls](media/session-menu.png) |
 
-| Lock screen | Terminal profile switching |
+| Lock screen | Terminal profiles |
 |---|---|
 | ![MAGI lock screen](media/lock-screen.png) | ![MAGI terminal profiles](media/profile-switching.gif) |
 
 ![Seven included wallpapers](media/wallpaper-gallery.png)
 
-> Unofficial fan project. Not affiliated with or endorsed by the owners of
-> *Neon Genesis Evangelion*. See [ASSETS_LICENSE.md](ASSETS_LICENSE.md) before
-> redistributing wallpaper assets.
+> This is an unofficial fan project, unaffiliated with the rights holders.
+> Software is MIT-licensed; artwork has separate terms. Read
+> [ASSETS_LICENSE.md](ASSETS_LICENSE.md) before redistributing assets.
 
-## Install
+## Supported environment
 
-This release targets Omarchy with Hyprland. Before changing any configuration,
-run the read-only compatibility preflight:
+| Component | Supported range | Verified reference |
+|---|---|---|
+| Omarchy | `>=4.0.0, <5.0.0` | 4.0.1-1 |
+| Hyprland | `>=0.56.0, <0.57.0` | 0.56.2-1 |
+| Architecture | x86_64 | ThinkPad T480, x86_64 |
+| Session | Active Wayland/Hyprland session for installation activation | Omarchy |
+| Displays | 1280×720 presentation minimum; 320×480 overlay minimum | 7 automated profiles from 1×–2× |
+| Terminals | Ghostty, Alacritty, Foot, or Kitty | Ghostty and Foot |
+| Shell integration | Bash, Zsh, or Fish; optional | Bash |
+| Browser | Current XDG/Omarchy default | Zen and Chromium-compatible launchers |
+
+x86_64 is the supported release architecture. Other Linux architectures are
+not intentionally blocked by source validation, but remain unverified. The
+original T480 is a reference machine—not a hardware requirement. Battery-less,
+multi-battery, Intel, AMD, generic thermal, missing-sensor, and optional-tool
+fallbacks are implemented. See [RESPONSIVE.md](RESPONSIVE.md) for the exact
+display matrix and [TESTING.md](TESTING.md) for what CI proves.
+
+Support covers the version ranges above and reproducible repository behavior.
+Third-party themes, arbitrary shell forks, and hardware-specific vendor tools
+are best-effort. Include `./preflight.py --json` and `./validate.sh` output in a
+bug report.
+
+## Quick start
+
+From an active Omarchy Hyprland session:
 
 ```bash
+git clone git@github.com:so1omon563/evangelion-omarchy-rice.git
+cd evangelion-omarchy-rice
 ./preflight.py
-```
-
-Use `./preflight.py --json` for machine-readable results. The preflight does
-not create probes or modify configuration; it inspects versions, session state,
-dependencies, target permissions, backup capacity, services, port 8765,
-hotkeys, displays, terminals, browser, battery, thermal, audio, and networking.
-It exits non-zero only when installation would be unsafe or unsupported.
-
-The report separates three levels:
-
-- **Required** — source-validation tools and the active Omarchy desktop. The
-  installer stops before its first write if one is missing.
-- **Recommended** — a supported terminal plus Fastfetch and btop provide the
-  complete reference experience, but are not required for the base theme.
-- **Optional** — feature-specific integrations such as media controls, Cava,
-  Tailscale, clipboard actions, power profiles, and multi-monitor screensaver
-  IPC. A missing optional tool disables only its listed integration.
-- **Development** — tooling used to validate and contribute to the repository,
-  but not by the installed desktop at runtime.
-
-Every missing group includes an actionable Arch/Omarchy package command. The
-canonical machine-readable inventory is [dependencies.tsv](dependencies.tsv).
-Preview the default installation without changing target files:
-
-```bash
-./install.sh --dry-run
-```
-
-Choose a preset or an explicit component list, then apply it:
-
-```bash
-./install.sh --apply --preset minimal
+./install.sh --dry-run --preset default
 ./install.sh --apply --preset default
-./install.sh --apply --preset full
-./install.sh --apply --components theme,tools,shell
+omarchy theme set evangelion
+./validate.sh
 ```
 
-`minimal` installs the theme and MAGI tools. `default` adds Omarchy shell,
-Hyprland, start-page, and service integration. `full` adds Fastfetch, Neovim,
-and detected-shell startup integration. Run `./install.sh --list-components` for the
-complete selectable list.
+Use the HTTPS clone URL if SSH is not configured. Always review the dry-run;
+the default preset replaces complete Omarchy shell and Hyprland configuration
+files after confirmation. The preflight is read-only and stops unsafe installs
+before the first backup or write.
 
-### User configuration
+Presets:
 
-The default install creates `~/.config/omarchy/evangelion.json` once and never
-overwrites it on later runs. Set `terminal` to `ghostty`, `alacritty`, `foot`,
-or `kitty`, or leave it as `auto` to follow `xdg-terminal-exec`. Set `editor`
-as a JSON argument array such as `["code", "--wait"]`; an empty array follows
-`VISUAL`, `EDITOR`, then available console editors. `project_dir` defaults to
-the directory where deployment is invoked, and the browser always launches
-through `omarchy launch browser` so the current XDG default is honored.
+- `minimal`: theme and command-line tools only.
+- `default`: minimal plus shell, Hyprland, start page, and user services.
+- `full`: default plus Fastfetch/Neovim extras and detected-shell integration.
 
-The full preset detects Bash, Zsh, or Fish. Override with `--shell fish`, or
-disable all startup-file integration explicitly with `--no-shell-integration`.
-Generated configuration and startup-file changes are included in the same
-transaction manifest and are preserved or removed by rollback.
+Select individual components with `--components`, override shell detection with
+`--shell bash|zsh|fish`, or use `--no-shell-integration`. See
+[INSTALL.md](INSTALL.md) for prerequisites, package commands, component/path
+effects, transaction behavior, and first-run verification.
 
-### Optional hardware and integrations
+## Configuration
 
-Run `eva-capabilities` for a JSON report of batteries, thermal sensor families,
-NetworkManager, Bluetooth tooling, Tailscale, brightness controls, power
-profiles, audio, Cava, and Neon Overdrive. Intel `coretemp`, AMD `k10temp` or
-`zenpower`, generic hwmon devices, and thermal-zone fallbacks are supported.
-Battery-less systems report battery telemetry as unavailable; multiple
-batteries are aggregated safely.
+Personal settings live in `~/.config/omarchy/evangelion.json`, which the
+installer creates once and preserves on upgrades. Terminal, editor, shell,
+project path, deployment, presentation, browser selection, weather, operating
+profiles, thermal thresholds, and optional integrations are documented in
+[CONFIGURATION.md](CONFIGURATION.md).
 
-The default bar includes an independent `evangelion.cava` MAGI spectrum. It uses
-the active Evangelion palette and automatically collapses to zero width when
-Cava is unavailable; clicking it opens the full Cava terminal view.
+The browser always follows `omarchy launch browser`; no browser executable is
+hard-coded. Cava is an independent `evangelion.cava` bar plugin and hides when
+Cava is unavailable. Neon Overdrive is a separately selected compatibility
+component and is never installed by a preset.
 
-All bundled shell plugins use the distribution-owned `evangelion.*` namespace.
-Upgrading through the installer transactionally removes the former personal
-`so1omon.*` plugin directories, retaining them inside the rollback snapshot.
+For controls and keybindings, see [HOTKEYS.md](HOTKEYS.md).
 
-Neon Overdrive is not part of any preset and is absent from the default bar.
-Its menu appears only when that theme's `neon-control` integration is detected.
-Existing users can request the compatibility widget with
-`--components neon-overdrive`; its included Cava configuration remains disabled
-until Cava is explicitly enabled in Neon Overdrive settings. Missing networking,
-Bluetooth, VPN, brightness, audio-routing, or power-profile tools affect only
-their corresponding optional controls.
+## Upgrade, rollback, and removal
 
-The installer completes preflight before its first backup or write, prints the
-exact change plan, and requires confirmation before replacing complete files.
-Each transaction snapshots only changed paths under
-`~/.local/state/evangelion-rice/install-backups/`. An activation or validation
-failure automatically restores that transaction. Repeated installation skips
-unchanged files. Use `--yes` only for reviewed, non-interactive automation.
-
-## Validate
+Every changed target is recorded in a transaction snapshot under
+`~/.local/state/evangelion-rice/install-backups/`. Failed activation or
+validation automatically rolls back the active transaction.
 
 ```bash
-./validate.sh
+./rollback.sh
+./rollback.sh /path/to/snapshot
+```
+
+Users upgrading from the original v1.0-era installation receive an automatic,
+rollback-safe migration from `so1omon.*` to `evangelion.*` plugin IDs. Read
+[UPGRADING.md](UPGRADING.md) before upgrading or removing a multi-transaction
+installation; a rollback reverses one transaction, not the entire history.
+
+## Troubleshooting and validation
+
+Start with `./preflight.py --json` and `./validate.sh`.
+[TROUBLESHOOTING.md](TROUBLESHOOTING.md) covers shell/plugin loading, services,
+wallpapers, weather, media, Cava, sensors, and hotkey conflicts. Contributor
+checks are:
+
+```bash
 ./tests/installer.sh
 ./tests/clean-user.sh
 ./tests/responsive-layouts.py
 ```
 
-Validation is non-destructive. It checks scripts, JSON, Lua, custom hotkeys,
-the dependency manifest, widget sources, live binaries, the bar layout, and
-Hyprland configuration. CI can check only repository tooling with
-`./check-dependencies.sh --source-only`. The isolated clean-user harness covers
-installation, session activation, upgrades, failures, rollback, and emits a
-machine-readable JSON result. See [TESTING.md](TESTING.md) for the repeatable
-procedure and scope boundaries.
-
-See [RESPONSIVE.md](RESPONSIVE.md) for the tested resolution/scale matrix,
-minimum logical dimensions, focused-monitor behavior, and compact fallbacks.
-
-## Compatibility
-
-| Component | Supported | Currently verified |
-|---|---|---|
-| Omarchy | `>=4.0.0, <5.0.0` | 4.0.1-1 |
-| Hyprland | `>=0.56.0, <0.57.0` | 0.56.2-1 |
-| Architecture | x86_64 | ThinkPad T480, x86_64 |
-| Session | Wayland + active Hyprland IPC | Omarchy/Hyprland |
-| Display | Reported dynamically; responsive-layout work remains | 1920×1080 at 1× |
-| Terminal | Ghostty reference; Alacritty, Foot, and Kitty detected | Ghostty |
-| Browser | XDG default via `omarchy launch browser` | Zen |
-| Shell | Bash integration currently provided | Bash |
-
-“Supported” describes the preflight gate, not a claim that every hardware and
-display combination has been tested. Verified environments will be added here
-as clean-user and external beta testing expands the matrix.
-
-## Roll back
-
-Restore the most recent installation snapshot:
-
-```bash
-./rollback.sh
-```
-
-Or provide a specific snapshot directory. Rollback only restores or removes
-paths listed in that snapshot's manifest.
-
-See [HOTKEYS.md](HOTKEYS.md) for the full control reference and [AUDIT.md](AUDIT.md)
-for release verification.
+CI retains machine-readable clean-user and responsive-layout artifacts. See
+[AUDIT.md](AUDIT.md) for release verification and [theme/ARTWORK.md](theme/ARTWORK.md)
+for wallpaper provenance.
 
 ## License
 
-Software and configuration source are available under the MIT license. Image
-assets are excluded from that grant; see [ASSETS_LICENSE.md](ASSETS_LICENSE.md)
-and [theme/ARTWORK.md](theme/ARTWORK.md).
+Software and configuration source are MIT-licensed. Image assets are excluded
+from that grant; see [ASSETS_LICENSE.md](ASSETS_LICENSE.md).
