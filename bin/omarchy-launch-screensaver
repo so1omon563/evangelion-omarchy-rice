@@ -12,6 +12,11 @@ if omarchy-toggle-enabled screensaver-off && [[ ${1:-} != force ]]; then
   exit 1
 fi
 
+# A later lifecycle phase owns the screen. Retire the informational idle card
+# before creating any fullscreen surfaces; lock always wins this arbitration.
+[[ $(omarchy-shell lock isLocked 2>/dev/null || echo true) == true ]] && exit 0
+omarchy-shell magi-idle hide >/dev/null 2>&1 || true
+
 focused=$(omarchy-hyprland-monitor-focused)
 terminal=$(xdg-terminal-exec --print-id)
 socket="$XDG_RUNTIME_DIR/hypr/$HYPRLAND_INSTANCE_SIGNATURE/.socket2.sock"

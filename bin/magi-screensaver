@@ -51,6 +51,15 @@ def setting():
         return {}
 
 
+def motion_mode():
+    try:
+        raw = os.popen("magi-motion status --json 2>/dev/null").read()
+        mode = json.loads(raw).get("mode", "full")
+        return mode if mode in {"full", "reduced", "off"} else "full"
+    except (OSError, ValueError):
+        return "full"
+
+
 def center(lines, width, height):
     content = []
     top = max(1, (height - len(lines)) // 2)
@@ -175,7 +184,8 @@ def unit_scene(width, height, phase, motion):
 def main():
     apply_affinity_palette()
     config = setting()
-    reduced = bool(config.get("reduced_motion", False)) or "--static" in sys.argv
+    mode = motion_mode()
+    reduced = mode != "full" or bool(config.get("reduced_motion", False)) or "--static" in sys.argv
     scene_seconds = max(8, int(config.get("scene_seconds", 12)))
     scenes = [magi_scene, sync_scene, warning_scene, unit_scene]
     original = termios.tcgetattr(sys.stdin.fileno())
@@ -206,7 +216,7 @@ def main():
                 continue
 
             width, height = shutil.get_terminal_size((120, 40))
-            if not reduced and scene_age < 1.25:
+            if mode == "full" and not reduced and scene_age < 1.25:
                 art = transition(width, height, scene_index, scene_age / 1.25)
             else:
                 art = scenes[scene_index](width, height, phase, not reduced)

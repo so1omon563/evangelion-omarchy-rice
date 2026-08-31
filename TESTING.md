@@ -12,6 +12,7 @@ Motion has two additional evidence layers:
 ```bash
 ./tests/motion-regression.py test-results/motion-regression.json
 ./tests/lock-motion.py test-results/lock-motion.json
+./tests/lifecycle-motion.py test-results/lifecycle-motion.json
 ./tests/motion-observe.py test-results/motion-observation.json
 ```
 
@@ -25,6 +26,9 @@ motion mode it found. It requires a running Omarchy shell and is not run in CI.
 `lock-motion.py` statically enforces immediate opaque lock coverage, masked
 credentials, mode-aware post-success feedback, recovery hooks, and abort-first
 stationary power confirmations without invoking any real session action.
+`lifecycle-motion.py` enforces lock-first phase arbitration, immediate
+screensaver dismissal, boot retirement, authoritative timers, and complete
+Full/Reduced/Off paths without waiting for real idle or powering off a display.
 
 `installer.sh` exercises individual transaction mechanics in a temporary home.
 `clean-user.sh` simulates a fresh, logged-in Omarchy user with isolated config,

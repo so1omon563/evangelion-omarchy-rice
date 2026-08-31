@@ -87,6 +87,14 @@ Password failures and Escape/Ctrl-U clearing are immediate and never echo the
 secret. Logout, reboot, and shutdown keep stationary confirmation menus with
 ABORT selected before EXECUTE; motion never arms or invokes an action.
 
+The desktop lifecycle has an explicit ownership order: lock, screensaver, idle
+status, then boot decoration. Starting the screensaver retires the idle card;
+boot OSDs stop as soon as idle, screensaver, or lock takes ownership. Input
+dismisses idle/screensaver immediately and existing lock/display timers remain
+authoritative. Full retains the staged boot and screensaver feed, Reduced uses
+short/static feedback, and Off emits only the final nominal boot state and
+static screensaver scenes. Wake never replays the login sequence.
+
 Hyprland consumes the effective mode at reload. Full retains the v1.1 window
 pop, border/fade, directional workspace slide, special-workspace travel, and
 blur. Reduced keeps only short fades and border feedback. Off disables

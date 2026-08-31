@@ -6,7 +6,7 @@ state_dir="${XDG_STATE_HOME:-$HOME/.local/state}/omarchy"
 disabled_file="$state_dir/evangelion-boot-sequence.disabled"
 
 show_sequence() {
-  local icon message payload
+  local icon message payload mode start end
   local -a icons=("󰚩" "󰚩" "󰚩" "󰢮")
   local -a messages=(
     "MELCHIOR-1 // ONLINE"
@@ -23,15 +23,30 @@ show_sequence() {
   done
   omarchy-shell osd ping >/dev/null 2>&1 || exit 0
 
-  for index in "${!messages[@]}"; do
+  # Boot is decorative and yields immediately to every later lifecycle owner.
+  lifecycle_available || exit 0
+  mode=$(magi-motion status --json 2>/dev/null | jq -r '.mode // "full"')
+  start=0
+  end=${#messages[@]}
+  [[ $mode == reduced ]] && start=2
+  [[ $mode == off ]] && start=3
+
+  for ((index=start; index<end; index++)); do
+    lifecycle_available || exit 0
     icon=${icons[index]}
     message=${messages[index]}
     payload=$(jq -cn --arg icon "$icon" --arg message "$message" \
       '{icon:$icon,message:$message,duration:850}')
     omarchy-shell -q osd show "$payload"
-    sleep 0.72
+    [[ $mode == off ]] || sleep "$([[ $mode == reduced ]] && echo 0.25 || echo 0.72)"
   done
   magi-sound nominal >/dev/null 2>&1 || true
+}
+
+lifecycle_available() {
+  ! pgrep -f '[o]rg.omarchy.screensaver' >/dev/null \
+    && [[ $(omarchy-shell lock isLocked 2>/dev/null || echo true) != true ]] \
+    && [[ $(omarchy-shell magi-idle state 2>/dev/null | jq -r '.idle // true' 2>/dev/null) != true ]]
 }
 
 case "${1:-run}" in

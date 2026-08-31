@@ -4,6 +4,7 @@ import Quickshell.Hyprland
 import Quickshell.Io
 import Quickshell.Services.UPower
 import Quickshell.Wayland
+import "../evangelion.motion" as Motion
 
 Item {
   id: root
@@ -11,6 +12,7 @@ Item {
   property var shell: null
   property bool opened: false
   property bool stayAwake: false
+  Motion.MotionState { id: motion }
 
   readonly property var idleConfig: shell && shell.shellConfig && shell.shellConfig.idle
     ? shell.shellConfig.idle : ({})
@@ -36,6 +38,10 @@ Item {
     if (root.stayAwake || root.statusTimeoutSeconds >= root.screensaverTimeoutSeconds) return
     root.opened = true
     retireTimer.restart()
+  }
+
+  function retireForLifecycleOwner() {
+    if (root.opened) root.close()
   }
 
   function close() {
@@ -93,7 +99,9 @@ Item {
         idle: idleMonitor.isIdle,
         stayAwake: root.stayAwake,
         status: root.statusTimeoutSeconds,
-        screensaver: root.screensaverTimeoutSeconds
+        screensaver: root.screensaverTimeoutSeconds,
+        owner: root.opened ? "idle-status" : "desktop",
+        motionMode: motion.mode
       })
     }
   }
@@ -111,6 +119,7 @@ Item {
     WlrLayershell.keyboardFocus: WlrKeyboardFocus.None
 
     Rectangle {
+      id: statusCard
       width: Math.min(520, parent.width - 32, Math.max(280, parent.width * 0.42))
       height: Math.min(324, parent.height - 48)
       anchors.left: parent.left
@@ -120,6 +129,13 @@ Item {
       color: "#e6080710"
       border.width: 2
       border.color: "#9cf23a"
+      opacity: root.opened ? 1 : 0
+      transform: Translate { x: root.opened || !motion.full ? 0 : -12 }
+
+      Behavior on opacity {
+        enabled: !motion.off
+        NumberAnimation { duration: motion.reduced ? 80 : 140; easing.type: Easing.OutCubic }
+      }
 
       Rectangle {
         width: 7
