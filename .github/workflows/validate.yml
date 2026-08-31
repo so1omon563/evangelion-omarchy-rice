@@ -44,6 +44,9 @@ jobs:
       - name: Test boot idle screensaver lifecycle motion
         run: ./tests/lifecycle-motion.py test-results/lifecycle-motion.json
 
+      - name: Test wallpaper and affinity motion
+        run: ./tests/affinity-motion.py test-results/affinity-motion.json
+
       - name: Retain clean-user results
         if: always()
         uses: actions/upload-artifact@v4

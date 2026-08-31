@@ -9,6 +9,10 @@ active_file="$state_dir/affinity-active"
 background_link="${XDG_STATE_HOME:-$HOME/.local/state}/omarchy/current/background"
 mkdir -p "$state_dir"
 
+motion_mode() {
+  magi-motion status --json 2>/dev/null | jq -r '.mode // "full"' 2>/dev/null || echo full
+}
+
 detect() {
   case "${1##*/}" in
     5-eva-unit-00-prototype.*) echo unit-00-prototype ;;
@@ -213,8 +217,26 @@ apply_profile() {
     echo 'Affinity apply failed; previous state restored.' >&2
     return 1
   fi
-  echo "$profile" > "$active_file"
+  printf '%s\n' "$profile" > "$tmp/active"
+  mv -f "$tmp/active" "$active_file"
+  coordinate_wallpaper "$profile" "$previous_profile"
   printf 'Affinity: %s (%s mode)\n' "$label" "$(cat "$mode_file" 2>/dev/null || echo auto)"
+}
+
+coordinate_wallpaper() {
+  local profile=$1 previous=$2 wallpaper motion affinity_mode
+  wallpaper=$(readlink -f "$background_link" 2>/dev/null || true)
+  motion=$(motion_mode)
+  affinity_mode=$(cat "$mode_file" 2>/dev/null || echo auto)
+  # Omarchy owns preloading and aspect-correct rendering on every output.
+  # Off snaps its already selected frame; supported reveal modes stay native.
+  if [[ -n $wallpaper && $motion == off ]]; then
+    omarchy-shell -q background setInstant "$wallpaper" >/dev/null 2>&1 || true
+  fi
+  if [[ $profile != "$previous" && $affinity_mode == auto ]]; then
+    omarchy-notification-send -u low -g '󰏘' "EVA AFFINITY // ${label}" \
+      "Wallpaper, shell, borders, and new terminals synchronized" 2>/dev/null || true
+  fi
 }
 
 apply_hypr() {
@@ -252,6 +274,16 @@ case "$command" in
       exit 1
     fi
     ;;
-  apply) mode=$(cat "$mode_file" 2>/dev/null || echo auto); if [[ $mode == manual && -r $manual_file ]]; then profile=$(cat "$manual_file"); else profile=$(detect "${2:-$(readlink -f "$background_link" 2>/dev/null || true)}"); fi; apply_profile "$profile" ;;
+  apply)
+    # Serialize path-unit bursts and debounce the atomic symlink replacement so
+    # rapid cycling settles directly on the final wallpaper/profile pair.
+    exec 9>"$state_dir/affinity.lock"
+    flock 9
+    mode=$(cat "$mode_file" 2>/dev/null || echo auto)
+    [[ $mode == manual || -n ${2:-} ]] || sleep 0.12
+    if [[ $mode == manual && -r $manual_file ]]; then profile=$(cat "$manual_file")
+    else profile=$(detect "${2:-$(readlink -f "$background_link" 2>/dev/null || true)}"); fi
+    apply_profile "$profile"
+    ;;
   *) echo 'Usage: magi-affinity {status|list|detect BACKGROUND|auto|reset|set PROFILE|apply [BACKGROUND]}' >&2; exit 2 ;;
 esac

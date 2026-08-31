@@ -95,6 +95,16 @@ authoritative. Full retains the staged boot and screensaver feed, Reduced uses
 short/static feedback, and Off emits only the final nominal boot state and
 static screensaver scenes. Wake never replays the login sequence.
 
+Wallpaper rendering remains owned by Omarchy's preloaded, aspect-cropped
+background service so all outputs reveal the same ready frame without a black
+or stretched intermediate. Affinity updates are serialized and debounced:
+rapid cycling settles on the final symlink, then shell colors, borders, and the
+profile for newly opened terminals commit transactionally. Auto mode announces
+the resulting EVA unit only when it changes; manual mode stays authoritative.
+Full and Reduced retain Omarchy's supported compositor-safe reveal, while Off
+snaps the selected frame immediately. Unknown artwork resolves to neutral, and
+the original wallpaper commands, hashes, and licensing metadata are unchanged.
+
 Hyprland consumes the effective mode at reload. Full retains the v1.1 window
 pop, border/fade, directional workspace slide, special-workspace travel, and
 blur. Reduced keeps only short fades and border feedback. Off disables

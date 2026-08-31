@@ -13,6 +13,7 @@ Motion has two additional evidence layers:
 ./tests/motion-regression.py test-results/motion-regression.json
 ./tests/lock-motion.py test-results/lock-motion.json
 ./tests/lifecycle-motion.py test-results/lifecycle-motion.json
+./tests/affinity-motion.py test-results/affinity-motion.json
 ./tests/motion-observe.py test-results/motion-observation.json
 ```
 
@@ -29,6 +30,9 @@ stationary power confirmations without invoking any real session action.
 `lifecycle-motion.py` enforces lock-first phase arbitration, immediate
 screensaver dismissal, boot retirement, authoritative timers, and complete
 Full/Reduced/Off paths without waiting for real idle or powering off a display.
+`affinity-motion.py` verifies wallpaper detection, neutral fallback, serialized
+rapid-settle behavior, atomic profile state, manual authority, Auto feedback,
+and Off-mode instant presentation without changing any wallpaper asset.
 
 `installer.sh` exercises individual transaction mechanics in a temporary home.
 `clean-user.sh` simulates a fresh, logged-in Omarchy user with isolated config,
