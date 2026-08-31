@@ -62,6 +62,7 @@ Item {
   }
 
   IdleMonitor {
+    id: idleMonitor
     enabled: !root.stayAwake
     timeout: root.statusTimeoutSeconds
     respectInhibitors: true

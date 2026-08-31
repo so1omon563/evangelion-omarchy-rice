@@ -19,6 +19,7 @@ checks={
  "never_takes_focus":'WlrKeyboardFocus.None' in service and 'mask:Region{}' in service,
  "does_not_obscure_desktop":'height:104' in service and 'anchors.bottom' in service,
  "all_motion_modes":all(x in service for x in ('motion.full','motion.reduced','motion.off')),
+ "no_inline_group_terminator":'};color:' not in service and '};spacing:' not in service,
  "deployment_no_duplicates":'if session_active' in deployment and 'Existing mission layout focused' in deployment,
  "deployment_partial_rollback":'if (( failed ))' in deployment and 'teardown' in deployment and 'Partial launch rolled back' in deployment,
  "deployment_exact_clients":'client_still_matches' in deployment and '.address,.pid,.class' in deployment,

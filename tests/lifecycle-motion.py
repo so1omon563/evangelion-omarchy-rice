@@ -12,6 +12,7 @@ lock = (root / "omarchy/plugins/evangelion.lock/Service.qml").read_text()
 checks = {
   "idle_uses_global_motion": 'evangelion.motion' in idle and 'motionMode: motion.mode' in idle,
   "idle_input_exit_immediate": 'else root.close()' in idle,
+  "idle_monitor_is_addressable": 'id: idleMonitor' in idle,
   "screensaver_retires_idle": launch.index('magi-idle hide') < launch.index('focused='),
   "lock_blocks_screensaver": 'lock isLocked' in launch,
   "boot_yields_each_step": boot.count('lifecycle_available || exit 0') >= 2,

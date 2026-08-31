@@ -51,9 +51,20 @@ Item {
       opacity:root.opened?1:0
       transform:Translate{x:root.opened||!motion.full?0:-10}
       Behavior on opacity{enabled:!motion.off;NumberAnimation{duration:motion.standardMs}}
-      Rectangle{width:8;anchors{top:parent.top;bottom:parent.bottom;left:parent.left};color:root.accent}
-      Column{
-        anchors{left:parent.left;right:parent.right;verticalCenter:parent.verticalCenter;leftMargin:30;rightMargin:20};spacing:7
+      Rectangle {
+        width: 8
+        anchors { top: parent.top; bottom: parent.bottom; left: parent.left }
+        color: root.accent
+      }
+      Column {
+        anchors {
+          left: parent.left
+          right: parent.right
+          verticalCenter: parent.verticalCenter
+          leftMargin: 30
+          rightMargin: 20
+        }
+        spacing: 7
         Text{width:parent.width;text:root.modeName+" // "+root.phase;color:root.accent;elide:Text.ElideRight;font.family:"JetBrainsMono Nerd Font";font.pixelSize:18;font.bold:true;font.letterSpacing:1}
         Rectangle{width:parent.width;height:1;color:"#7450a6"}
         Text{width:parent.width;text:root.detail;color:"#eee8ff";elide:Text.ElideRight;font.family:"JetBrainsMono Nerd Font";font.pixelSize:11;font.bold:true;font.letterSpacing:.6}
