@@ -38,6 +38,9 @@ jobs:
       - name: Test interactive panel motion
         run: ./tests/panel-motion.py test-results/panel-motion.json
 
+      - name: Test secure lock and session motion
+        run: ./tests/lock-motion.py test-results/lock-motion.json
+
       - name: Retain clean-user results
         if: always()
         uses: actions/upload-artifact@v4

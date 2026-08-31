@@ -11,6 +11,7 @@ Motion has two additional evidence layers:
 
 ```bash
 ./tests/motion-regression.py test-results/motion-regression.json
+./tests/lock-motion.py test-results/lock-motion.json
 ./tests/motion-observe.py test-results/motion-observation.json
 ```
 
@@ -21,6 +22,9 @@ the seven-profile responsive matrix. `motion-observe.py` is an optional live
 reference-hardware sampler: it records privacy-safe aggregate CPU, RSS, and
 thread observations for idle and transition activity, then restores the exact
 motion mode it found. It requires a running Omarchy shell and is not run in CI.
+`lock-motion.py` statically enforces immediate opaque lock coverage, masked
+credentials, mode-aware post-success feedback, recovery hooks, and abort-first
+stationary power confirmations without invoking any real session action.
 
 `installer.sh` exercises individual transaction mechanics in a temporary home.
 `clean-user.sh` simulates a fresh, logged-in Omarchy user with isolated config,

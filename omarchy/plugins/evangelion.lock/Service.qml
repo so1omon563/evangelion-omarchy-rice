@@ -4,6 +4,7 @@ import Quickshell.Io
 import Quickshell.Services.Pam
 import Quickshell.Wayland
 import qs.Commons
+import "../evangelion.motion" as Motion
 
 Item {
   id: root
@@ -35,6 +36,8 @@ Item {
   property string lastEventAt: ""
   property bool strandedLock: false
   property bool strandedLockResolved: false
+
+  Motion.MotionState { id: motion }
 
   readonly property bool locked: lockRequested || sessionLock.locked || sessionLock.secure
   readonly property bool authenticating: authenticatingPassword || fingerprintAuthenticating
@@ -298,6 +301,7 @@ Item {
         inputEnabled: root.lockRequested
         loadBackground: root.locked
         passwordText: root.enteredPassword
+        motionMode: motion.mode
         onPasswordTextEdited: function(password) { root.enteredPassword = password }
         onSubmitPassword: function(password) { root.submitPassword(password) }
         onClearFailureRequested: root.failureMessage = ""
@@ -329,6 +333,7 @@ Item {
       inputEnabled: false
       loadBackground: root.previewVisible
       passwordText: ""
+      motionMode: motion.mode
     }
 
     MouseArea {
@@ -384,7 +389,9 @@ Item {
 
   Timer {
     id: unlockDelayTimer
-    interval: 450
+    // This dwell exists only after PAM has granted access. Lock acquisition,
+    // failure, and cancellation never wait for presentation motion.
+    interval: motion.full ? 320 : (motion.reduced ? 100 : 0)
     repeat: false
     onTriggered: root.finishUnlock()
   }
@@ -562,6 +569,8 @@ Item {
         passwordPam: root.passwordPamConfigured,
         fingerprint: root.fingerprintConfigured,
         authenticating: root.authenticating,
+        motionMode: motion.mode,
+        unlockFeedbackMs: unlockDelayTimer.interval,
         lastEvent: root.lastEvent,
         lastEventAt: root.lastEventAt
       })

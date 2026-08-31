@@ -17,6 +17,10 @@ Item {
   property bool loadBackground: true
   property string passwordText: ""
   property bool syncingPasswordText: false
+  property string motionMode: "full"
+
+  readonly property bool fullMotion: motionMode === "full"
+  readonly property bool reducedMotion: motionMode === "reduced"
 
   readonly property string placeholderText: "ENTER IDENTITY KEY"
   readonly property bool compactLayout: width < 700 || height < 600
@@ -153,6 +157,7 @@ Item {
     }
 
     Text {
+      id: authorizationLabel
       anchors.horizontalCenter: parent.horizontalCenter
       anchors.bottom: inputField.top
       anchors.bottomMargin: root.compactLayout ? 42 : 54
@@ -173,6 +178,35 @@ Item {
       font.pixelSize: Math.round(Style.font.heading * 1.15)
       font.bold: true
       font.letterSpacing: 1
+
+      // State copy changes synchronously. Only its color interpolation is
+      // animated, so denial/grant is never hidden behind a transition.
+      Behavior on color {
+        enabled: root.motionMode !== "off"
+        ColorAnimation { duration: root.reducedMotion ? 80 : 140 }
+      }
+    }
+
+    // A fixed-position, non-interactive acquisition rail gives Full mode a
+    // little MAGI theatre without moving the password field or auth controls.
+    Rectangle {
+      id: authorizationRail
+      anchors.top: authorizationLabel.bottom
+      anchors.topMargin: 7
+      anchors.horizontalCenter: parent.horizontalCenter
+      width: root.fullMotion ? Math.min(210, authorizationLabel.width) : Math.min(72, authorizationLabel.width)
+      height: 2
+      color: root.authorizationColor
+      opacity: root.motionMode === "off" ? 0.72 : 0.9
+
+      Behavior on width {
+        enabled: root.fullMotion
+        NumberAnimation { duration: 160; easing.type: Easing.OutCubic }
+      }
+      Behavior on color {
+        enabled: root.motionMode !== "off"
+        ColorAnimation { duration: root.reducedMotion ? 80 : 140 }
+      }
     }
 
     BorderSurface {

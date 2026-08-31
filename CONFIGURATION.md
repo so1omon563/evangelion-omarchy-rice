@@ -78,6 +78,15 @@ fade, and Off keeps the established v1.1 popup fade without extra decoration.
 Clipboard and power controls acquire keyboard focus immediately; closing is
 logical and immediate even while an entrance is still fading.
 
+Lock coverage is security-first and does not animate: the request is committed
+before the compositor lock is queued, and its surface is always opaque. Auth
+copy changes immediately while a fixed, non-interactive status rail provides a
+short Full-mode cue; Reduced limits this to a brief color fade and Off snaps.
+The post-success confirmation dwell is 320ms, 100ms, or 0ms respectively.
+Password failures and Escape/Ctrl-U clearing are immediate and never echo the
+secret. Logout, reboot, and shutdown keep stationary confirmation menus with
+ABORT selected before EXECUTE; motion never arms or invokes an action.
+
 Hyprland consumes the effective mode at reload. Full retains the v1.1 window
 pop, border/fade, directional workspace slide, special-workspace travel, and
 blur. Reduced keeps only short fades and border feedback. Off disables
