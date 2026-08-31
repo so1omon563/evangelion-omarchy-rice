@@ -70,6 +70,8 @@ sed '/^[[:space:]]*\/\//d' "$root/omarchy/extensions/omarchy-menu.jsonc" | jq em
 (cd "$root/media" && sha256sum --check --status release-media.sha256) && pass "privacy-reviewed release media hashes" || fail "release media hashes"
 jq -e '.final_release_allowed == true and .community_testing.required_reports == 0 and .community_testing.status == "optional-post-release"' "$root/release/v1.1.0.json" >/dev/null \
   && pass "final v1.1 release gate uses verified project evidence" || fail "final v1.1 release gate"
+jq -e '.final_release_allowed == true and .candidate_commit == "9714cafea65e1886d4a5522bc44dfa83c7016513" and .gates.candidate_ci == "passed-run-33423821933" and .community_testing.required_reports == 0 and .community_testing.status == "optional-post-release"' "$root/release/v1.2.0.json" >/dev/null \
+  && pass "final v1.2 release gate uses exact candidate evidence" || fail "final v1.2 release gate"
 jq -e '.plugins | any(.id == "evangelion.motion")' "$root/omarchy/shell.json" >/dev/null \
   && pass "motion service enabled in shell" || fail "motion service shell enablement"
 

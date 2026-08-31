@@ -1,0 +1,28 @@
+{
+  "schema_version": 1,
+  "release": "v1.2.0",
+  "candidate": "v1.2.0-rc.1",
+  "candidate_commit": "9714cafea65e1886d4a5522bc44dfa83c7016513",
+  "final_release_allowed": true,
+  "community_testing": {
+    "status": "optional-post-release",
+    "required_reports": 0,
+    "accepted_reports": 0,
+    "required_display_scale_combinations": 0,
+    "observed_display_scale_combinations": [],
+    "materially_different_hardware_observed": false,
+    "accepted_issue_urls": []
+  },
+  "gates": {
+    "candidate_ci": "passed-run-33423821933",
+    "clean_install": "passed-isolated-clean-user",
+    "validation": "passed-source-and-reference-system-119-checks",
+    "rollback": "passed-transactional-and-clean-user",
+    "responsive_layouts": "passed-seven-profile-matrix",
+    "motion_regressions": "passed-all-nine-suites",
+    "blockers_resolved_or_documented": "passed",
+    "compatibility_matrix_updated": "passed",
+    "release_media_privacy_review": "passed-full-resolution-and-metadata",
+    "migration_notes": "passed"
+  }
+}

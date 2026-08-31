@@ -50,9 +50,11 @@ def main():
     for stale in ("responsive-layout work remains", "Bash integration currently provided"):
         assert stale not in readme, f"stale public claim remains: {stale}"
 
-    gate = __import__("json").loads(text("release/v1.1.0.json"))
+    gate = __import__("json").loads(text("release/v1.2.0.json"))
     community = gate["community_testing"]
-    assert gate["final_release_allowed"] is True, "validated final v1.1 gate is closed"
+    assert gate["final_release_allowed"] is True, "validated final v1.2 gate is closed"
+    assert gate["candidate_commit"] == "9714cafea65e1886d4a5522bc44dfa83c7016513"
+    assert gate["gates"]["candidate_ci"] == "passed-run-33423821933"
     assert community["required_reports"] == 0
     assert community["status"] == "optional-post-release"
     assert "reference ThinkPad T480" in text("BETA_TESTING.md")
