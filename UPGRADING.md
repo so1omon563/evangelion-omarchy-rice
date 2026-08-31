@@ -1,5 +1,31 @@
 # Upgrade, rollback, and removal
 
+## Upgrade from v1.1
+
+Keep any local repository edits, update, and preview the same preset used for
+v1.1:
+
+```bash
+git status --short
+git pull --ff-only
+./preflight.py
+./install.sh --dry-run --preset default
+./install.sh --apply --preset default
+omarchy theme set evangelion
+./validate.sh
+```
+
+Replace `default` with `minimal`, `full`, or your prior explicit component
+selection. The transaction preserves `~/.config/omarchy/evangelion.json` and
+the selected `motion.mode`; it adds the coordinated motion token profile and
+dynamic shell services. Verify the resolved setting with `magi-motion show`.
+
+To return to the exact pre-upgrade state, run `./rollback.sh` with the snapshot
+printed by the apply transaction, then run `omarchy restart shell` and
+`hyprctl reload`. Rolling back restores replaced files and removes files newly
+created by that transaction; it does not erase older snapshots or personal
+configuration that the installer did not own.
+
 ## Upgrade from v1.0-era installs
 
 Update without overwriting local uncommitted work, then preview:

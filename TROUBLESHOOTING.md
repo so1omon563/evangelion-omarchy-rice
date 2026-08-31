@@ -21,6 +21,31 @@ Never edit `/usr/share/omarchy`. Validate `shell.json` with
 `jq . ~/.config/omarchy/shell.json`. Old `so1omon.*` directories indicate an
 incomplete v1.0 migration; rerun the current shell component.
 
+## Motion modes and dynamic cues
+
+```bash
+magi-motion show
+magi-motion holds
+magi-motion set reduced
+omarchy restart shell
+hyprctl reload
+hyprctl configerrors
+```
+
+Full is the default; Reduced removes blur, repeated movement, and most travel;
+Off requests immediate state changes. If the interface looks reduced while
+Full is selected, inspect `magi-motion holds`: recording, presentation, or
+screen-sharing safety can temporarily lower the effective mode. Release only a
+hold you recognize with `magi-motion release <reason>`.
+
+Omarchy Shell supplies popup/state animation and Hyprland supplies window and
+workspace animation. If either runtime lacks a requested capability, motion
+tokens resolve to a static or shorter fallback; controls and final state must
+still work. A missing cue is therefore a presentation problem, while a command
+that does not reach its final state is a functional bug. Run
+`./tests/motion-observe.py` in a live session for an optional observation
+report; it restores the mode it found.
+
 ## Services and start page
 
 ```bash

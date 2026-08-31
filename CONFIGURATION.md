@@ -64,6 +64,13 @@ distances, opacities, scales, and capability flags for each mode. Avoid changing
 unless developing a coordinated motion profile. Invalid or incomplete token
 files fall back safely to built-in defaults.
 
+The Omarchy shell owns popup, overlay, and component-state animation;
+Hyprland owns window, layer, and workspace animation. Capability flags in the
+resolved token set prevent unsupported blur or transform paths from being
+requested. When a capability is absent, the same operation remains available
+with a static or shorter transition. Motion mode changes presentation only;
+they do not bypass confirmation, lock coverage, or command completion.
+
 Notifications, workspace/device OSDs, power transitions, update telemetry, and
 the intrusion alert follow the effective mode. Full uses the established short
 fade and subtle notification scale; Reduced uses a short fade without travel or

@@ -2,9 +2,9 @@
 
 [![MAGI Integrity Check](https://github.com/so1omon563/evangelion-omarchy-rice/actions/workflows/validate.yml/badge.svg)](https://github.com/so1omon563/evangelion-omarchy-rice/actions/workflows/validate.yml)
 
-> **v1.1:** the portable release is validated by source CI, an isolated
+> **v1.2:** the dynamic interface release is validated by source CI, an isolated
 > clean-user lifecycle, transactional install/rollback tests, the responsive
-> display matrix, and the reference T480. Community compatibility reports are
+> display matrix, motion regression suites, and the reference T480. Community compatibility reports are
 > welcome through [BETA_TESTING.md](BETA_TESTING.md), but are not a release gate.
 
 An unofficial *Neon Genesis Evangelion* desktop environment for Omarchy:
@@ -20,6 +20,10 @@ and overlays, terminal profiles, safety telemetry, sounds, and operator tools.
 | Lock screen | Terminal profiles |
 |---|---|
 | ![MAGI lock screen](media/lock-screen.png) | ![MAGI terminal profiles](media/profile-switching.gif) |
+
+| Full motion | Reduced motion |
+|---|---|
+| ![Full MAGI interface motion](media/motion-full.gif) | ![Reduced MAGI interface motion](media/motion-reduced.gif) |
 
 ![Seven included wallpapers](media/wallpaper-gallery.png)
 
@@ -108,7 +112,8 @@ validation automatically rolls back the active transaction.
 ./rollback.sh /path/to/snapshot
 ```
 
-Users upgrading from the original v1.0-era installation receive an automatic,
+Users upgrading from v1.1 keep their selected motion mode and personal
+configuration. Users upgrading from the original v1.0-era installation receive an automatic,
 rollback-safe migration from `so1omon.*` to `evangelion.*` plugin IDs. Read
 [UPGRADING.md](UPGRADING.md) before upgrading or removing a multi-transaction
 installation; a rollback reverses one transaction, not the entire history.
@@ -124,6 +129,8 @@ checks are:
 ./tests/installer.sh
 ./tests/clean-user.sh
 ./tests/responsive-layouts.py
+./tests/motion-regression.py
+./tests/motion-observe.py # optional live observation
 ```
 
 CI retains machine-readable clean-user and responsive-layout artifacts. See
