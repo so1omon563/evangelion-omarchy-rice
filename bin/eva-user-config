@@ -11,6 +11,8 @@ DEFAULTS = {"terminal":"auto","editor":[],"shell":"auto","shell_integration":Tru
                        "max_age_seconds":300,
                        "collectors":{name:True for name in ("power","thermal","displays","devices",
                                      "connectivity","media","time","operating_profile")}},
+            "ambient":{"enabled":True,"time_enabled":True,"mission_enabled":True,
+                       "quiet_hours":{"start":22,"end":7},"location":None},
             "deployment":{"workspace":4,"terminal_profile":"engineering","browser_url":"about:blank"},
             "presentation":{"workspace":5}}
 

@@ -26,6 +26,13 @@
       "operating_profile": true
     }
   },
+  "ambient": {
+    "enabled": true,
+    "time_enabled": true,
+    "mission_enabled": true,
+    "quiet_hours": { "start": 22, "end": 7 },
+    "location": null
+  },
   "deployment": {
     "workspace": 4,
     "terminal_profile": "engineering",

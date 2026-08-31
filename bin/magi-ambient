@@ -1,0 +1,147 @@
+#!/usr/bin/env python3
+"""Resolve optional local ambient presentation without inferring intent or location."""
+
+import argparse
+import json
+import math
+import os
+import tempfile
+from datetime import datetime, timezone
+from pathlib import Path
+
+CONFIG = Path(os.environ.get("XDG_CONFIG_HOME", Path.home() / ".config")) / "omarchy/evangelion.json"
+STATE = Path(os.environ.get("XDG_STATE_HOME", Path.home() / ".local/state")) / "evangelion-rice"
+CACHE = STATE / "ambient-solar.json"
+DEFAULTS = {"enabled": True, "time_enabled": True, "mission_enabled": True,
+            "quiet_hours": {"start": 22, "end": 7}, "location": None}
+
+
+def object_at(path, fallback):
+    try:
+        value = json.loads(path.read_text())
+        return value if isinstance(value, dict) else fallback.copy()
+    except (OSError, json.JSONDecodeError):
+        return fallback.copy()
+
+
+def config():
+    root = object_at(CONFIG, {})
+    supplied = root.get("ambient", {})
+    value = {**DEFAULTS, **(supplied if isinstance(supplied, dict) else {})}
+    value["quiet_hours"] = {**DEFAULTS["quiet_hours"], **(value.get("quiet_hours") or {})}
+    if not all(isinstance(value[key], bool) for key in ("enabled", "time_enabled", "mission_enabled")):
+        raise ValueError("ambient enable controls must be true or false")
+    if not all(isinstance(value["quiet_hours"].get(key), int) and 0 <= value["quiet_hours"][key] <= 23
+               for key in ("start", "end")):
+        raise ValueError("ambient quiet hours must be whole hours from 0 to 23")
+    location = value.get("location")
+    if location is not None and (not isinstance(location, dict)
+            or not isinstance(location.get("latitude"), (int, float)) or not -90 <= location["latitude"] <= 90
+            or not isinstance(location.get("longitude"), (int, float)) or not -180 <= location["longitude"] <= 180):
+        raise ValueError("ambient location requires explicit latitude and longitude")
+    return root, value
+
+
+def atomic(path, value):
+    path.parent.mkdir(parents=True, exist_ok=True)
+    descriptor, temporary = tempfile.mkstemp(prefix=f".{path.name}.", dir=path.parent)
+    try:
+        with os.fdopen(descriptor, "w") as stream:
+            json.dump(value, stream, indent=2, sort_keys=True); stream.write("\n")
+        os.chmod(temporary, 0o600)
+        os.replace(temporary, path)
+    finally:
+        try: os.unlink(temporary)
+        except FileNotFoundError: pass
+
+
+def solar(date, latitude, longitude):
+    """NOAA-style sunrise/sunset estimate in UTC hours; no network required."""
+    day = date.timetuple().tm_yday
+    def event(rising):
+        lng_hour = longitude / 15
+        approx = day + ((6 if rising else 18) - lng_hour) / 24
+        anomaly = 0.9856 * approx - 3.289
+        longitude_sun = anomaly + 1.916 * math.sin(math.radians(anomaly)) + 0.020 * math.sin(math.radians(2 * anomaly)) + 282.634
+        longitude_sun %= 360
+        ascension = math.degrees(math.atan(0.91764 * math.tan(math.radians(longitude_sun)))) % 360
+        ascension += math.floor(longitude_sun / 90) * 90 - math.floor(ascension / 90) * 90
+        ascension /= 15
+        declination = 0.39782 * math.sin(math.radians(longitude_sun))
+        cosine = (math.cos(math.radians(90.833)) - declination * math.sin(math.radians(latitude))) / (math.sqrt(1 - declination ** 2) * math.cos(math.radians(latitude)))
+        if not -1 <= cosine <= 1: return None
+        hour = (360 - math.degrees(math.acos(cosine)) if rising else math.degrees(math.acos(cosine))) / 15
+        return (hour + ascension - 0.06571 * approx - 6.622 - lng_hour) % 24
+    return event(True), event(False)
+
+
+def solar_times(now, cfg):
+    location = cfg.get("location")
+    if not location: return None
+    key = f"{now.date().isoformat()}:{location['latitude']:.4f}:{location['longitude']:.4f}"
+    cached = object_at(CACHE, {})
+    if cached.get("key") == key: return cached
+    sunrise, sunset = solar(now.date(), location["latitude"], location["longitude"])
+    offset = (now.utcoffset().total_seconds() if now.utcoffset() else 0) / 3600
+    cached = {"key": key, "sunrise_hour": None if sunrise is None else (sunrise + offset) % 24,
+              "sunset_hour": None if sunset is None else (sunset + offset) % 24}
+    atomic(CACHE, cached)
+    return cached
+
+
+def projection(now=None):
+    now = now or datetime.now().astimezone()
+    _, cfg = config()
+    baseline = {"schema_version": 1, "active": False, "band": "baseline", "mission": "standby",
+                "focus": False, "quiet": False, "copy": "MAGI AMBIENT STANDBY", "scene_offset": 0,
+                "solar_configured": bool(cfg.get("location"))}
+    if not cfg["enabled"]: return baseline
+    hour = now.hour + now.minute / 60
+    quiet_start, quiet_end = cfg["quiet_hours"]["start"], cfg["quiet_hours"]["end"]
+    quiet = quiet_start <= hour or hour < quiet_end if quiet_start > quiet_end else quiet_start <= hour < quiet_end
+    band = "day"
+    if cfg["time_enabled"]:
+        solar_value = solar_times(now, cfg)
+        if solar_value and solar_value["sunrise_hour"] is not None:
+            sunrise, sunset = solar_value["sunrise_hour"], solar_value["sunset_hour"]
+            band = "night" if hour < sunrise - .5 or hour >= sunset + .5 else "dawn" if hour < sunrise + 1 else "dusk" if hour >= sunset - 1 else "day"
+        else:
+            band = "night" if hour < 6 or hour >= 22 else "morning" if hour < 12 else "afternoon" if hour < 18 else "evening"
+    mission = "standby"
+    mission_state = object_at(STATE / "mission-timer.json", {})
+    if cfg["mission_enabled"] and mission_state.get("running"):
+        mission = "paused" if mission_state.get("paused") else str(mission_state.get("phase", "work"))
+    focus = cfg["mission_enabled"] and (STATE / "at-field/active").exists()
+    copy = "QUIET WATCH" if quiet else "A.T. FIELD FOCUS" if focus else "MISSION IN PROGRESS" if mission == "work" else {
+        "dawn": "GEORFRONT FIRST LIGHT", "morning": "TOKYO-3 MORNING WATCH", "day": "DAY OPERATIONS",
+        "afternoon": "AFTERNOON OPERATIONS", "dusk": "TOKYO-3 TWILIGHT", "evening": "EVENING WATCH", "night": "NIGHT OPERATIONS"}.get(band, "MAGI AMBIENT")
+    offsets = {"dawn": 0, "morning": 0, "day": 1, "afternoon": 1, "dusk": 2, "evening": 2, "night": 3}
+    return {**baseline, "active": True, "band": band, "mission": mission, "focus": focus,
+            "quiet": quiet, "copy": copy, "scene_offset": offsets.get(band, 0)}
+
+
+def update(mutator):
+    root, cfg = config(); mutator(cfg); root["ambient"] = cfg; atomic(CONFIG, root)
+
+
+def main():
+    parser = argparse.ArgumentParser(); sub = parser.add_subparsers(dest="command")
+    sub.add_parser("status").add_argument("--json", action="store_true")
+    sub.add_parser("enable"); sub.add_parser("disable"); sub.add_parser("clear-location")
+    quiet = sub.add_parser("quiet-hours"); quiet.add_argument("start", type=int); quiet.add_argument("end", type=int)
+    location = sub.add_parser("location"); location.add_argument("latitude", type=float); location.add_argument("longitude", type=float)
+    args = parser.parse_args(); command = args.command or "status"
+    try:
+        if command == "enable": update(lambda value: value.update(enabled=True))
+        elif command == "disable": update(lambda value: value.update(enabled=False))
+        elif command == "quiet-hours": update(lambda value: value.update(quiet_hours={"start": args.start, "end": args.end}))
+        elif command == "location": update(lambda value: value.update(location={"latitude": args.latitude, "longitude": args.longitude}))
+        elif command == "clear-location": update(lambda value: value.update(location=None))
+        value = projection()
+        print(json.dumps(value, separators=(",", ":"), sort_keys=True) if getattr(args, "json", False) else f"{value['band']} // {value['copy']}")
+        return 0
+    except (OSError, ValueError) as error:
+        print(error, file=os.sys.stderr); return 2
+
+
+if __name__ == "__main__": raise SystemExit(main())

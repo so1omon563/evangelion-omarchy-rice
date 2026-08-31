@@ -20,6 +20,7 @@ python3 "$root/tests/context-panel.py" >/dev/null && pass "responsive MAGI conte
 python3 "$root/tests/context-surfaces.py" >/dev/null && pass "shared reversible context surfaces" || fail "shared reversible context surfaces"
 python3 "$root/tests/context-automation.py" >/dev/null && pass "bounded opt-in context automation" || fail "bounded opt-in context automation"
 python3 "$root/tests/operating-profile-transaction.py" >/dev/null && pass "transactional automated profile application" || fail "transactional automated profile application"
+python3 "$root/tests/ambient.py" >/dev/null && pass "explicit offline ambient context" || fail "explicit offline ambient context"
 python3 "$root/tests/motion.py" >/dev/null && pass "shared motion controller" || fail "shared motion controller"
 python3 "$root/tests/shell-motion.py" >/dev/null && pass "unified shell motion policy" || fail "unified shell motion policy"
 python3 "$root/tests/motion-regression.py" /tmp/evangelion-motion-regression.json >/dev/null && pass "motion accessibility and interruption regressions" || fail "motion accessibility and interruption regressions"

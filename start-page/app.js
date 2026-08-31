@@ -14,6 +14,7 @@ const demoData = {
   affinity: {mode: 'manual', active: 'unit-01'},
   profile: 'engineering',
   context: {schema_version: 1, active: true, status: 'mobile', freshness: 'fresh', reason_code: 'mobile-operations', label: 'Mobile operations', facts: {display_mode: 'mobile'}},
+  ambient: {schema_version: 1, active: true, band: 'evening', mission: 'work', focus: false, quiet: false, copy: 'MISSION IN PROGRESS', scene_offset: 2},
   uptime: 273720,
   events: [
     {time: '19:01:28', type: 'SYSTEM', message: 'MAGI DASHBOARD LINK ESTABLISHED'},
@@ -127,6 +128,14 @@ function paintContext(context) {
   $('rail-context').textContent = active ? String(context.status || 'baseline').replaceAll('-', ' ').toUpperCase() : 'BASELINE';
 }
 
+function paintAmbient(ambient) {
+  const active = ambient?.active === true;
+  document.body.dataset.ambient = active ? String(ambient.band || 'baseline') : 'baseline';
+  document.body.classList.toggle('ambient-focus', active && ambient.focus === true);
+  document.body.classList.toggle('ambient-quiet', active && ambient.quiet === true);
+  $('ambient-copy').textContent = active ? String(ambient.copy || 'NERV // CENTRAL COMMAND').toUpperCase() : 'NERV // CENTRAL COMMAND';
+}
+
 function paintEvents(events) {
   $('event-log').innerHTML = events.map(event => `<div><time>${escapeHtml(event.time)}</time><b>${escapeHtml(event.type)}</b><span>${escapeHtml(event.message)}</span></div>`).join('');
 }
@@ -143,7 +152,7 @@ async function sync() {
     currentData = data;
     const map = {background: 'bg', dark_background: 'dark', foreground: 'fg', dark_foreground: 'muted', bright_red: 'red'};
     Object.entries(data.theme).forEach(([key, value]) => document.documentElement.style.setProperty(`--${map[key] || key}`, value));
-    paintMagi(data); paintTelemetry(data); paintMedia(data.media); paintWeather(data.weather); paintRail(data); paintContext(data.context); paintEvents(data.events); paintAlert(data);
+    paintMagi(data); paintTelemetry(data); paintMedia(data.media); paintWeather(data.weather); paintRail(data); paintContext(data.context); paintAmbient(data.ambient); paintEvents(data.events); paintAlert(data);
     $('sync').textContent = 'SYNCHRONIZED';
   } catch (error) {
     $('sync').textContent = 'LOCAL DATA UNAVAILABLE';

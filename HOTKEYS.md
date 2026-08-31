@@ -413,6 +413,19 @@ environment_profile enable` and `magi-context automation enable` are selected.
 The Operating Profile → Context Automation menu exposes the same controls.
 Manual Docked/Mobile selection creates a visible hold; Auto releases it.
 
+Ambient cues live under `MAGI Command Interface → Ambient Operations`:
+
+```bash
+magi-ambient status --json
+magi-ambient enable|disable
+magi-ambient quiet-hours 22 7
+magi-ambient location LATITUDE LONGITUDE
+magi-ambient clear-location
+```
+
+Location is never inferred. Without explicit coordinates, ambient time bands
+use only the local clock. Quiet hours and complete disable are persistent.
+
 Edit `~/.config/omarchy/operating-profiles.json` to change either profile's
 `power_profile`, `bar_size`, `audio_target`, `wallpaper`, or `display_layout`.
 Use `keep` for audio/wallpaper to leave it unchanged; `restore` is supported for

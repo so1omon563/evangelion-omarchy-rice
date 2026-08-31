@@ -147,6 +147,15 @@
     "action": "magi-context-automation undo",
     "description": "Restore the transaction snapshot captured before automation"
   },
+  "magi.ambient": {
+    "icon": "󰖔",
+    "label": "Ambient Operations",
+    "title": "MAGI // AMBIENT OPERATIONS",
+    "description": "Optional local time and explicit mission atmosphere"
+  },
+  "magi.ambient.enable": {"icon":"󰐕","label":"Enable Ambient Cues","action":"magi-ambient enable"},
+  "magi.ambient.disable": {"icon":"󰅖","label":"Disable Ambient Cues","action":"magi-ambient disable"},
+  "magi.ambient.status": {"icon":"󰋼","label":"Show Ambient Status","action":"omarchy-launch-terminal magi-ambient status"},
   "magi.deployment": {
     "icon": "󰚩",
     "label": "EVA Deployment",

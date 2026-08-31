@@ -71,6 +71,16 @@ def context_surface():
         return {"active": False, "status": "baseline"}
 
 
+def ambient_surface():
+    try:
+        raw = subprocess.run(["magi-ambient", "status", "--json"], text=True,
+                             capture_output=True, timeout=2, check=False).stdout
+        value = json.loads(raw)
+        return value if value.get("active") is True else {"active": False, "scene_offset": 0, "copy": ""}
+    except (OSError, subprocess.SubprocessError, ValueError):
+        return {"active": False, "scene_offset": 0, "copy": ""}
+
+
 def center(lines, width, height):
     content = []
     top = max(1, (height - len(lines)) // 2)
@@ -88,7 +98,7 @@ def place(row, column, color, text, width):
     return f"{ESC}{row};{column}H{ESC}{color}{clipped}"
 
 
-def hud(width, height, scene_index, scene_age, scene_seconds, phase, motion, context=None):
+def hud(width, height, scene_index, scene_age, scene_seconds, phase, motion, context=None, ambient=None):
     if width < 54 or height < 18:
         return ""
 
@@ -111,6 +121,9 @@ def hud(width, height, scene_index, scene_age, scene_seconds, phase, motion, con
     if context.get("active"):
         label = str(context.get("status", "baseline")).replace("-", " ").upper()[:20]
         output.append(place(4, 3, GREEN, "│ CONTEXT // " + label, width))
+    if ambient and ambient.get("active") and not ambient.get("quiet"):
+        output.append(place(3, max(3, width - len(str(ambient.get("copy", ""))) - 2), DIM,
+                            str(ambient.get("copy", ""))[:28], width))
 
     # One restrained sweep crosses the display; reduced-motion pins it safely.
     scan_row = height // 2 if not motion else 5 + (phase * 3) % max(1, height - 10)
@@ -201,6 +214,7 @@ def main():
     config = setting()
     mode = motion_mode()
     context = context_surface()
+    ambient = ambient_surface()
     reduced = mode != "full" or bool(config.get("reduced_motion", False)) or "--static" in sys.argv
     scene_seconds = max(8, int(config.get("scene_seconds", 12)))
     scenes = [magi_scene, sync_scene, warning_scene, unit_scene]
@@ -224,7 +238,7 @@ def main():
                 break
 
             elapsed = time.monotonic() - started
-            scene_index = int(elapsed // scene_seconds) % len(scenes)
+            scene_index = (int(elapsed // scene_seconds) + int(ambient.get("scene_offset", 0))) % len(scenes)
             scene_age = elapsed % scene_seconds
             phase = 0 if reduced else int(elapsed)
             render_phase = phase if reduced or scene_age >= 1.25 else int(elapsed * 4)
@@ -236,7 +250,7 @@ def main():
                 art = transition(width, height, scene_index, scene_age / 1.25)
             else:
                 art = scenes[scene_index](width, height, phase, not reduced)
-            chrome = hud(width, height, scene_index, scene_age, scene_seconds, phase, not reduced, context)
+            chrome = hud(width, height, scene_index, scene_age, scene_seconds, phase, not reduced, context, ambient)
             sys.stdout.write(f"{ESC}H{ESC}2J{ESC}48;2;5;4;10m{chrome}{art}{ESC}0m")
             sys.stdout.flush()
             last_scene, last_phase = scene_index, render_phase

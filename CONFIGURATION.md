@@ -29,6 +29,13 @@ The installer creates and then preserves `~/.config/omarchy/evangelion.json`:
       "operating_profile": true
     }
   },
+  "ambient": {
+    "enabled": true,
+    "time_enabled": true,
+    "mission_enabled": true,
+    "quiet_hours": { "start": 22, "end": 7 },
+    "location": null
+  },
   "deployment": {
     "workspace": 4,
     "terminal_profile": "engineering",
@@ -52,6 +59,8 @@ The installer creates and then preserves `~/.config/omarchy/evangelion.json`:
   freshness, and per-collector preferences. Both global automation and every
   individual rule default off. This preserved configuration is authoritative
   across upgrades.
+- `ambient`: optional local-time and explicit mission/focus presentation.
+  Location is absent by default and is never inferred.
 - `deployment`: workspace, temporary terminal palette, and browser URL.
 - `presentation.workspace`: Fastfetch/btop presentation workspace.
 
@@ -151,6 +160,29 @@ unknown, unavailable, or missing context resolves to `baseline`; in that state
 the surfaces match the v1.2 presentation exactly. Re-enable cues with
 `magi-context decorative enable` and explicitly refresh from the inspector or
 with `magi-context refresh`.
+
+### Ambient operations
+
+`magi-ambient` projects local clock bands plus explicit MAGI Mission and A.T.
+Field state into restrained start-page copy and screensaver scene selection.
+It does not infer activity, intent, or location, and it never overrides EVA
+affinity, safety state, accessibility/motion settings, or manual profiles.
+
+```bash
+magi-ambient status --json
+magi-ambient disable             # Exact baseline presentation
+magi-ambient enable
+magi-ambient quiet-hours 22 7    # Local whole-hour boundaries
+magi-ambient location 33.4484 -112.0740
+magi-ambient clear-location
+```
+
+Without an explicit location, fixed local-clock bands are used. Providing
+latitude and longitude enables offline sunrise/sunset estimates; the daily
+result is cached locally and no network or geolocation service is contacted.
+Quiet hours suppress the screensaver copy accent and reduce start-page emphasis.
+The resolver runs only when a participating surface already refreshes or starts;
+there is no ambient daemon, timer, or hidden polling loop.
 
 ## Interface motion
 

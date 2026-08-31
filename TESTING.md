@@ -29,6 +29,7 @@ concurrency coverage:
 ./tests/context-surfaces.py
 ./tests/context-automation.py
 ./tests/operating-profile-transaction.py
+./tests/ambient.py
 ```
 
 It uses a temporary home and asserts that read-only status creates no state,
@@ -66,6 +67,11 @@ actions into the executor.
 subsystems. It forces a mid-transaction audio failure and verifies exact bar
 and active-profile rollback, then covers successful apply, explicit undo, and
 the manual-selection hold.
+
+`ambient.py` fixes the clock, supplies explicit mission/focus state, and checks
+location-free bands, offline solar calculation and daily cache reuse, quiet and
+disable fallback contracts, prohibited geolocation/network primitives, and the
+absence of an ambient polling loop.
 
 `motion-regression.py` is portable CI coverage for rapid Full/Reduced/Off
 changes, persistence, interruption/coalescing contracts, critical-state
