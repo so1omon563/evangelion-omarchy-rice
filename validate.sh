@@ -49,6 +49,7 @@ python3 "$root/tests/gallery-submission.py" >/dev/null && pass "official Omarchy
 python3 "$root/tests/plugin-audit.py" >/dev/null && pass "complete MAGI plugin distribution audit" || fail "complete MAGI plugin distribution audit"
 python3 "$root/tests/magi-runtime-contract.py" >/dev/null && pass "optional MAGI runtime compatibility contract" || fail "optional MAGI runtime compatibility contract"
 python3 "$root/tests/magi-extension-contract.py" >/dev/null && pass "internal MAGI extension-state contract" || fail "internal MAGI extension-state contract"
+python3 "$root/tests/recovery.py" >/dev/null && pass "static MAGI recovery transaction" || fail "static MAGI recovery transaction"
 if [[ ${EVANGELION_RELEASE_ARTIFACT_NESTED:-0} != 1 ]]; then
   python3 "$root/tests/release-artifact.py" >/dev/null && pass "reproducible complete-suite release artifact" || fail "reproducible complete-suite release artifact"
   python3 "$root/tests/arch-package.py" >/dev/null && pass "Arch package and explicit user lifecycle" || fail "Arch package and explicit user lifecycle"

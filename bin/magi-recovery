@@ -1,0 +1,145 @@
+#!/usr/bin/env bash
+set -Eeuo pipefail
+
+state_root=${XDG_STATE_HOME:-$HOME/.local/state}/evangelion-rice/recovery
+config_root=${XDG_CONFIG_HOME:-$HOME/.config}
+shell_target=$config_root/omarchy/shell.json
+hypr_target=$config_root/hypr/hyprland.lua
+command_root=$(cd -- "$(dirname -- "$0")/.." && pwd)
+source_root=${EVANGELION_RECOVERY_ROOT:-${XDG_DATA_HOME:-$HOME/.local/share}/evangelion-rice/recovery}
+[[ -d $source_root ]] || source_root=$command_root/recovery
+active_link=$state_root/active
+skip_activate=${EVANGELION_SKIP_ACTIVATE:-0}
+
+usage() {
+  cat <<'EOF'
+Usage: magi-recovery {enter|exit|toggle|status|evidence}
+
+Enter installs a stock-only static Omarchy shell and Hyprland entry point after
+capturing the exact current files. Exit restores that snapshot byte-for-byte.
+This command is safe to run from a TTY when the graphical shell cannot start.
+EOF
+}
+
+active_snapshot() { [[ -L $active_link ]] && readlink -f "$active_link" 2>/dev/null || true; }
+
+atomic_copy() {
+  local source=$1 target=$2 temporary
+  mkdir -p "$(dirname "$target")"
+  temporary=$(mktemp "$(dirname "$target")/.recovery.XXXXXX")
+  cp -- "$source" "$temporary"
+  chmod --reference="$source" "$temporary"
+  mv -f -- "$temporary" "$target"
+}
+
+capture() {
+  local snapshot=$1 target=$2 name=$3
+  if [[ -e $target || -L $target ]]; then
+    cp -a -- "$target" "$snapshot/$name"
+    printf 'restore\t%s\t%s\n' "$target" "$name" >> "$snapshot/manifest.tsv"
+  else
+    printf 'remove\t%s\t-\n' "$target" >> "$snapshot/manifest.tsv"
+  fi
+}
+
+restore_snapshot() {
+  local snapshot=$1 action target name source
+  # Validate the complete transaction before changing either target.
+  while IFS=$'\t' read -r action target name; do
+    [[ $action == \#* || -z ${target:-} ]] && continue
+    case $action in
+      restore)
+        source=$snapshot/$name
+        [[ -e $source || -L $source ]] || { echo "Missing recovery backup: $source" >&2; return 1; }
+        ;;
+      remove) ;;
+      *) echo "Invalid recovery manifest action: $action" >&2; return 1 ;;
+    esac
+  done < "$snapshot/manifest.tsv"
+  while IFS=$'\t' read -r action target name; do
+    [[ $action == \#* || -z ${target:-} ]] && continue
+    case $action in
+      restore)
+        source=$snapshot/$name
+        mkdir -p "$(dirname "$target")"
+        rm -f -- "$target"
+        cp -a -- "$source" "$target"
+        ;;
+      remove) rm -f -- "$target" ;;
+    esac
+  done < "$snapshot/manifest.tsv"
+}
+
+evidence() {
+  local snapshot=$1 preflight=unavailable hypr=unavailable shell=unavailable health=unavailable health_json
+  command -v preflight.py >/dev/null 2>&1 && preflight=$(preflight.py --json >/dev/null 2>&1 && echo passed || echo failed)
+  command -v hyprctl >/dev/null 2>&1 && hypr=$(hyprctl configerrors >/dev/null 2>&1 && echo reachable || echo failed)
+  command -v omarchy-shell >/dev/null 2>&1 && shell=available
+  if command -v magi-health >/dev/null 2>&1; then
+    health_json=$(timeout 1 magi-health status --json 2>/dev/null || true)
+    health=$(jq -r 'if (.level == "nominal" or .level == "warning" or .level == "critical") then .level else "invalid" end' <<< "$health_json" 2>/dev/null || echo invalid)
+  fi
+  jq -n --arg preflight "$preflight" --arg hypr "$hypr" --arg shell "$shell" --arg health "$health" \
+    --argjson captured_at "$(date +%s)" \
+    '{schema_version:1,captured_at:$captured_at,preflight:$preflight,hyprland:$hypr,shell_command:$shell,health_level:$health,private_payloads:false}' \
+    > "$snapshot/evidence.json"
+  chmod 600 "$snapshot/evidence.json"
+}
+
+activate_runtime() {
+  [[ $skip_activate == 1 ]] && return 0
+  hyprctl reload >/dev/null 2>&1 || true
+  omarchy restart shell >/dev/null 2>&1 || omarchy-shell -q shell rescanPlugins >/dev/null 2>&1 || true
+}
+
+enter() {
+  [[ -z $(active_snapshot) ]] || { echo 'RECOVERY ALREADY ACTIVE'; return 0; }
+  [[ -r $source_root/shell.json && -r $source_root/hyprland.lua ]] || { echo "Recovery assets unavailable: $source_root" >&2; return 1; }
+  command -v jq >/dev/null 2>&1 || { echo 'Recovery requires jq.' >&2; return 1; }
+  local stamp snapshot
+  stamp=$(date +%Y%m%d-%H%M%S)-$$
+  snapshot=$state_root/snapshots/$stamp
+  mkdir -p "$snapshot" "$state_root"
+  chmod 700 "$snapshot"
+  printf '# MAGI recovery manifest v1\n' > "$snapshot/manifest.tsv"
+  capture "$snapshot" "$shell_target" shell.json
+  capture "$snapshot" "$hypr_target" hyprland.lua
+  evidence "$snapshot"
+  if ! atomic_copy "$source_root/shell.json" "$shell_target" || \
+     [[ ${EVANGELION_FORCE_RECOVERY_FAILURE:-0} == 1 ]] || \
+     ! atomic_copy "$source_root/hyprland.lua" "$hypr_target" || \
+     ! ln -s "$snapshot" "$active_link"; then
+    restore_snapshot "$snapshot" || true
+    echo 'RECOVERY FAILED // original configuration restored' >&2
+    return 1
+  fi
+  activate_runtime
+  echo "RECOVERY ACTIVE // snapshot: $snapshot"
+  echo 'Return with: magi-recovery exit'
+}
+
+exit_recovery() {
+  local snapshot
+  snapshot=$(active_snapshot)
+  [[ -n $snapshot && -r $snapshot/manifest.tsv ]] || { echo 'RECOVERY NOT ACTIVE'; return 0; }
+  restore_snapshot "$snapshot"
+  rm -f -- "$active_link"
+  activate_runtime
+  echo "RECOVERY CLEARED // restored: $snapshot"
+}
+
+mkdir -p "$state_root"
+exec 9>"$state_root/recovery.lock"
+flock 9
+case ${1:-status} in
+  enter) enter ;;
+  exit) exit_recovery ;;
+  toggle) [[ -n $(active_snapshot) ]] && exit_recovery || enter ;;
+  status) [[ -n $(active_snapshot) ]] && echo active || echo inactive ;;
+  evidence)
+    snapshot=$(active_snapshot)
+    [[ -n $snapshot && -r $snapshot/evidence.json ]] || { echo 'No active recovery evidence.' >&2; exit 1; }
+    cat "$snapshot/evidence.json"
+    ;;
+  *) usage >&2; exit 2 ;;
+esac

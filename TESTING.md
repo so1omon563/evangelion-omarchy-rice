@@ -129,6 +129,11 @@ isolated fake command path. It covers capability negotiation, compatible data,
 partial failure, missing providers, malformed output, 250 ms provider timeouts,
 complete static fallback, settings minimization, and privacy-safe projection.
 
+`recovery.py` starts with deliberately broken/private shell and Hyprland
+fixtures, enters the stock-only recovery path, checks the minimized evidence,
+proves repeated activation is idempotent, restores exact bytes and permissions,
+and verifies that targets absent before recovery return to absence afterward.
+
 `affinity-motion.py` verifies wallpaper detection, neutral fallback, serialized
 rapid-settle behavior, atomic profile state, manual authority, Auto feedback,
 and Off-mode instant presentation without changing any wallpaper asset.

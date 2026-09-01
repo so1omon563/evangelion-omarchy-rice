@@ -85,6 +85,9 @@ jobs:
       - name: Validate internal extension state contract
         run: ./tests/magi-extension-contract.py
 
+      - name: Validate static recovery transaction
+        run: ./tests/recovery.py
+
       - name: Retain clean-user results
         if: always()
         uses: actions/upload-artifact@v4

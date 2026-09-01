@@ -28,6 +28,9 @@ o.bind("SUPER + ALT + G", "Open MAGI context inspector", "omarchy-shell magi-con
 -- standard root menu, so both launch paths stay available.
 o.bind("SUPER + M", "MAGI command interface", "omarchy-menu toggle magi")
 
+-- Recovery remains CLI/TTY-first; this chord is the convenient live path.
+o.bind("SUPER + ALT + R", "Toggle static MAGI recovery", "magi-recovery toggle")
+
 -- Preserve Omarchy's system/power menu keys while adding a restrained cue.
 hl.unbind("SUPER + ESCAPE")
 hl.unbind("XF86PowerOff")

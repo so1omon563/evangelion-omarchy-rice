@@ -18,7 +18,33 @@ Omarchy's complete live keybinding reference.
 | `Super + Alt + H` | Open the NERV system-health panel |
 | `Super + Alt + C` | Open the MAGI world and mission clock |
 | `Super + Alt + G` | Open the MAGI context inspector |
+| `Super + Alt + R` | Toggle the stock-only static recovery mode |
 | `Super + K` | Show every active Omarchy keybinding |
+
+## Static recovery mode
+
+Press `Super + Alt + R` to enter a stock-only Omarchy shell when the normal
+desktop still accepts keybindings. If custom QML, shell configuration, or
+Hyprland configuration prevents that shortcut from loading, switch to a TTY
+with `Ctrl + Alt + F3`, sign in, and run:
+
+```bash
+magi-recovery enter
+magi-recovery status
+magi-recovery evidence
+magi-recovery exit
+```
+
+Entering recovery first captures the exact active `shell.json` and suite-owned
+Hyprland entry point. It then uses only packaged Omarchy defaults and stock bar
+widgets; no Evangelion plugin or QML service is loaded. The evidence report
+stores only aggregate availability and health states. `exit` restores the
+captured bytes and permissions. Repeated enter/exit requests are idempotent.
+
+Recovery is not a factory reset and does not delete plugins, preferences, or
+applications. If both the graphical shell and TTY command fail, boot normally,
+open a TTY, and verify that `~/.local/bin` is on `PATH`; the complete suite must
+have installed its Tools component for `magi-recovery` to exist.
 
 ## Visual systems
 

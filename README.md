@@ -158,6 +158,12 @@ For controls and keybindings, see [HOTKEYS.md](HOTKEYS.md).
 
 ## Upgrade, rollback, and removal
 
+If custom shell or Hyprland configuration cannot load, `magi-recovery enter`
+activates a stock-only static layout after taking an exact local snapshot.
+Use `Super + Alt + R` when the compositor is responsive, or run it from a TTY;
+`magi-recovery exit` restores the prior configuration. See
+[HOTKEYS.md](HOTKEYS.md#static-recovery-mode) for the complete recovery path.
+
 Every changed target is recorded in a transaction snapshot under
 `~/.local/state/evangelion-rice/install-backups/`. Failed activation or
 validation automatically rolls back the active transaction.
