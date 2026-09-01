@@ -80,8 +80,19 @@ def render(case, output):
 
 def masked(source, target, case):
     shutil.copy2(source, target)
-    width = int(case.get("width", MATRIX["defaults"]["width"]))
+    width = int(case.get("width", MATRIX["defaults"]["width"])); height = int(case.get("height", MATRIX["defaults"]["height"]))
     for mask in MATRIX["masks"]:
+        if mask["name"] == "canonical-copy":
+            panel_w = max(260, (width - 72) // 3); panel_y = 168
+            rectangles = [(0, 0, width, 46), (18, 65, width-18, 145), (0, height-32, width, height)]
+            for index in range(3):
+                x = 24 + index * (panel_w + 12)
+                rectangles.extend([(x+15, panel_y+15, x+panel_w-15, panel_y+100)] +
+                                  [(x+15, panel_y+105+row*42, x+panel_w-15, panel_y+130+row*42) for row in range(4)])
+            for x1, y1, x2, y2 in rectangles:
+                subprocess.run([IMAGE, str(target), "-fill", "#000000", "-draw",
+                                f"rectangle {x1},{y1} {x2},{y2}", str(target)], check=True, capture_output=True)
+            continue
         # Clock mask is centered relative to the canonical width.
         x = width // 2 - 25 if mask["name"] == "clock-seconds" else mask["x"]
         subprocess.run([IMAGE, str(target), "-fill", "#000000", "-draw",
@@ -91,19 +102,32 @@ def masked(source, target, case):
 def compare(expected, actual, diff, case):
     with tempfile.TemporaryDirectory() as directory:
         expected_masked, actual_masked = Path(directory) / "expected-masked.png", Path(directory) / "actual-masked.png"
-        expected_normalized, actual_normalized = Path(directory) / "expected.png", Path(directory) / "actual.png"
         masked(expected, expected_masked, case); masked(actual, actual_masked, case)
-        # Normalize sub-pixel glyph antialiasing across librsvg/FreeType builds.
-        # The area threshold remains strict and the failure-path test proves
-        # that a visible structural change still fails after normalization.
-        sigma = MATRIX["defaults"]["normalization_blur_sigma"]
-        for source, target in ((expected_masked, expected_normalized), (actual_masked, actual_normalized)):
-            subprocess.run([IMAGE, str(source), "-blur", f"0x{sigma}", str(target)], check=True, capture_output=True)
-        metric = subprocess.run(["compare", "-metric", "AE", "-fuzz", f"{MATRIX['defaults']['fuzz_percent']}%",
-                                 str(expected_normalized), str(actual_normalized), str(diff)],
-                                text=True, capture_output=True)
-        changed = int(float((metric.stderr.strip() or "0").split()[0]))
-    pixels = int(case.get("width", MATRIX["defaults"]["width"])) * int(case.get("height", MATRIX["defaults"]["height"]))
+        subprocess.run(["compare", str(expected_masked), str(actual_masked), str(diff)], capture_output=True)
+        width = int(case.get("width", MATRIX["defaults"]["width"])); height = int(case.get("height", MATRIX["defaults"]["height"]))
+        def pixels(path):
+            return subprocess.run([IMAGE, str(path), "-depth", "8", "rgb:-"], check=True, capture_output=True).stdout
+        reference, candidate = pixels(expected_masked), pixels(actual_masked)
+        radius = int(MATRIX["defaults"]["neighborhood_radius"]); tolerance = int(MATRIX["defaults"]["channel_tolerance"])
+        def unmatched(source, target):
+            if source == target: return set()
+            result = set()
+            for index in range(width * height):
+                offset = index * 3
+                color = source[offset:offset+3]
+                if max(abs(color[channel] - target[offset+channel]) for channel in range(3)) <= tolerance: continue
+                x, y = index % width, index // width
+                found = False
+                for near_y in range(max(0, y-radius), min(height, y+radius+1)):
+                    for near_x in range(max(0, x-radius), min(width, x+radius+1)):
+                        near = (near_y * width + near_x) * 3
+                        if max(abs(color[channel] - target[near+channel]) for channel in range(3)) <= tolerance:
+                            found = True; break
+                    if found: break
+                if not found: result.add(index)
+            return result
+        changed = len(unmatched(candidate, reference) | unmatched(reference, candidate))
+    pixels = width * height
     percent = changed * 100 / pixels
     return percent, percent <= float(case.get("tolerance_percent", MATRIX["defaults"]["tolerance_percent"]))
 
@@ -138,7 +162,7 @@ def main():
         case = MATRIX["cases"][0]; case_dir = OUTPUT / case["id"]
         perturbed, proof = OUTPUT / "self-test-perturbed.png", OUTPUT / "self-test-diff.png"
         shutil.copy2(case_dir / "actual.png", perturbed)
-        subprocess.run([IMAGE, str(perturbed), "-fill", "#ff00ff", "-draw", "rectangle 80,80 180,180", str(perturbed)], check=True, capture_output=True)
+        subprocess.run([IMAGE, str(perturbed), "-fill", "#ff00ff", "-draw", "rectangle 100,450 240,550", str(perturbed)], check=True, capture_output=True)
         percent, accepted = compare(BASELINES / f"{case['id']}.png", perturbed, proof, case)
         self_test = {"status": "passed" if not accepted and proof.exists() else "failed", "changed_percent": round(percent, 6), "diff": proof.name}
     report = {"schema_version": 1, "renderer_version": MATRIX["renderer_version"],

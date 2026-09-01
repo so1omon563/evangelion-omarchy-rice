@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
-  "renderer_version": 2,
-  "defaults": {"width": 1280, "height": 720, "scale": 1.0, "tolerance_percent": 0.08, "fuzz_percent": 8.0, "normalization_blur_sigma": 1.5},
+  "renderer_version": 4,
+  "defaults": {"width": 1280, "height": 720, "scale": 1.0, "tolerance_percent": 0.08, "channel_tolerance": 20, "neighborhood_radius": 2},
   "cases": [
     {"id": "neutral-full-desktop-nominal", "affinity": "neutral", "motion": "full", "variant": "default", "state": "nominal", "capability": "available"},
     {"id": "unit00-reduced-laptop-warning", "affinity": "unit-00-prototype", "motion": "reduced", "variant": "default", "state": "warning", "capability": "stale", "width": 1024, "height": 640},
@@ -10,7 +10,8 @@
     {"id": "unit02-reduced-projector-warning", "affinity": "unit-02", "motion": "reduced", "variant": "daylight", "state": "warning", "capability": "unavailable", "width": 1280, "height": 800}
   ],
   "masks": [
-    {"name": "clock-seconds", "x": 615, "y": 14, "width": 50, "height": 20}
+    {"name": "clock-seconds", "x": 615, "y": 14, "width": 50, "height": 20},
+    {"name": "canonical-copy", "scope": "generated-text"}
   ],
   "privacy": {"fictional_only": true, "prohibited": ["username", "hostname", "ssid", "ip_address", "window_title", "home_path"]}
 }

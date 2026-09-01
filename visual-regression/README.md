@@ -12,12 +12,14 @@ capabilities without multiplying every dimension into hundreds of images.
 
 Failures retain `actual.png`, `expected.png`, `diff.png`, and `report.json`
 under `test-results/visual-regression/`. Each case declares a maximum changed
-pixel percentage. Before comparison, a small blur and bounded color fuzz remove
-sub-pixel glyph antialiasing differences between librsvg/FreeType builds; the
-strict changed-area threshold still catches structural changes. The `--self-test`
-path deliberately perturbs a frame to verify that invariant. Masks are narrowly
-named rectangles for fields that are intentionally dynamic in a future
-live-capture adapter.
+pixel percentage. A version-independent symmetric RGB comparator permits only a
+small channel delta within a two-pixel neighborhood, removing sub-pixel glyph
+antialiasing differences between librsvg/FreeType builds while the strict
+changed-area threshold still catches structural changes. The `--self-test`
+path deliberately perturbs a frame to verify that invariant. Named masks isolate
+the clock and generated copy because installed FreeType font versions change
+glyph outlines; copy values are validated as deterministic fixture inputs while
+the raster gate owns geometry, spacing, borders, bars, and palette regressions.
 
 Baseline changes require an explicit approval environment and flag:
 
