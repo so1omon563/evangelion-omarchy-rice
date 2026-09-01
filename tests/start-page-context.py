@@ -44,6 +44,7 @@ assert "setInterval(syncDesktop, 2000)" in app
 assert "rail-affinity-state" in app and 'id="rail-affinity-state"' in html
 assert '"Cache-Control", "no-store, max-age=0"' in server
 assert "if (affinityState)" in app and "if ($('rail-affinity-state'))" in app
+assert 'style.css?v=' in html and 'app.js?v=' in html
 assert "hyprctl" in server, "workspace IPC contract missing"
 for forbidden in ("activewindow", "clients -j", "hostname", "address"):
     assert forbidden not in server.lower(), f"private desktop field leaked: {forbidden}"
