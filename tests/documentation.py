@@ -51,6 +51,17 @@ def main():
     for stale in ("responsive-layout work remains", "Bash integration currently provided"):
         assert stale not in readme, f"stale public claim remains: {stale}"
 
+    public_docs = "\n".join(text(name) for name in (
+        "README.md", "BETA_TESTING.md", "RELEASE_ARTIFACTS.md", "ARCH_PACKAGING.md",
+        "DISTRIBUTION.md", "MAINTAINING.md", "packaging/theme/README.md"))
+    for stale in ("v1.4 candidate", "not required to install or release v1.1",
+                  "Once the dedicated theme repository is published",
+                  "packaging/arch/PKGBUILD` and"):
+        assert stale not in public_docs, f"stale v1.4 publication claim remains: {stale}"
+    assert "Upgrade from v1.3.1 to v1.4" in upgrade
+    assert "releases/latest" in text("RELEASE_ARTIFACTS.md")
+    assert "AUR publication is deferred" in text("ARCH_PACKAGING.md")
+
     distribution_guide = text("DISTRIBUTION_GUIDE.md")
     maintaining = text("MAINTAINING.md")
     release_notes = text("RELEASE_NOTES.md")

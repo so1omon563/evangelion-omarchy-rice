@@ -84,7 +84,7 @@ with tempfile.TemporaryDirectory() as directory:
     assert unrelated.read_text() == "accent = '#ffffff'\n"
 
     metadata = json.loads((exported / ".distribution.json").read_text())
-    assert metadata["name"] == "evangelion" and metadata["derived_from_suite"] == "v1.3.1"
+    assert metadata["name"] == "evangelion" and metadata["derived_from_suite"] == "v1.4.1"
     suite_url = "https://github.com/so1omon563/evangelion-omarchy-rice"
     assert metadata["suite_homepage"] == suite_url
     readme = (exported / "README.md").read_text()

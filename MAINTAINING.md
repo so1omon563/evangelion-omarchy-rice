@@ -13,8 +13,9 @@ sync without merging their ownership boundaries.
   README and licensing files.
 - `distribution.json` and `DISTRIBUTION.md` define supported channels.
 - `packaging/release/allowlist.txt` defines the complete release archive.
-- `packaging/arch/PKGBUILD` and `packaging/arch/evangelion-rice` define Arch
-  system ownership and explicit user activation.
+- `packaging/arch/PKGBUILD.release.in`, `packaging/arch/PKGBUILD-git`, and
+  `packaging/arch/evangelion-rice` define Arch system ownership and explicit
+  user activation. The stable `PKGBUILD` is generated into `build/`, not tracked.
 
 MAGI plugins remain internal to the complete suite in v1.4. Do not publish a
 plugin or runtime artifact from this workflow.
@@ -50,11 +51,11 @@ After CI is green, create and verify the signed/annotated exact tag, then build
 twice and compare checksums:
 
 ```bash
-git tag --verify v1.4.0
-./scripts/build-release build --tag v1.4.0 --output build/one
-./scripts/build-release build --tag v1.4.0 --output build/two
+git tag --verify v1.4.1
+./scripts/build-release build --tag v1.4.1 --output build/one
+./scripts/build-release build --tag v1.4.1 --output build/two
 cmp build/one/*.tar.gz build/two/*.tar.gz
-./scripts/build-release verify build/one/evangelion-omarchy-rice-1.4.0.tar.gz
+./scripts/build-release verify build/one/evangelion-omarchy-rice-1.4.1.tar.gz
 ```
 
 Inspect the archive manifest and provenance, publish the archive and checksum
@@ -93,4 +94,3 @@ or accurately represent.
 - [ ] Cross-channel, upgrade, rollback, removal, browser, motion, privacy, and responsive tests pass.
 - [ ] Exact pushed commit/tag CI passes and machine-readable artifacts are retained.
 - [ ] Public release notes link installation, maintenance, rollback, licensing, and support guidance.
-

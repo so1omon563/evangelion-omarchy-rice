@@ -6,7 +6,7 @@ and safety orange, plus seven coordinated wallpapers.
 
 ## Install
 
-Once the dedicated theme repository is published:
+Install from the published dedicated theme repository:
 
 ```bash
 omarchy theme install https://github.com/so1omon563/omarchy-evangelion-theme.git

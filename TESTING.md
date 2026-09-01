@@ -117,6 +117,13 @@ versioned/no-store assets, and performs an exact v1.3.0 install followed by a
 v1.3.1 upgrade, upgrade rollback, repeated upgrade, and complete removal in an
 isolated home.
 
+`release-v1.4.py` pins the exact RC tag and green candidate commit, final
+distribution decisions, documentation selection/maintenance contracts, and all
+privacy-reviewed public media hashes. `cross-channel.py` exercises standalone
+theme conflict refusal, suite install, forced partial failure, exact rollback,
+internal-plugin policy, and browser/motion/privacy/responsive compatibility;
+CI retains its machine-readable JSON evidence.
+
 `affinity-motion.py` verifies wallpaper detection, neutral fallback, serialized
 rapid-settle behavior, atomic profile state, manual authority, Auto feedback,
 and Off-mode instant presentation without changing any wallpaper asset.

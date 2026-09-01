@@ -8,6 +8,13 @@ Begin with read-only evidence:
 omarchy debug --no-sudo --print
 ```
 
+## `CHANNEL CONFLICT` during suite installation
+
+The standalone theme and complete suite intentionally share the `evangelion`
+theme path. If that path contains a Git clone, select another theme and remove
+only `~/.config/omarchy/themes/evangelion`, then rerun the suite dry-run. Do not
+copy suite files over the clone or recursively delete broader Omarchy config.
+
 ## Shell, bar, or plugins
 
 ```bash

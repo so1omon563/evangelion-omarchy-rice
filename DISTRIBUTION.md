@@ -134,9 +134,10 @@ The ignored `build/omarchy-evangelion-theme/` directory is replaced from
 
 Build and verify a reproducible complete-suite archive from an exact semantic
 version tag with `./scripts/build-release`; see
-[`RELEASE_ARTIFACTS.md`](RELEASE_ARTIFACTS.md). Construction is local and CI
-validation-only until a release receives explicit publication approval.
+[`RELEASE_ARTIFACTS.md`](RELEASE_ARTIFACTS.md). The approved v1.4.0 archive is
+published on GitHub Releases; future construction remains local and
+CI-validation-only until that release receives explicit publication approval.
 
 The Arch package and strictly separate per-user activation lifecycle are
 specified in [`ARCH_PACKAGING.md`](ARCH_PACKAGING.md). AUR publication remains
-an explicitly approved external action.
+an explicitly approved external action and is currently deferred.

@@ -10,8 +10,8 @@ The working tree is never used as artifact input. Commit the intended release,
 create and verify its semantic-version tag, then build:
 
 ```bash
-git tag --verify v1.4.0
-./scripts/build-release build --tag v1.4.0
+git tag --verify v1.4.1
+./scripts/build-release build --tag v1.4.1
 ```
 
 The builder rejects branches, raw commits, missing tags, and non-semantic tag
@@ -21,8 +21,8 @@ the same tag produces identical bytes.
 
 Output is written to `build/release/` and is intentionally ignored by Git:
 
-- `evangelion-omarchy-rice-1.4.0.tar.gz`
-- `evangelion-omarchy-rice-1.4.0.tar.gz.sha256`
+- `evangelion-omarchy-rice-1.4.1.tar.gz`
+- `evangelion-omarchy-rice-1.4.1.tar.gz.sha256`
 
 The artifact includes `RELEASE-PROVENANCE.json` with the exact tag and commit,
 plus `RELEASE-MANIFEST.sha256` covering every payload file. The external
@@ -33,10 +33,10 @@ checksum covers the compressed archive.
 Download both files into the same directory, then run:
 
 ```bash
-sha256sum --check evangelion-omarchy-rice-1.4.0.tar.gz.sha256
-tar -xzf evangelion-omarchy-rice-1.4.0.tar.gz
-cd evangelion-omarchy-rice-1.4.0
-./scripts/build-release verify ../evangelion-omarchy-rice-1.4.0.tar.gz
+sha256sum --check evangelion-omarchy-rice-1.4.1.tar.gz.sha256
+tar -xzf evangelion-omarchy-rice-1.4.1.tar.gz
+cd evangelion-omarchy-rice-1.4.1
+./scripts/build-release verify ../evangelion-omarchy-rice-1.4.1.tar.gz
 ./preflight.py --source-only
 ./install.sh --dry-run --preset default
 ./install.sh --apply --preset default
@@ -67,4 +67,7 @@ manifest instead of running repository-development checks for excluded files.
 CI builds the archive twice, compares it byte-for-byte, verifies both checksum
 layers, and exercises preflight, dry-run, install, upgrade, rollback, and
 removal in an isolated home. CI retains the result only as validation evidence;
-it does not create a GitHub Release or publish an artifact until owner approval.
+the corrected v1.4.1 archive and checksum are published through the
+[latest GitHub release](https://github.com/so1omon563/evangelion-omarchy-rice/releases/latest).
+The release page and `.sha256` attachment are authoritative for the current
+digest. Future versions still require explicit owner approval and exact-candidate CI.

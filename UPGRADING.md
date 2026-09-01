@@ -1,5 +1,43 @@
 # Upgrade, rollback, and removal
 
+## Upgrade from v1.3.1 to v1.4
+
+v1.4 preserves the v1.3.1 desktop behavior while adding distribution metadata,
+cross-channel safeguards, and public release packaging. Do not install the
+standalone theme over an existing suite—or the suite over a Git-installed
+standalone theme—because both own the `evangelion` theme path.
+
+Download the new archive and matching checksum from the GitHub release, verify
+them, and preview the same preset or components used previously:
+
+```bash
+sha256sum --check evangelion-omarchy-rice-1.4.1.tar.gz.sha256
+tar -xzf evangelion-omarchy-rice-1.4.1.tar.gz
+cd evangelion-omarchy-rice-1.4.1
+./scripts/build-release verify-root .
+./preflight.py
+./install.sh --dry-run --preset default
+./install.sh --apply --preset default
+snapshot=$(cat ~/.local/state/evangelion-rice/last-install-backup)
+./validate.sh
+```
+
+Replace `default` with the prior selection. Personal `evangelion.json`, motion,
+context, affinity, and profile choices remain preserved. To return to the exact
+pre-v1.4 filesystem state:
+
+```bash
+./rollback.sh "$snapshot"
+omarchy restart shell
+hyprctl reload
+hyprctl configerrors
+```
+
+Git-checkout users may use `git pull --ff-only` instead of downloading an
+archive, after confirming `git status --short` is clean. Arch users must first
+deactivate a source/archive activation, install the package, and then explicitly
+run `evangelion-rice setup`; see `ARCH_PACKAGING.md` and `CROSS_CHANNEL.md`.
+
 ## Upgrade from v1.3.0 to v1.3.1
 
 v1.3.1 changes shell plugins, affinity commands, and start-page assets. Update

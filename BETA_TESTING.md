@@ -2,7 +2,7 @@
 
 This optional protocol helps Omarchy users report compatibility observations
 from environments other than the reference ThinkPad T480. Community reports
-improve future releases, but are not required to install or release v1.1.
+improve future releases, but are not required to install or release v1.4.
 
 ## What qualifies
 
@@ -16,10 +16,10 @@ be unacceptable. Review the installer dry-run before applying it.
 
 ## Run the protocol
 
-Clone the release candidate, then collect a local evidence bundle:
+Clone the exact current release, then collect a local evidence bundle:
 
 ```bash
-git clone --branch v1.1.0 --depth 1 \
+git clone --branch v1.4.1 --depth 1 \
   https://github.com/so1omon563/evangelion-omarchy-rice.git
 cd evangelion-omarchy-rice
 ./beta-report.sh prepare ~/evangelion-beta --preset default
@@ -66,7 +66,7 @@ accepted observations before the final release.
 ## Release evidence
 
 The machine-readable decision record is
-[`release/v1.1.0.json`](release/v1.1.0.json). v1.1 is released after:
+[`release/v1.4.0.json`](release/v1.4.0.json). v1.4 was released after:
 
 - source CI is green for the exact release commit;
 - the isolated clean-user install, validation, repeat-install, failure recovery,

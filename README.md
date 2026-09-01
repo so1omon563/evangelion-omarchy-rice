@@ -2,7 +2,7 @@
 
 [![MAGI Integrity Check](https://github.com/so1omon563/evangelion-omarchy-rice/actions/workflows/validate.yml/badge.svg)](https://github.com/so1omon563/evangelion-omarchy-rice/actions/workflows/validate.yml)
 
-> **v1.4 candidate:** the distribution release adds a standalone gallery-ready
+> **v1.4.0:** the distribution release adds a standalone gallery-ready
 > theme, reproducible complete-suite archives, explicit Arch user activation,
 > cross-channel conflict/rollback tests, and clear selection and maintainer
 > workflows. MAGI plugins remain coordinated suite-internal components. The
@@ -70,7 +70,29 @@ bug report.
 
 ## Quick start
 
-From an active Omarchy Hyprland session:
+Choose the channel before installing. For only the palette and wallpapers:
+
+```bash
+omarchy theme install https://github.com/so1omon563/omarchy-evangelion-theme.git
+```
+
+For the complete MAGI desktop, download the archive and matching checksum from
+the [latest GitHub release](https://github.com/so1omon563/evangelion-omarchy-rice/releases/latest),
+verify them, extract, and run from an active Omarchy Hyprland session:
+
+```bash
+sha256sum --check evangelion-omarchy-rice-1.4.1.tar.gz.sha256
+tar -xzf evangelion-omarchy-rice-1.4.1.tar.gz
+cd evangelion-omarchy-rice-1.4.1
+./scripts/build-release verify-root .
+./preflight.py
+./install.sh --dry-run --preset default
+./install.sh --apply --preset default
+omarchy theme set evangelion
+./validate.sh
+```
+
+Contributors and testers may instead follow the moving Git checkout:
 
 ```bash
 git clone git@github.com:so1omon563/evangelion-omarchy-rice.git
@@ -82,7 +104,10 @@ omarchy theme set evangelion
 ./validate.sh
 ```
 
-Use the HTTPS clone URL if SSH is not configured. Always review the dry-run;
+Use the HTTPS clone URL if SSH is not configured. Arch users can use the
+checksum-pinned `PKGBUILD` attached to the release and the explicit activation
+workflow in [ARCH_PACKAGING.md](ARCH_PACKAGING.md); AUR publication is deferred.
+Always review the dry-run;
 the default preset replaces complete Omarchy shell and Hyprland configuration
 files after confirmation. The preflight is read-only and stops unsafe installs
 before the first backup or write.

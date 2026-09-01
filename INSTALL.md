@@ -44,6 +44,11 @@ Preflight reads versions, session state, dependencies, writable targets, free
 space, conflicting services, port 8765, hotkeys, displays, applications,
 batteries, sensors, audio, and networking. It performs no writes.
 
+If `~/.config/omarchy/themes/evangelion` is a Git-installed standalone theme,
+the suite installer exits read-only with `CHANNEL CONFLICT`. Switch to another
+theme and remove that clone before retrying; the installer never merges suite
+files into another channel's Git tree.
+
 ## Presets and components
 
 ```bash

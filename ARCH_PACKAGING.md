@@ -17,18 +17,20 @@ Hyprland, or contact an active desktop session.
 Build locally after producing an approved tagged archive:
 
 ```bash
-./scripts/build-release build --tag v1.4.0
-./scripts/build-arch-package build/release/evangelion-omarchy-rice-1.4.0.tar.gz
+./scripts/build-release build --tag v1.4.1
+./scripts/build-arch-package build/release/evangelion-omarchy-rice-1.4.1.tar.gz
 cd build/arch
 makepkg --printsrcinfo > .SRCINFO
 makepkg --cleanbuild
-namcap PKGBUILD evangelion-omarchy-rice-1.4.0-1-any.pkg.tar.zst
+namcap PKGBUILD evangelion-omarchy-rice-1.4.1-1-any.pkg.tar.zst
 ```
 
 The generated PKGBUILD expects the archive at the matching GitHub Release URL.
+The checksum-pinned stable `PKGBUILD` is attached to the
+[latest GitHub release](https://github.com/so1omon563/evangelion-omarchy-rice/releases/latest).
 CI validates packaging in an isolated package root without installing into the
-host. Publishing to the AUR or a GitHub Release is a separate owner-approved
-external action and is not performed by these scripts.
+host. AUR publication is deferred: there is no maintained AUR repository yet.
+The scripts never publish externally on their own.
 
 ## Explicit per-user lifecycle
 

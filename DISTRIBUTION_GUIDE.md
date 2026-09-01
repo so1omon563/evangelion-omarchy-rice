@@ -52,9 +52,9 @@ the standalone clone before moving to the suite.
 Download the archive and matching `.sha256` from the GitHub release, then:
 
 ```bash
-sha256sum --check evangelion-omarchy-rice-1.4.0.tar.gz.sha256
-tar -xzf evangelion-omarchy-rice-1.4.0.tar.gz
-cd evangelion-omarchy-rice-1.4.0
+sha256sum --check evangelion-omarchy-rice-1.4.1.tar.gz.sha256
+tar -xzf evangelion-omarchy-rice-1.4.1.tar.gz
+cd evangelion-omarchy-rice-1.4.1
 ./scripts/build-release verify-root .
 ./preflight.py
 ./install.sh --dry-run --preset default

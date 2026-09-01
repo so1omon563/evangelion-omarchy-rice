@@ -1,5 +1,20 @@
 # Release notes
 
+## v1.4.1 — documentation and distribution metadata correction
+
+v1.4.1 corrects the incomplete documentation transition in v1.4.0. The README
+now leads with the theme-only, verified release archive, contributor checkout,
+and checksum-pinned Arch choices instead of presenting Git as the universal
+quick start. Upgrade, community testing, artifact publication, Arch/AUR status,
+troubleshooting, testing, and maintainer guides now describe the released v1.4
+state consistently.
+
+The standalone theme export records the v1.4.1 suite provenance and continues
+to contain only declarative theme files. MAGI plugins remain suite-internal,
+the optional runtime remains unpublished, and AUR publication remains deferred.
+No desktop behavior, personal configuration, artwork, or installation ownership
+changes in this patch.
+
 ## v1.4.0 — distribution and packaging
 
 v1.4 makes the project consumable beyond the reference laptop without splitting
