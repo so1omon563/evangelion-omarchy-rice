@@ -157,6 +157,8 @@ component and is never installed by a preset.
 For controls and keybindings, see [HOTKEYS.md](HOTKEYS.md).
 For deterministic screenshots, onboarding, and private bug reproduction, see
 [DEMO.md](DEMO.md).
+The v1.5 string-catalog, pseudo-locale, RTL, formatting, and contributor
+contracts are documented in [LOCALIZATION.md](LOCALIZATION.md).
 
 ## Upgrade, rollback, and removal
 

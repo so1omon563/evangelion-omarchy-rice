@@ -9,6 +9,7 @@ SOURCE = (ROOT / "omarchy/plugins/evangelion.context/BarWidget.qml").read_text()
 SHELL = json.loads((ROOT / "omarchy/shell.json").read_text())
 MENU = (ROOT / "omarchy/extensions/omarchy-menu.jsonc").read_text()
 BINDINGS = (ROOT / "hypr/bindings.lua").read_text()
+STRINGS = json.loads((ROOT / "omarchy/i18n/en-US.json").read_text())["strings"]
 
 
 def main():
@@ -23,8 +24,8 @@ def main():
     assert "Flickable" in SOURCE and "clip:true" in SOURCE
     assert "FocusScope" in SOURCE and "forceActiveFocus" in SOURCE
     assert "Keys.onEscapePressed" in SOURCE and "Qt.Key_Return" in SOURCE and "Qt.Key_Space" in SOURCE
-    for state in ("CONTEXT UNKNOWN", "CONTEXT UNAVAILABLE", "CONTEXT DISABLED"):
-        assert state in SOURCE
+    for state in ("context.unknown", "context.unavailable", "context.disabled"):
+        assert f'i18n.tr("{state}")' in SOURCE and state in STRINGS
     assert 'safeFacts:' in SOURCE and 'signalNames:' in SOURCE
     assert "context.facts" not in SOURCE and "raw" not in SOURCE.lower()
     assert "confidence" not in SOURCE.lower(), "opaque confidence is rendered"
@@ -32,7 +33,8 @@ def main():
     assert '["docked", "mobile"].indexOf(item.target) < 0' in SOURCE
     assert "safeRecommendations" in SOURCE and "model:root.safeRecommendations()" in SOURCE
     assert "automatic_actions" in SOURCE
-    assert "HELD // MANUAL PROFILE" in SOURCE and "ACTION QUEUED" in SOURCE
+    assert 'i18n.tr("context.automation.manual")' in SOURCE and "Held // Manual profile" == STRINGS["context.automation.manual"]
+    assert '"context.automation.queued"' in SOURCE and "Action queued" == STRINGS["context.automation.queued"]
     assert '"magi.context.panel"' in MENU and '"magi.context.refresh"' in MENU
     assert "SUPER + CTRL + ALT + G" in BINDINGS
     assert "SUPER + ALT + G" not in BINDINGS

@@ -30,9 +30,11 @@ with tempfile.TemporaryDirectory() as directory:
     run("capture"); scrubbed=capture.read_bytes(); assert b"tEXt" not in scrubbed and b"IHDR" in scrubbed and b"IDAT" in scrubbed
 
 service=(ROOT/"omarchy/plugins/evangelion.demo/Service.qml").read_text(); shell=json.loads((ROOT/"omarchy/shell.json").read_text())
+catalog=json.loads((ROOT/"omarchy/i18n/en-US.json").read_text())["strings"]
 menu=(ROOT/"omarchy/extensions/omarchy-menu.jsonc").read_text(); docs=(ROOT/"DEMO.md").read_text()
 assert any(item["id"]=="evangelion.demo" for item in shell["plugins"])
-assert "FICTIONAL DATA" in service and "LIVE PROVIDERS DISCONNECTED" in service and 'target:"magi-demo"' in service
+assert "Fictional data" in catalog["demo.banner"] and "Live providers disconnected" in catalog["demo.banner"]
+assert 'i18n.tr("demo.banner")' in service and 'target:"magi-demo"' in service
 assert '"magi.demo.capture"' in menu and "magi-demo exit" in menu
 assert "does not modify affinity" in docs and "remove PNG text" in docs
 print("PASS  deterministic isolated demo scenarios, reset, indicator, and metadata-safe capture")

@@ -4,11 +4,13 @@ import Quickshell.Io
 import qs.Ui
 import qs.Commons
 import "../evangelion.motion" as Motion
+import "../evangelion.localization" as Localization
 
 BarWidget {
   id: root
   moduleName: "evangelion.context"
   property bool popupOpen: false
+  Localization.I18n { id:i18n }
   property var context: ({
     derived_state: ({ status: "unknown", summary: "No context has been published", freshness: ({ status: "unknown" }) }),
     signals: ({}), reasons: [], recommendations: [], automatic_actions: [],
@@ -60,16 +62,16 @@ BarWidget {
     root.bar.run("magi-operating-profile " + item.target)
   }
   function statusTitle() {
-    if (status === "unknown") return "CONTEXT UNKNOWN"
-    if (status === "unavailable") return "CONTEXT UNAVAILABLE"
-    if (status === "disabled") return "CONTEXT DISABLED"
-    return status.toUpperCase()
+    if (status === "unknown") return i18n.tr("context.unknown").toUpperCase()
+    if (status === "unavailable") return i18n.tr("context.unavailable").toUpperCase()
+    if (status === "disabled") return i18n.tr("context.disabled").toUpperCase()
+    return i18n.tr("status."+status).toUpperCase()
   }
   function automationLabel() {
     var selected = String(reason().facts?.profile_selection || "")
-    if (selected === "docked" || selected === "mobile") return "HELD // MANUAL PROFILE"
-    if (!context.controller?.automation_enabled) return "DISABLED"
-    return (context.automatic_actions || []).length ? "ACTION QUEUED" : "ARMED // NO ACTION"
+    if (selected === "docked" || selected === "mobile") return i18n.tr("context.automation.manual").toUpperCase()
+    if (!context.controller?.automation_enabled) return i18n.tr("context.automation.disabled").toUpperCase()
+    return i18n.tr((context.automatic_actions || []).length?"context.automation.queued":"context.automation.armed").toUpperCase()
   }
 
   onPopupOpenChanged: if (popupOpen) Qt.callLater(function() { panelFocus.forceActiveFocus() })
@@ -113,53 +115,55 @@ BarWidget {
         boundsBehavior:Flickable.StopAtBounds; flickableDirection:Flickable.VerticalFlick
         Column {
           id:contentColumn; width:parent.width; spacing:Style.space(8)
-          Text { text:"MAGI // CONTEXT INSPECTOR"; color:Color.accent; font.family:root.bar.fontFamily; font.pixelSize:Style.font.caption; font.bold:true; font.letterSpacing:1 }
+          LayoutMirroring.enabled:i18n.rtl
+          LayoutMirroring.childrenInherit:true
+          Text { text:i18n.tr("context.inspector").toUpperCase(); color:Color.accent; font.family:root.bar.fontFamily; font.pixelSize:Style.font.caption; font.bold:true; font.letterSpacing:1 }
           Text { text:root.statusTitle(); color:root.stateColor; font.family:root.bar.fontFamily; font.pixelSize:Style.font.heading; font.bold:true }
           Text { width:parent.width; text:String(root.context.derived_state?.summary || "No context has been published"); wrapMode:Text.Wrap; color:root.bar.foreground; font.family:root.bar.fontFamily; font.pixelSize:Style.font.body }
-          Text { text:"FRESHNESS // "+root.freshness.toUpperCase()+"     POLICY // V"+String(root.context.contract?.policy_version || "--"); color:root.freshness==="stale"?"#F6D447":Qt.darker(root.bar.foreground,1.35); font.family:root.bar.fontFamily; font.pixelSize:Style.font.caption; font.bold:true }
+          Text { text:i18n.tr("context.freshness",{freshness:root.freshness,version:String(root.context.contract?.policy_version||"--")}).toUpperCase(); color:root.freshness==="stale"?"#F6D447":Qt.darker(root.bar.foreground,1.35); font.family:root.bar.fontFamily; font.pixelSize:Style.font.caption; font.bold:true }
           Rectangle { width:parent.width; height:1; color:root.stateColor; opacity:.55 }
 
-          Text { text:"CONCLUSION // "+String(root.reason().code || "unknown").toUpperCase(); color:root.stateColor; font.family:root.bar.fontFamily; font.pixelSize:Style.font.caption; font.bold:true }
+          Text { text:i18n.tr("context.conclusion",{code:String(root.reason().code||"unknown")}).toUpperCase(); color:root.stateColor; font.family:root.bar.fontFamily; font.pixelSize:Style.font.caption; font.bold:true }
           Repeater { model:root.factRows(); delegate:Row { required property var modelData; width:contentColumn.width
             Text { width:parent.width*.48; text:String(modelData.key).replace(/_/g," ").toUpperCase(); color:Qt.darker(root.bar.foreground,1.35); font.family:root.bar.fontFamily; font.pixelSize:Style.font.caption }
             Text { width:parent.width*.52; text:String(modelData.value).toUpperCase(); elide:Text.ElideRight; color:root.bar.foreground; font.family:root.bar.fontFamily; font.pixelSize:Style.font.caption; font.bold:true }
           } }
-          Text { visible:root.factRows().length===0; text:"NO CONTRIBUTING FACTS AVAILABLE"; color:Color.muted; font.family:root.bar.fontFamily; font.pixelSize:Style.font.caption }
+          Text { visible:root.factRows().length===0; text:i18n.tr("context.no_facts").toUpperCase(); color:Color.muted; font.family:root.bar.fontFamily; font.pixelSize:Style.font.caption }
 
           Rectangle { width:parent.width; height:1; color:Color.muted; opacity:.35 }
-          Text { text:"SIGNAL MATRIX"; color:Color.accent; font.family:root.bar.fontFamily; font.pixelSize:Style.font.caption; font.bold:true }
+          Text { text:i18n.tr("context.signals").toUpperCase(); color:Color.accent; font.family:root.bar.fontFamily; font.pixelSize:Style.font.caption; font.bold:true }
           Grid { width:parent.width; columns:2; rowSpacing:Style.space(4); columnSpacing:Style.space(8)
             Repeater { model:root.signalRows(); delegate:Text { required property var modelData; width:(contentColumn.width-Style.space(8))/2; text:String(modelData.name).replace(/_/g," ").toUpperCase()+" // "+String(modelData.availability).toUpperCase()+" · "+String(modelData.freshness).toUpperCase(); elide:Text.ElideRight; color:modelData.freshness==="stale"?"#F6D447":Qt.darker(root.bar.foreground,1.25); font.family:root.bar.fontFamily; font.pixelSize:Style.font.caption } }
           }
 
           Rectangle { width:parent.width; height:1; color:Color.muted; opacity:.35 }
-          Text { text:"SUPPRESSED ALTERNATIVES"; color:Color.accent; font.family:root.bar.fontFamily; font.pixelSize:Style.font.caption; font.bold:true }
+          Text { text:i18n.tr("context.suppressed").toUpperCase(); color:Color.accent; font.family:root.bar.fontFamily; font.pixelSize:Style.font.caption; font.bold:true }
           Text { width:parent.width; text:(root.context.policy_state?.suppressed_reason_codes || []).length ? root.context.policy_state.suppressed_reason_codes.join("  ·  ").toUpperCase() : "NONE"; wrapMode:Text.Wrap; color:Qt.darker(root.bar.foreground,1.3); font.family:root.bar.fontFamily; font.pixelSize:Style.font.caption }
 
           Rectangle { width:parent.width; height:1; color:Color.muted; opacity:.35 }
-          Text { text:"RECOMMENDED ACTIONS // "+String(root.safeRecommendations().length); color:Color.accent; font.family:root.bar.fontFamily; font.pixelSize:Style.font.caption; font.bold:true }
-          Text { visible:root.safeRecommendations().length===0; text:"NO ACTION RECOMMENDED"; color:Color.muted; font.family:root.bar.fontFamily; font.pixelSize:Style.font.caption }
+          Text { text:i18n.tr("context.recommended",{count:root.safeRecommendations().length}).toUpperCase(); color:Color.accent; font.family:root.bar.fontFamily; font.pixelSize:Style.font.caption; font.bold:true }
+          Text { visible:root.safeRecommendations().length===0; text:i18n.tr("context.no_action").toUpperCase(); color:Color.muted; font.family:root.bar.fontFamily; font.pixelSize:Style.font.caption }
           Repeater { model:root.safeRecommendations(); delegate:BorderSurface {
             required property var modelData; width:contentColumn.width; height:Style.space(42); activeFocusOnTab:true
             color:Style.normalFillFor(root.bar.foreground,Color.accent); borderSpec:Border.controlSpec(activeFocus?"focus":"normal",root.bar.foreground,Color.accent)
-            Text { anchors.centerIn:parent; width:parent.width-Style.space(16); horizontalAlignment:Text.AlignHCenter; elide:Text.ElideRight; text:"APPLY // "+String(modelData.target || "").toUpperCase(); color:root.bar.foreground; font.family:root.bar.fontFamily; font.pixelSize:Style.font.caption; font.bold:true }
+            Text { anchors.centerIn:parent; width:parent.width-Style.space(16); horizontalAlignment:Text.AlignHCenter; elide:Text.ElideRight; text:i18n.tr("context.apply",{target:String(modelData.target||"")}).toUpperCase(); color:root.bar.foreground; font.family:root.bar.fontFamily; font.pixelSize:Style.font.caption; font.bold:true }
             MouseArea { anchors.fill:parent; cursorShape:Qt.PointingHandCursor; onClicked:root.runRecommendation(modelData) }
             Keys.onPressed:function(event){ if(event.key===Qt.Key_Return||event.key===Qt.Key_Enter||event.key===Qt.Key_Space){ root.runRecommendation(modelData); event.accepted=true } }
           } }
 
           Row { width:parent.width; spacing:Style.space(8)
             BorderSurface { id:refreshButton; width:(parent.width-Style.space(8))/2; height:Style.space(38); activeFocusOnTab:true; focus:true; color:Style.normalFillFor(root.bar.foreground,Color.accent); borderSpec:Border.controlSpec(activeFocus?"focus":"normal",root.bar.foreground,Color.accent)
-              Text { anchors.centerIn:parent; text:"REFRESH OBSERVATIONS"; color:root.bar.foreground; font.family:root.bar.fontFamily; font.pixelSize:Style.font.caption; font.bold:true }
+              Text { anchors.centerIn:parent; width:parent.width-Style.space(12); horizontalAlignment:Text.AlignHCenter; elide:Text.ElideRight; text:i18n.tr("context.refresh").toUpperCase(); color:root.bar.foreground; font.family:root.bar.fontFamily; font.pixelSize:Style.font.caption; font.bold:true }
               MouseArea { anchors.fill:parent; cursorShape:Qt.PointingHandCursor; onClicked:root.refresh() }
               Keys.onPressed:function(event){ if(event.key===Qt.Key_Return||event.key===Qt.Key_Enter||event.key===Qt.Key_Space){ root.refresh(); event.accepted=true } }
             }
             BorderSurface { width:(parent.width-Style.space(8))/2; height:Style.space(38); activeFocusOnTab:true; color:Style.normalFillFor(root.bar.foreground,Color.accent); borderSpec:Border.controlSpec(activeFocus?"focus":"normal",root.bar.foreground,Color.accent)
-              Text { anchors.centerIn:parent; text:"CLOSE"; color:root.bar.foreground; font.family:root.bar.fontFamily; font.pixelSize:Style.font.caption; font.bold:true }
+              Text { anchors.centerIn:parent; width:parent.width-Style.space(12); horizontalAlignment:Text.AlignHCenter; elide:Text.ElideRight; text:i18n.tr("context.close").toUpperCase(); color:root.bar.foreground; font.family:root.bar.fontFamily; font.pixelSize:Style.font.caption; font.bold:true }
               MouseArea { anchors.fill:parent; cursorShape:Qt.PointingHandCursor; onClicked:root.close() }
               Keys.onPressed:function(event){ if(event.key===Qt.Key_Return||event.key===Qt.Key_Enter||event.key===Qt.Key_Space){ root.close(); event.accepted=true } }
             }
           }
-          Text { text:"AUTOMATION // "+root.automationLabel()+"     AUTOMATIC ACTIONS // "+String((root.context.automatic_actions || []).length); color:Qt.darker(root.bar.foreground,1.4); font.family:root.bar.fontFamily; font.pixelSize:Style.font.caption }
+          Text { width:parent.width; elide:Text.ElideRight; text:i18n.tr("context.automation",{state:root.automationLabel(),count:String((root.context.automatic_actions||[]).length)}).toUpperCase(); color:Qt.darker(root.bar.foreground,1.4); font.family:root.bar.fontFamily; font.pixelSize:Style.font.caption }
         }
       }
     }

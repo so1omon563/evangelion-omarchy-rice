@@ -58,7 +58,7 @@ dependencies.
 | `evangelion.world-clock` | bar | Optionally integrated | Clock command/schema, motion, project-specific zone default |
 | `neon.overdrive` | bar | Compatibility-only | External-theme compatibility; superseded by native Cava |
 
-The automated contract verifies that all 33 tracked directories appear exactly once,
+The automated contract verifies that all 34 tracked directories appear exactly once,
 all non-orphan entries match their manifests and entry points, declared sibling
 imports match the source, and no entry is mislabeled as verified standalone.
 

@@ -112,6 +112,7 @@ add_tree tools "$root/bin" "$HOME/.local/bin" 755
 add_tree tools "$root/lib" "$HOME/.local/lib/evangelion-rice" 644
 add_tree tools "$root/recovery" "$HOME/.local/share/evangelion-rice/recovery" 644
 add_tree tools "$root/migrations" "$HOME/.local/share/evangelion-rice/migrations" 644
+add_tree tools "$root/omarchy/i18n" "$HOME/.local/share/evangelion-rice/i18n" 644
 add_tree theme "$root/theme" "$HOME/.config/omarchy/themes/evangelion" 644
 add_tree shell "$root/omarchy/plugins" "$HOME/.config/omarchy/plugins" 644
 if [[ ${selected[shell]:-0} == 1 ]]; then

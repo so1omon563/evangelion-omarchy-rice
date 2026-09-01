@@ -45,14 +45,13 @@ def snapshot(name):
     except ValueError: raise SystemExit(f"Unknown demo scenario: {name}")
     name, affinity, status, workspace, battery, temperature, online, media = SCENARIOS[index]
     colors = {"neutral":"#f6d447", "unit-00-prototype":"#62d8ff", "unit-00-refit":"#f6d447", "unit-01":"#9cf23a", "unit-02":"#ff4055"}
-    summaries = {"nominal":"All systems nominal", "mobile":"Internal operations profile", "docked":"Umbilical dock synchronized", "media-active":"Audio channel active", "offline":"Communication link offline", "constrained":"Resource conservation active", "critical":"Immediate operator attention required", "manual":"Manual operating profile authoritative"}
     return {"schema_version":1, "demo":True, "scenario":name, "scenario_index":index,
             "scenario_count":len(SCENARIOS), "affinity":affinity, "accent":colors[affinity],
-            "status":status, "summary":summaries[status], "workspace":workspace,
+            "status":status, "summary_key":"summary."+status, "workspace":workspace,
             "workspace_id":index % 5 + 1, "profile":"mobile" if status in {"mobile","constrained","critical","manual"} else "docked",
             "battery_percent":battery, "temperature_c":temperature, "online":online,
-            "media":{"state":media, "artist":"NERV SYMPHONIC CHANNEL", "title":"DECISIVE BATTLE", "position":"01:16", "duration":"03:58"},
-            "operation_log":["MAGI DEMONSTRATION BUS ISOLATED", f"SCENARIO {name.upper()} LOADED", "LIVE PROVIDERS DISCONNECTED"],
+            "media":{"state":media, "artist_key":"demo.media_artist", "title_key":"demo.media_title", "position":"01:16", "duration":"03:58"},
+            "operation_log":[{"key":"demo.log.isolated"},{"key":"demo.log.loaded","args":{"scenario":name}},{"key":"demo.log.disconnected"}],
             "privacy":{"live_data":False, "fictional":True, "metadata_safe_capture":True}}
 
 def active_snapshot():

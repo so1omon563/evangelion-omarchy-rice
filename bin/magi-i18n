@@ -1,0 +1,69 @@
+#!/usr/bin/env python3
+"""Versioned locale resolver with deterministic expansion and RTL pseudo-locales."""
+
+import json, os, re, sys, tempfile
+from pathlib import Path
+
+STATE=Path(os.environ.get("XDG_STATE_HOME",Path.home()/".local/state"))/"evangelion-rice/i18n/state.json"
+SOURCE=Path(__file__).resolve().parents[1]/"omarchy/i18n/en-US.json"
+INSTALLED=Path.home()/".local/share/evangelion-rice/i18n/en-US.json"
+CATALOG=SOURCE if SOURCE.is_file() else INSTALLED
+SUPPORTED=("en-US","qps-ploc","ar-XB")
+
+def base():
+    value=json.loads(CATALOG.read_text())
+    if value.get("schema_version")!=1 or not isinstance(value.get("strings"),dict): raise SystemExit("Invalid localization catalog")
+    return value
+
+def current():
+    override=os.environ.get("EVA_LOCALE")
+    if override in SUPPORTED: return override
+    try: value=json.loads(STATE.read_text()).get("locale")
+    except (OSError,json.JSONDecodeError): value=None
+    return value if value in SUPPORTED else "en-US"
+
+def pseudo(text,locale):
+    if locale=="en-US": return text
+    protected=base()["protected_terms"]
+    protected=protected+re.findall(r"\{[a-zA-Z0-9_]+\}",text)
+    tokens={term:f"\x00{index}\x00" for index,term in enumerate(protected)}
+    for term,token in tokens.items(): text=text.replace(term,token)
+    if locale=="qps-ploc":
+        table=str.maketrans("aeiouAEIOU","áéíóúÁÉÍÓÚ"); text="［"+text.translate(table)+( " ·"*max(2,len(text)//8))+"］"
+    else: text="\u202e⟦ "+text+" ⟧\u202c"
+    for term,token in tokens.items(): text=text.replace(token,term)
+    return text
+
+def catalog(locale):
+    root=base(); return {"schema_version":1,"locale":locale,"fallback":"en-US","direction":"rtl" if locale=="ar-XB" else "ltr","pseudo":locale!="en-US","protected_terms":root["protected_terms"],"strings":{key:pseudo(value,locale) for key,value in root["strings"].items()}}
+
+def atomic(locale):
+    STATE.parent.mkdir(parents=True,exist_ok=True); fd,name=tempfile.mkstemp(prefix=".state.",dir=STATE.parent)
+    try:
+        with os.fdopen(fd,"w") as stream: json.dump({"schema_version":1,"locale":locale},stream); stream.write("\n")
+        os.chmod(name,0o600); os.replace(name,STATE)
+    finally:
+        try: os.unlink(name)
+        except FileNotFoundError: pass
+
+args=sys.argv[1:]
+if not args: args=["status"]
+command=args.pop(0); locale=current()
+if command=="status": print(json.dumps({"schema_version":1,"locale":locale,"direction":"rtl" if locale=="ar-XB" else "ltr","production_locales":["en-US"],"test_locales":["qps-ploc","ar-XB"]},separators=(",",":")) if "--json" in args else locale)
+elif command=="catalog": print(json.dumps(catalog(locale),separators=(",",":")))
+elif command=="get":
+    if not args: raise SystemExit("Usage: magi-i18n get KEY [NAME=VALUE ...]")
+    key=args.pop(0); text=catalog(locale)["strings"].get(key,key)
+    values=dict(item.split("=",1) for item in args if "=" in item)
+    try: print(text.format(**values))
+    except KeyError: print(text)
+elif command=="set":
+    if not args or args[0] not in SUPPORTED: raise SystemExit("Locale must be en-US, qps-ploc, or ar-XB")
+    atomic(args[0]); print(args[0])
+elif command=="reset": atomic("en-US"); print("en-US")
+elif command=="validate":
+    root=base(); strings=root["strings"]
+    assert all(isinstance(key,str) and isinstance(value,str) and value for key,value in strings.items())
+    assert all(all(term in pseudo(value,"qps-ploc") for term in root["protected_terms"] if term in value) for value in strings.values())
+    print(f"valid // {len(strings)} strings // en-US + 2 pseudo-locales")
+else: raise SystemExit("Usage: magi-i18n {status [--json]|catalog|get KEY [NAME=VALUE]|set LOCALE|reset|validate}")

@@ -1,0 +1,11 @@
+{
+  "schemaVersion": 1,
+  "id": "evangelion.localization",
+  "name": "MAGI Localization Foundation",
+  "version": "1.0.0",
+  "author": "Evangelion Rice",
+  "description": "Versioned locale catalog, fallback, expansion, and RTL test runtime.",
+  "kinds": ["service"],
+  "keepLoaded": true,
+  "entryPoints": {"service": "Service.qml"}
+}

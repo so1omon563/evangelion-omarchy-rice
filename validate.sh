@@ -54,6 +54,7 @@ python3 "$root/tests/migration.py" >/dev/null && pass "guided versioned configur
 python3 "$root/tests/visual-regression.py" --self-test >/dev/null && pass "canonical visual regression baselines" || fail "canonical visual regression baselines"
 python3 "$root/tests/performance-overlay.py" >/dev/null && pass "opt-in aggregate performance overlay" || fail "opt-in aggregate performance overlay"
 python3 "$root/tests/demo-mode.py" >/dev/null && pass "privacy-safe full-interface demo mode" || fail "privacy-safe full-interface demo mode"
+python3 "$root/tests/localization.py" >/dev/null && pass "localization and resilient-layout foundation" || fail "localization and resilient-layout foundation"
 if [[ ${EVANGELION_RELEASE_ARTIFACT_NESTED:-0} != 1 ]]; then
   python3 "$root/tests/release-artifact.py" >/dev/null && pass "reproducible complete-suite release artifact" || fail "reproducible complete-suite release artifact"
   python3 "$root/tests/arch-package.py" >/dev/null && pass "Arch package and explicit user lifecycle" || fail "Arch package and explicit user lifecycle"
