@@ -53,6 +53,7 @@ def main() -> None:
             "schema_version": 1,
             "name": manifest["name"],
             "derived_from_suite": manifest["derived_from_suite"],
+            "suite_homepage": manifest["suite_homepage"],
             "source_manifest": "packaging/theme/manifest.json"
         }, indent=2) + "\n")
         validate(scratch)

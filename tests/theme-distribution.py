@@ -85,5 +85,10 @@ with tempfile.TemporaryDirectory() as directory:
 
     metadata = json.loads((exported / ".distribution.json").read_text())
     assert metadata["name"] == "evangelion" and metadata["derived_from_suite"] == "v1.3.1"
+    suite_url = "https://github.com/so1omon563/evangelion-omarchy-rice"
+    assert metadata["suite_homepage"] == suite_url
+    readme = (exported / "README.md").read_text()
+    assert "Want the complete MAGI desktop?" in readme and suite_url in readme
+    assert "does not silently install or enable any suite component" in " ".join(readme.split())
 
 print("PASS  standalone theme export install apply cycle update and removal")

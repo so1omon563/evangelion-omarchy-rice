@@ -25,6 +25,19 @@ This package contains only declarative theme files and images. It does not
 include the MAGI widgets, commands, Hyprland configuration, start page, or user
 services from the complete Evangelion Rice suite.
 
+## Want the complete MAGI desktop?
+
+This theme is the lightweight, native Omarchy option. The coordinated
+wallpaper affinity, themed shell widgets, workspace identities, media and Cava
+integration, start page, screensaver, terminal profiles, motion system, and
+installer live in the complete **Evangelion Omarchy Rice** project:
+
+**[Explore the complete Evangelion Rice suite →](https://github.com/so1omon563/evangelion-omarchy-rice)**
+
+The suite includes this theme, so install one path or the other according to
+the experience you want. Installing the theme does not silently install or
+enable any suite component.
+
 ## Requirements
 
 - A current Omarchy installation

@@ -2,6 +2,7 @@
   "schema_version": 1,
   "name": "evangelion",
   "derived_from_suite": "v1.3.1",
+  "suite_homepage": "https://github.com/so1omon563/evangelion-omarchy-rice",
   "files": {
     "theme/colors.toml": "colors.toml",
     "theme/btop.theme": "btop.theme",
