@@ -91,6 +91,8 @@ jq -e '.final_release_allowed == true and .candidate_commit == "9714cafea65e1886
   && pass "final v1.2 release gate uses exact candidate evidence" || fail "final v1.2 release gate"
 jq -e '.final_release_allowed == true and .candidate_commit == "d363835424b48989a0e16c8869672a9df56fe6fe" and .gates.candidate_ci == "passed-run-33450358582" and .community_testing.required_reports == 0 and .community_testing.status == "optional-post-release"' "$root/release/v1.3.0.json" >/dev/null \
   && pass "final v1.3 release gate uses exact candidate evidence" || fail "final v1.3 release gate"
+jq -e '.final_release_allowed == true and .candidate_commit == "edc924c5dabf230d6542fcf96aa496857ad0e1f6" and .gates.candidate_ci == "passed-run-33459244026" and .community_testing.required_reports == 0 and .community_testing.status == "optional-post-release"' "$root/release/v1.3.1.json" >/dev/null \
+  && pass "final v1.3.1 release gate uses exact candidate evidence" || fail "final v1.3.1 release gate"
 jq -e '.plugins | any(.id == "evangelion.motion")' "$root/omarchy/shell.json" >/dev/null \
   && pass "motion service enabled in shell" || fail "motion service shell enablement"
 jq -e '.bar.layout.left | map(.id) | index("evangelion.media") as $media | index("evangelion.cava") == ($media + 1)' "$root/omarchy/shell.json" >/dev/null \

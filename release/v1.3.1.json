@@ -1,0 +1,29 @@
+{
+  "schema_version": 1,
+  "release": "v1.3.1",
+  "candidate": "v1.3.1-rc.4",
+  "candidate_commit": "edc924c5dabf230d6542fcf96aa496857ad0e1f6",
+  "final_release_allowed": true,
+  "community_testing": {
+    "status": "optional-post-release",
+    "required_reports": 0,
+    "accepted_reports": 0,
+    "required_display_scale_combinations": 0,
+    "observed_display_scale_combinations": [],
+    "materially_different_hardware_observed": false,
+    "accepted_issue_urls": []
+  },
+  "gates": {
+    "candidate_ci": "passed-run-33459244026",
+    "clean_install": "passed-isolated-clean-user",
+    "validation": "passed-source-and-reference-system-154-checks",
+    "rollback": "passed-exact-v1.3.0-upgrade-repeat-and-uninstall-lifecycle",
+    "mixed_cache_regressions": "passed-current-js-old-html-and-versioned-assets",
+    "responsive_layouts": "passed-seven-profile-matrix",
+    "motion_regressions": "passed-all-motion-suites",
+    "context_regressions": "passed-privacy-migration-restart-interruption",
+    "release_media_privacy_review": "passed-synthetic-demo-png-hash-and-metadata",
+    "live_browser_confirmation": "passed-zen-current-affinity-workspace-profile",
+    "migration_notes": "passed-v1.3.0-upgrade-and-rollback"
+  }
+}

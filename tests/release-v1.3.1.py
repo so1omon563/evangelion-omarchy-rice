@@ -43,10 +43,17 @@ current_html = (ROOT / "start-page/index.html").read_text()
 release_notes = (ROOT / "RELEASE_NOTES.md").read_text()
 upgrading = (ROOT / "UPGRADING.md").read_text()
 readme = (ROOT / "README.md").read_text()
+evidence = json.loads((ROOT / "release/v1.3.1.json").read_text())
 assert "v1.3.1 — start-page and affinity stabilization" in release_notes
 assert "Upgrade from v1.3.0 to v1.3.1" in upgrading
 assert "versioned,\nno-store start-page assets" in upgrading
 assert "> **v1.3.1:**" in readme
+assert evidence["release"] == "v1.3.1"
+assert evidence["candidate"] == "v1.3.1-rc.4"
+assert evidence["candidate_commit"] == "edc924c5dabf230d6542fcf96aa496857ad0e1f6"
+assert evidence["final_release_allowed"] is True
+assert evidence["community_testing"]["required_reports"] == 0
+assert evidence["gates"]["candidate_ci"] == "passed-run-33459244026"
 old_app = git_show("start-page/app.js")
 old_html = git_show("start-page/index.html")
 data = {"affinity":{"mode":"auto","active":"unit-00-prototype","label":"UNIT-00 PROTOTYPE","state":"current"},
