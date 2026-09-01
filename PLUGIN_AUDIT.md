@@ -50,14 +50,13 @@ dependencies.
 | `evangelion.privacy` | bar | Optionally integrated | Safety helper/probes + motion; actions need separate review |
 | `evangelion.tailscale` | bar | Compatibility-only | Icon adapter + upstream Tailscale source |
 | `evangelion.thermal` | service | Suite-only | Shell half of suite monitor and alert policy |
-| `evangelion.tray` | invalid | Suite-only | Empty orphan: no manifest or entry point |
 | `evangelion.update-operation` | service | Suite-only | Events exist only inside suite update wrapper |
 | `evangelion.workspace-osd` | service | Suite-only | Suite Hyprland event/state and workspace labels |
 | `evangelion.workspaces` | bar | Suite-only | Cloned native widget + suite labels/motion |
 | `evangelion.world-clock` | bar | Optionally integrated | Clock command/schema, motion, project-specific zone default |
 | `neon.overdrive` | bar | Compatibility-only | External-theme compatibility; superseded by native Cava |
 
-The automated contract verifies that all 32 directories appear exactly once,
+The automated contract verifies that all 31 tracked directories appear exactly once,
 all non-orphan entries match their manifests and entry points, declared sibling
 imports match the source, and no entry is mislabeled as verified standalone.
 
@@ -76,7 +75,9 @@ imports match the source, and no entry is mislabeled as verified standalone.
 - Replacement plugins for lock, notifications, clipboard, battery, power, and
   workspaces carry more security or compatibility risk than marketplace value;
   they stay suite-only.
-- `evangelion.tray` should be removed as dead source in a cleanup change.
+- The local-only empty `evangelion.tray` directory discovered during the audit
+  was removed. Git never tracked or published it, so it is not a distributable
+  plugin and is intentionally absent from the inventory.
 
 ## First marketplace candidates
 

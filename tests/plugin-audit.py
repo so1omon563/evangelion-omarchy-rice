@@ -15,7 +15,7 @@ directories = {path.name for path in plugin_root.iterdir() if path.is_dir()}
 assert audit["schema_version"] == 1
 assert audit["baseline"] == "v1.3.1"
 assert audit["standalone_support_claimed"] is False
-assert len(rows) == len(by_id) == len(directories) == 32
+assert len(rows) == len(by_id) == len(directories) == 31
 assert set(by_id) == directories
 assert audit["recommended_candidates"] == ["evangelion.cava", "evangelion.media"]
 allowed = {"standalone", "optionally-integrated", "suite-only", "compatibility-only"}
@@ -25,10 +25,6 @@ assert not any(row["classification"] == "standalone" for row in rows)
 for plugin_id, row in by_id.items():
     directory = plugin_root / plugin_id
     manifest_path = directory / "manifest.json"
-    if row["kind"] == "invalid":
-        assert plugin_id == "evangelion.tray" and not manifest_path.exists()
-        assert not any(directory.iterdir())
-        continue
     manifest = json.loads(manifest_path.read_text())
     assert manifest["id"] == plugin_id
     assert row["entry"] in manifest["entryPoints"].values()
@@ -39,7 +35,7 @@ for plugin_id, row in by_id.items():
 
 ranked = sorted((row["candidate_rank"], row["id"]) for row in rows if row["candidate_rank"] is not None)
 assert [plugin_id for _, plugin_id in ranked[:2]] == audit["recommended_candidates"]
-for phrase in ("Dependency findings", "First marketplace candidates", "evangelion.tray", "no independently versioned protocol"):
+for phrase in ("Dependency findings", "First marketplace candidates", "local-only empty", "no independently versioned protocol"):
     assert phrase in guide
 
 print("PASS  complete MAGI plugin dependency and viability audit")

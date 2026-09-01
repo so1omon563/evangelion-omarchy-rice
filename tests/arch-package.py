@@ -36,13 +36,22 @@ with tempfile.TemporaryDirectory(prefix="evangelion-arch-test-") as raw:
     assert "@VERSION@" not in pkgbuild and "@PKGVER@" not in pkgbuild and "@SHA256@" not in pkgbuild
     assert "pkgver=0.0.0_ci.2" in pkgbuild and "sha256sums=('SKIP')" not in pkgbuild
     assert "install=" not in pkgbuild and ".install" not in pkgbuild
-    run("makepkg", "--printsrcinfo", cwd=arch)
+    if shutil.which("makepkg"):
+        run("makepkg", "--printsrcinfo", cwd=arch)
+    else:
+        run("bash", "-n", arch / "PKGBUILD", cwd=arch)
     vcs_dir = tmp / "vcs"
     vcs_dir.mkdir()
     shutil.copy2(source / "packaging/arch/PKGBUILD-git", vcs_dir / "PKGBUILD")
-    vcs_info = run("makepkg", "--printsrcinfo", cwd=vcs_dir).stdout
-    assert "provides = evangelion-omarchy-rice" in vcs_info
-    assert "conflicts = evangelion-omarchy-rice" in vcs_info
+    if shutil.which("makepkg"):
+        vcs_info = run("makepkg", "--printsrcinfo", cwd=vcs_dir).stdout
+        assert "provides = evangelion-omarchy-rice" in vcs_info
+        assert "conflicts = evangelion-omarchy-rice" in vcs_info
+    else:
+        run("bash", "-n", vcs_dir / "PKGBUILD", cwd=vcs_dir)
+        vcs_source = (vcs_dir / "PKGBUILD").read_text()
+        assert "provides=('evangelion-omarchy-rice')" in vcs_source
+        assert "conflicts=('evangelion-omarchy-rice')" in vcs_source
     assert "packaging/release/allowlist.txt" in (vcs_dir / "PKGBUILD").read_text()
 
     srcdir, pkgdir = tmp / "src", tmp / "pkg"
