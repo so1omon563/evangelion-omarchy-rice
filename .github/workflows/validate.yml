@@ -22,6 +22,8 @@ jobs:
     steps:
       - name: Check out repository
         uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
 
       - name: Install validation dependencies
         run: sudo apt-get update && sudo apt-get install --yes jq lua5.4 ripgrep
@@ -59,6 +61,9 @@ jobs:
       - name: Test v1.3 release documentation and media contracts
         run: ./tests/release-v1.3.py
 
+      - name: Test v1.3.1 mixed-cache and upgrade lifecycle
+        run: ./tests/release-v1.3.1.py
+
       - name: Retain clean-user results
         if: always()
         uses: actions/upload-artifact@v4
@@ -70,6 +75,7 @@ jobs:
       - name: Run MAGI integrity checks
         env:
           EVANGELION_SOURCE_ONLY: "1"
+          EVANGELION_RELEASE_131_NESTED: "1"
         run: ./validate.sh
 
       - name: Test transactional installer

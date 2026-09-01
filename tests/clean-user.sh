@@ -51,6 +51,7 @@ for command in omarchy omarchy-menu omarchy-shell hyprctl systemctl voxtype xdg-
 run_env=(env HOME="$test_root/home" XDG_CONFIG_HOME="$test_root/home/.config" XDG_STATE_HOME="$test_root/state"
   PATH="$test_root/stubs:$PATH" XDG_SESSION_TYPE=wayland XDG_CURRENT_DESKTOP=Hyprland
   HYPRLAND_INSTANCE_SIGNATURE=clean-user-test EVANGELION_TEST_EVENT_LOG="$event_log")
+run_env+=(EVANGELION_RELEASE_131_NESTED=1)
 run_install(){ "${run_env[@]}" "$root/install.sh" "$@"; }
 run_rollback(){ "${run_env[@]}" "$root/rollback.sh" "$@"; }
 
@@ -86,7 +87,7 @@ expect "Hyprland activated after login" grep -q $'hyprctl\treload' "$event_log"
 expect "services activated after login" grep -q 'enable --now magi-affinity.path magi-start-page.service' "$event_log"
 "${run_env[@]}" omarchy theme set evangelion
 expect "theme selection after login" grep -q $'omarchy\ttheme set evangelion' "$event_log"
-"${run_env[@]}" "$root/validate.sh" >/dev/null || fail "post-activation validation"
+"${run_env[@]}" EVANGELION_RELEASE_131_NESTED=1 "$root/validate.sh" >/dev/null || fail "post-activation validation"
 pass "post-activation validation"
 
 before=$(find "$test_root/home" -type f -exec sha256sum {} + | sort)
