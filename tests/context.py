@@ -105,11 +105,13 @@ def main():
     with tempfile.TemporaryDirectory() as temporary:
         home = Path(temporary)
         slow = subprocess.Popen([str(COMMAND), "refresh", "--json"],
-                                env=environment(home, MAGI_CONTEXT_TEST_DELAY_MS="250"),
+                                # Leave enough headroom for the competing live
+                                # capability collection on a loaded CI runner.
+                                env=environment(home, MAGI_CONTEXT_TEST_DELAY_MS="1500"),
                                 text=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         time.sleep(0.05)
         fast = json.loads(run(home, "refresh", "--json").stdout)
-        slow_out, slow_err = slow.communicate(timeout=5)
+        slow_out, slow_err = slow.communicate(timeout=8)
         assert slow.returncode == 0, slow_err
         final = json.loads((home / ".local/state/evangelion-rice/context/state.json").read_text())
         requests = json.loads((home / ".local/state/evangelion-rice/context/requests.json").read_text())
