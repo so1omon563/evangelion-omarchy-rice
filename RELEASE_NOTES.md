@@ -1,5 +1,33 @@
 # Release notes
 
+## v1.3.1 — start-page and affinity stabilization
+
+v1.3.1 is a narrowly scoped stabilization release on the v1.3 baseline. Native
+and symbolic bar icons now follow the active EVA affinity without white halos,
+while meaningful active, warning, urgent, and full-color vendor states remain
+intact. Affinity changes push the live palette through Omarchy's supported
+in-process theme IPC; the bar is not restarted. `magi-bar-refresh` remains an
+idempotent manual recovery path with structured status and actionable failure.
+
+The local NERV start page now reports Auto/Manual affinity, exact EVA identity,
+palette freshness, the configured MAGI workspace label, and operating profile.
+A privacy-bounded loopback projection updates these semantic fields every two
+seconds without collecting window titles, application names, paths, hostnames,
+or workspace contents. Full weather, media, and hardware telemetry retains its
+slower cadence.
+
+Zen exposed a mixed-cache upgrade failure in which new HTML and older
+JavaScript—or the reverse—could be combined. Static and API responses now use
+no-store headers, JS/CSS URLs are versioned, and the renderer tolerates the
+older HTML shape. The release gate reproduces both bundle directions and runs
+an exact v1.3.0 install, v1.3.1 upgrade, upgrade rollback, repeated upgrade, and
+uninstall-equivalent rollback.
+
+The refreshed 1600×900 start-page image uses fictional `?demo=1` telemetry,
+contains no browser chrome or live private activity, and has no metadata chunks.
+Upgrade and rollback instructions follow below and in
+[UPGRADING.md](UPGRADING.md).
+
 ## v1.3.0 — MAGI intelligence and context
 
 v1.3 adds a local, capability-aware context contract for aggregate power,

@@ -1,5 +1,45 @@
 # Upgrade, rollback, and removal
 
+## Upgrade from v1.3.0 to v1.3.1
+
+v1.3.1 changes shell plugins, affinity commands, and start-page assets. Update
+the checkout and preview the same preset or components used for v1.3.0:
+
+```bash
+git status --short
+git pull --ff-only
+./preflight.py
+./install.sh --dry-run --preset default
+./install.sh --apply --preset default
+snapshot=$(cat ~/.local/state/evangelion-rice/last-install-backup)
+./validate.sh
+```
+
+Replace `default` with the previously installed preset or explicit component
+selection. Personal `evangelion.json`, motion, context automation, and affinity
+mode choices remain preserved. A normal browser refresh fetches versioned,
+no-store start-page assets; clearing Zen or Chromium profile data is not
+required.
+
+Verify the live semantic projection and restart-free palette path:
+
+```bash
+curl --fail http://127.0.0.1:8765/api/desktop | jq .
+magi-bar-refresh status | jq .
+```
+
+To restore the exact pre-v1.3.1 files from this transaction:
+
+```bash
+./rollback.sh "$snapshot"
+omarchy restart shell
+systemctl --user restart magi-start-page.service
+```
+
+The restart after rollback is necessary because an older on-disk start-page or
+shell implementation may have been restored. It is not part of normal affinity
+switching or the v1.3.1 upgrade path.
+
 ## Upgrade from v1.2 to v1.3
 
 Preserve local repository edits, update, and preview the same preset or explicit

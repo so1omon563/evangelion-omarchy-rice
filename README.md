@@ -2,9 +2,11 @@
 
 [![MAGI Integrity Check](https://github.com/so1omon563/evangelion-omarchy-rice/actions/workflows/validate.yml/badge.svg)](https://github.com/so1omon563/evangelion-omarchy-rice/actions/workflows/validate.yml)
 
-> **v1.3:** the MAGI intelligence and context release adds local, explainable
-> context, advisory recommendations, separately opted-in bounded automation,
-> ambient presentation, and unified upstream bar icons. It is validated by source
+> **v1.3.1:** the stabilization release adds affinity-aware native icons,
+> restart-free live palette refresh, semantic affinity/workspace/profile state
+> on the NERV start page, and cache-safe Zen/Chromium upgrades. The v1.3 line
+> also includes local explainable context, advisory recommendations, separately
+> opted-in bounded automation, and ambient presentation. It is validated by source
 > CI, an isolated clean-user lifecycle, transactional install/rollback tests,
 > privacy/interruption regressions, the responsive display matrix, and the reference T480. Community compatibility reports are
 > welcome through [BETA_TESTING.md](BETA_TESTING.md), but are not a release gate.

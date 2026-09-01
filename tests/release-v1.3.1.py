@@ -40,6 +40,13 @@ def function(source, name):
 
 current_app = (ROOT / "start-page/app.js").read_text()
 current_html = (ROOT / "start-page/index.html").read_text()
+release_notes = (ROOT / "RELEASE_NOTES.md").read_text()
+upgrading = (ROOT / "UPGRADING.md").read_text()
+readme = (ROOT / "README.md").read_text()
+assert "v1.3.1 — start-page and affinity stabilization" in release_notes
+assert "Upgrade from v1.3.0 to v1.3.1" in upgrading
+assert "versioned,\nno-store start-page assets" in upgrading
+assert "> **v1.3.1:**" in readme
 old_app = git_show("start-page/app.js")
 old_html = git_show("start-page/index.html")
 data = {"affinity":{"mode":"auto","active":"unit-00-prototype","label":"UNIT-00 PROTOTYPE","state":"current"},
