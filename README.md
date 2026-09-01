@@ -13,6 +13,10 @@
 > privacy/interruption regressions, the responsive display matrix, and the reference T480. Community compatibility reports are
 > welcome through [BETA_TESTING.md](BETA_TESTING.md), but are not a release gate.
 
+> **v1.3.1:** remains the stable upgrade baseline for affinity-aware native
+> icons, restart-free palette refresh, semantic start-page state, and cache-safe
+> Zen/Chromium behavior; v1.4 preserves and revalidates those contracts.
+
 An unofficial *Neon Genesis Evangelion* desktop environment for Omarchy:
 seven wallpapers, EVA affinity palettes, MAGI shell plugins, responsive menus
 and overlays, terminal profiles, safety telemetry, sounds, and operator tools.
