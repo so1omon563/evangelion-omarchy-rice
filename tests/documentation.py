@@ -21,7 +21,7 @@ def main():
 
     for guide in ("INSTALL.md", "CONFIGURATION.md", "TROUBLESHOOTING.md", "UPGRADING.md",
                   "HOTKEYS.md", "RESPONSIVE.md", "TESTING.md", "ASSETS_LICENSE.md",
-                  "BETA_TESTING.md", "RELEASE_NOTES.md", "CONTEXT.md",
+                  "BETA_TESTING.md", "RELEASE_NOTES.md", "CONTEXT.md", "DEMO.md",
                   "DISTRIBUTION_GUIDE.md", "MAINTAINING.md"):
         assert f"]({guide})" in readme, f"README does not link {guide}"
 

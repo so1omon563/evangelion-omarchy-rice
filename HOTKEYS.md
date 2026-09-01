@@ -426,6 +426,14 @@ magi-sound status    # Print enabled or disabled
 
 ## Command-line access
 
+## Privacy-safe demonstration mode
+
+Open `MAGI Command Interface → Demonstration Mode` to enter a deterministic,
+fictional full-interface surface. The demo never mixes live providers into its
+display, retains a prominent demonstration rail during captures, and resets
+its isolated state on exit. See [DEMO.md](DEMO.md) for scenarios, CLI controls,
+and the metadata-safe capture path.
+
 ## Docked and mobile operating profiles
 
 The operating profile responds to actual output changes—there is no background

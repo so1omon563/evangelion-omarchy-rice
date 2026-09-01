@@ -92,6 +92,17 @@
     "checked": "pgrep -f -- '--class=org.omarchy.magi.' >/dev/null",
     "description": "Toggle system status and resource telemetry"
   },
+  "magi.demo": {
+    "icon": "󰙨",
+    "label": "Demonstration Mode",
+    "title": "MAGI // SAFE DEMONSTRATION",
+    "description": "Isolated fictional interface scenarios with no live-data mixing"
+  },
+  "magi.demo.enter": {"icon":"󰐊","label":"Enter / Resume Demo","action":"magi-demo enter","checked":"magi-demo status | grep -qx 'active=yes'"},
+  "magi.demo.next": {"icon":"󰒭","label":"Next Scenario","action":"magi-demo next","when":"magi-demo status | grep -qx 'active=yes'"},
+  "magi.demo.previous": {"icon":"󰒮","label":"Previous Scenario","action":"magi-demo previous","when":"magi-demo status | grep -qx 'active=yes'"},
+  "magi.demo.capture": {"icon":"󰹑","label":"Metadata-Safe Capture","action":"magi-demo capture","when":"magi-demo status | grep -qx 'active=yes'"},
+  "magi.demo.exit": {"icon":"󰅖","label":"Exit and Reset Demo","action":"magi-demo exit","when":"magi-demo status | grep -qx 'active=yes'"},
   "magi.operating-profile": {
     "icon": "󰍹",
     "label": "Operating Profile",

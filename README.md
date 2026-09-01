@@ -155,6 +155,8 @@ Cava is unavailable. Neon Overdrive is a separately selected compatibility
 component and is never installed by a preset.
 
 For controls and keybindings, see [HOTKEYS.md](HOTKEYS.md).
+For deterministic screenshots, onboarding, and private bug reproduction, see
+[DEMO.md](DEMO.md).
 
 ## Upgrade, rollback, and removal
 

@@ -1,0 +1,109 @@
+#!/usr/bin/env python3
+"""Privacy-safe deterministic full-interface demonstration controller."""
+
+import json
+import os
+import struct
+import subprocess
+import sys
+import tempfile
+import zlib
+from pathlib import Path
+
+STATE = Path(os.environ.get("XDG_STATE_HOME", Path.home() / ".local/state")) / "evangelion-rice/demo/state.json"
+SCENARIOS = [
+    ("neutral-nominal", "neutral", "nominal", "NERV CENTRAL", 96, 48, True, "standby"),
+    ("unit-00-prototype", "unit-00-prototype", "mobile", "REI // PROTOTYPE", 84, 54, True, "playing"),
+    ("unit-00-refit", "unit-00-refit", "docked", "REI // REFIT", 91, 51, True, "paused"),
+    ("unit-01-sortie", "unit-01", "media-active", "SHINJI // SORTIE", 73, 63, True, "playing"),
+    ("unit-02-offline", "unit-02", "offline", "ASUKA // ISOLATED", 67, 61, False, "standby"),
+    ("thermal-constrained", "unit-01", "constrained", "THERMAL LIMIT", 58, 82, True, "standby"),
+    ("battery-constrained", "unit-00-refit", "constrained", "POWER RESERVE", 14, 59, True, "standby"),
+    ("thermal-critical", "unit-02", "critical", "CONDITION RED", 52, 96, True, "standby"),
+    ("battery-critical", "neutral", "critical", "RESERVE CRITICAL", 6, 57, True, "standby"),
+    ("manual-mobile", "unit-01", "manual", "MANUAL HOLD", 79, 56, True, "paused"),
+]
+
+def atomic(value):
+    STATE.parent.mkdir(parents=True, exist_ok=True)
+    fd, name = tempfile.mkstemp(prefix=".state.", dir=STATE.parent)
+    try:
+        with os.fdopen(fd, "w") as stream:
+            json.dump(value, stream, indent=2, sort_keys=True); stream.write("\n")
+        os.chmod(name, 0o600); os.replace(name, STATE)
+    finally:
+        try: os.unlink(name)
+        except FileNotFoundError: pass
+
+def read():
+    try: value = json.loads(STATE.read_text())
+    except (OSError, json.JSONDecodeError): value = {}
+    return value if isinstance(value, dict) else {}
+
+def snapshot(name):
+    try: index = [row[0] for row in SCENARIOS].index(name)
+    except ValueError: raise SystemExit(f"Unknown demo scenario: {name}")
+    name, affinity, status, workspace, battery, temperature, online, media = SCENARIOS[index]
+    colors = {"neutral":"#f6d447", "unit-00-prototype":"#62d8ff", "unit-00-refit":"#f6d447", "unit-01":"#9cf23a", "unit-02":"#ff4055"}
+    summaries = {"nominal":"All systems nominal", "mobile":"Internal operations profile", "docked":"Umbilical dock synchronized", "media-active":"Audio channel active", "offline":"Communication link offline", "constrained":"Resource conservation active", "critical":"Immediate operator attention required", "manual":"Manual operating profile authoritative"}
+    return {"schema_version":1, "demo":True, "scenario":name, "scenario_index":index,
+            "scenario_count":len(SCENARIOS), "affinity":affinity, "accent":colors[affinity],
+            "status":status, "summary":summaries[status], "workspace":workspace,
+            "workspace_id":index % 5 + 1, "profile":"mobile" if status in {"mobile","constrained","critical","manual"} else "docked",
+            "battery_percent":battery, "temperature_c":temperature, "online":online,
+            "media":{"state":media, "artist":"NERV SYMPHONIC CHANNEL", "title":"DECISIVE BATTLE", "position":"01:16", "duration":"03:58"},
+            "operation_log":["MAGI DEMONSTRATION BUS ISOLATED", f"SCENARIO {name.upper()} LOADED", "LIVE PROVIDERS DISCONNECTED"],
+            "privacy":{"live_data":False, "fictional":True, "metadata_safe_capture":True}}
+
+def active_snapshot():
+    state = read(); active = state.get("active") is True
+    data = snapshot(str(state.get("scenario", SCENARIOS[0][0])))
+    data["active"] = active
+    return data
+
+def strip_png(path):
+    data = path.read_bytes()
+    if not data.startswith(b"\x89PNG\r\n\x1a\n"): return False
+    out = bytearray(data[:8]); offset = 8; removed = False
+    while offset + 12 <= len(data):
+        length = struct.unpack(">I", data[offset:offset+4])[0]; kind = data[offset+4:offset+8]
+        chunk = data[offset:offset+12+length]; offset += 12 + length
+        if kind in {b"tEXt", b"zTXt", b"iTXt", b"eXIf", b"tIME"}: removed = True; continue
+        out.extend(chunk)
+        if kind == b"IEND": break
+    if removed: path.write_bytes(out)
+    return True
+
+def notify():
+    subprocess.run(["omarchy-shell", "-q", "magi-demo", "refresh"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+
+def usage():
+    print("Usage: magi-demo {enter [SCENARIO]|scenario NAME|next|previous|exit|reset|status [--json]|list|capture [ARGS...]}", file=sys.stderr)
+    raise SystemExit(2)
+
+args = sys.argv[1:]
+if not args: usage()
+command = args.pop(0)
+if command in {"enter", "scenario"}:
+    name = args[0] if args else read().get("scenario", SCENARIOS[0][0])
+    snapshot(str(name)); atomic({"schema_version":1,"active":True,"scenario":name}); notify(); print(f"demo active // {name}")
+elif command in {"next", "previous"}:
+    current = active_snapshot(); step = 1 if command == "next" else -1
+    name = SCENARIOS[(current["scenario_index"] + step) % len(SCENARIOS)][0]
+    atomic({"schema_version":1,"active":True,"scenario":name}); notify(); print(name)
+elif command in {"exit", "reset"}:
+    atomic({"schema_version":1,"active":False,"scenario":SCENARIOS[0][0]}); notify(); print("demo inactive")
+elif command == "status":
+    data = active_snapshot()
+    if "--json" in args: print(json.dumps(data, separators=(",", ":")))
+    else: print(f"active={'yes' if data['active'] else 'no'}\nscenario={data['scenario']}\nlive_data=no")
+elif command == "list":
+    print("\n".join(row[0] for row in SCENARIOS))
+elif command == "capture":
+    if not active_snapshot()["active"]: raise SystemExit("Demo mode must be active before capture")
+    result = subprocess.run(["magi-capture", "screenshot", "--include-indicator", *args], text=True, capture_output=True)
+    if result.stdout: print(result.stdout, end="")
+    if result.returncode: print(result.stderr, file=sys.stderr, end=""); raise SystemExit(result.returncode)
+    target = Path(result.stdout.strip().splitlines()[-1]) if result.stdout.strip() else None
+    if target and target.is_file(): strip_png(target)
+else: usage()
