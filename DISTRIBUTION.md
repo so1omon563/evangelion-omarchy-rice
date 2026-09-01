@@ -101,6 +101,8 @@ plugin, Arch, or AUR maintainer.
 - Theme extraction must contain only the theme-tier payload and notices.
 - The optional MAGI runtime must expose a versioned API with no theme dependency.
 - Every plugin must be classified standalone, runtime-dependent, or suite-only.
+- The current complete classification and first extraction recommendations are
+  published in [`PLUGIN_AUDIT.md`](PLUGIN_AUDIT.md).
 - Release archives must be reproducible and carry checksums plus both licenses.
 - The Arch package must keep pacman installation and per-user activation
   separate and test upgrade, rollback, deactivation, and removal.
