@@ -628,6 +628,8 @@ magi-affinity status              # Report automatic/manual mode and active unit
 magi-affinity palette             # Report the active bar/icon palette as JSON
 magi-affinity set unit-02         # Hold a manual affinity across wallpapers
 magi-affinity auto                # Resume wallpaper-driven affinity
+magi-bar-refresh                  # Reapply the active palette without a shell restart
+magi-bar-refresh status           # Report the last refresh result as JSON
 magi-media status                 # Print the active player and track
 magi-media play-pause             # Toggle playback through playerctl
 magi-control-reference --print    # Print this guide in the current terminal

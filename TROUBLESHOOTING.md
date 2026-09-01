@@ -91,6 +91,14 @@ exact context state it found:
 systemctl --user daemon-reload
 systemctl --user --no-pager --full status magi-affinity.path magi-start-page.service
 magi-affinity palette
+magi-bar-refresh status
+magi-bar-refresh
+
+The affinity transaction is already committed when a bar refresh warning is
+shown. `magi-bar-refresh` safely retries Omarchy's in-process theme IPC and can
+be run repeatedly. If it reports that shell IPC is unavailable, use
+`omarchy restart shell` once; the next affinity change will return to the
+non-restarting IPC path automatically.
 journalctl --user -u magi-start-page.service --since "10 minutes ago" --no-pager
 curl --fail http://127.0.0.1:8765/api/status | jq .
 ```

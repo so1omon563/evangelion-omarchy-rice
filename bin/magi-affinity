@@ -200,7 +200,7 @@ EOF
 }
 
 apply_profile() {
-  local profile=$1 tmp backup previous_profile previous_terminal
+  local profile=$1 tmp backup previous_profile previous_terminal refresh_state=synchronized
   load_profile "$profile"
   previous_profile=$(cat "$active_file" 2>/dev/null || echo neutral)
   previous_terminal=$(eva-terminal-profile status 2>/dev/null || echo magi)
@@ -219,12 +219,16 @@ apply_profile() {
   fi
   printf '%s\n' "$profile" > "$tmp/active"
   mv -f "$tmp/active" "$active_file"
-  coordinate_wallpaper "$profile" "$previous_profile"
+  if ! magi-bar-refresh --quiet --source affinity; then
+    refresh_state=stale
+    echo 'Affinity committed, but the live bar did not refresh. Run magi-bar-refresh; if needed, run omarchy restart shell.' >&2
+  fi
+  coordinate_wallpaper "$profile" "$previous_profile" "$refresh_state"
   printf 'Affinity: %s (%s mode)\n' "$label" "$(cat "$mode_file" 2>/dev/null || echo auto)"
 }
 
 coordinate_wallpaper() {
-  local profile=$1 previous=$2 wallpaper motion affinity_mode
+  local profile=$1 previous=$2 refresh_state=${3:-synchronized} wallpaper motion affinity_mode message
   wallpaper=$(readlink -f "$background_link" 2>/dev/null || true)
   motion=$(motion_mode)
   affinity_mode=$(cat "$mode_file" 2>/dev/null || echo auto)
@@ -234,8 +238,10 @@ coordinate_wallpaper() {
     omarchy-shell -q background setInstant "$wallpaper" >/dev/null 2>&1 || true
   fi
   if [[ $profile != "$previous" && $affinity_mode == auto ]]; then
+    message="Wallpaper, shell, borders, and new terminals synchronized"
+    [[ $refresh_state == synchronized ]] || message="Affinity changed; bar refresh needed — run magi-bar-refresh"
     omarchy-notification-send -u low -g '󰏘' "EVA AFFINITY // ${label}" \
-      "Wallpaper, shell, borders, and new terminals synchronized" 2>/dev/null || true
+      "$message" 2>/dev/null || true
   fi
 }
 

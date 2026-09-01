@@ -28,6 +28,11 @@ selects gold, ice blue, violet, coral, or neutral lavender independently of
 general panel text. Meaningful active, warning, and urgent colors remain
 native. Full-color vendor tray artwork keeps its identity.
 
+Affinity now reapplies the live shell palette through supported Omarchy IPC,
+without restarting the bar. An idempotent `magi-bar-refresh` command and EVA
+Unit Affinity menu action provide explicit recovery when the shell is absent or
+temporarily unavailable.
+
 The v1.3 suite adds schema migration, process restart, killed-refresh,
 latest-request convergence, private-sentinel, and optional state-restoring live
 performance coverage. On the T480, 12 refreshes measured 158.75 ms mean,

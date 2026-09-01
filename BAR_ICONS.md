@@ -37,6 +37,12 @@ Each token has at least 4.5:1 contrast against its generated bar background.
 manual affinity modes use the same table, so changing a wallpaper cannot reset
 the bar to the general near-white panel foreground.
 
+Successful affinity transactions immediately push the generated palette into
+the running shell with `magi-bar-refresh`; no process restart is involved. The
+command is idempotent and is also available in the EVA Unit Affinity menu for
+manual recovery. A failed IPC attempt records an actionable status while
+leaving the correct on-disk palette ready for a later retry.
+
 ## Compatibility and fallback
 
 The adapters require the corresponding first-party Omarchy plugin beneath

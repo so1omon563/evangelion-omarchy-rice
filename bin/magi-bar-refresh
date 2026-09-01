@@ -1,0 +1,75 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+state_root="${XDG_STATE_HOME:-$HOME/.local/state}"
+theme_dir="$state_root/omarchy/current/theme"
+status_dir="$state_root/evangelion-rice"
+status_file="$status_dir/bar-refresh.json"
+lock_file="${XDG_RUNTIME_DIR:-/tmp}/evangelion-bar-refresh-${UID}.lock"
+quiet=false
+notify=false
+source_name=manual
+
+usage() {
+  echo 'Usage: magi-bar-refresh [--quiet] [--notify] [--source NAME] | status' >&2
+}
+
+record_status() {
+  local result=$1 reason=$2 tmp
+  mkdir -p "$status_dir"
+  tmp=$(mktemp "$status_dir/bar-refresh.XXXXXX")
+  jq -n --arg result "$result" --arg reason "$reason" --arg source "$source_name" \
+    --arg timestamp "$(date --iso-8601=seconds)" \
+    '{schema_version:1,result:$result,reason:$reason,source:$source,updated_at:$timestamp}' > "$tmp"
+  chmod 0600 "$tmp"
+  mv -f "$tmp" "$status_file"
+}
+
+fail_refresh() {
+  local reason=$1 detail=$2
+  record_status failed "$reason"
+  $quiet || printf 'MAGI bar refresh failed: %s\nRecovery: run magi-bar-refresh; if IPC remains unavailable, run omarchy restart shell.\n' "$detail" >&2
+  if $notify && command -v notify-send >/dev/null 2>&1; then
+    notify-send -u normal 'MAGI // BAR REFRESH FAILED' "$detail" >/dev/null 2>&1 || true
+  fi
+  exit 1
+}
+
+if [[ ${1:-} == status ]]; then
+  if [[ -r $status_file ]]; then cat "$status_file"
+  else printf '{"schema_version":1,"result":"never","reason":"not-run","source":"unknown","updated_at":null}\n'; fi
+  exit 0
+fi
+
+while (($#)); do
+  case $1 in
+    --quiet) quiet=true ;;
+    --notify) notify=true ;;
+    --source) shift; source_name=${1:-}; [[ -n $source_name ]] || { usage; exit 2; } ;;
+    -h|--help) usage; exit 0 ;;
+    *) usage; exit 2 ;;
+  esac
+  shift
+done
+
+mkdir -p "$(dirname "$lock_file")"
+exec 9>"$lock_file"
+flock -w 2 9 || fail_refresh refresh-busy 'another palette refresh is still in progress'
+
+colors_file="$theme_dir/colors.toml"
+shell_file="$theme_dir/shell.toml"
+[[ -s $colors_file ]] || fail_refresh missing-colors 'the active theme has no readable colors.toml'
+[[ -s $shell_file ]] || fail_refresh missing-shell-theme 'the active theme has no readable shell.toml'
+command -v omarchy-shell >/dev/null 2>&1 || fail_refresh shell-command-missing 'omarchy-shell is not installed or is outside PATH'
+
+colors_payload=$(base64 -w0 "$colors_file")
+shell_payload=$(base64 -w0 "$shell_file")
+response=$(OMARCHY_SHELL_IPC_TIMEOUT=2s timeout 3 omarchy-shell shell applyTheme "$colors_payload" "$shell_payload" 2>/dev/null) \
+  || fail_refresh shell-ipc-unavailable 'the running Omarchy shell did not accept theme IPC'
+[[ $response == ok ]] || fail_refresh shell-ipc-rejected "the Omarchy shell returned ${response:-no response}"
+
+record_status success applied
+$quiet || echo 'MAGI bar palette refreshed without restarting the shell.'
+if $notify && command -v notify-send >/dev/null 2>&1; then
+  notify-send -u low 'MAGI // BAR SYNCHRONIZED' 'Active affinity palette applied without restarting the shell' >/dev/null 2>&1 || true
+fi

@@ -52,6 +52,12 @@
     "label": "EVA-02 Production",
     "action": "magi-affinity set unit-02"
   },
+  "magi.affinity.refresh-bar": {
+    "icon": "󰑐",
+    "label": "Refresh MAGI Bar",
+    "action": "magi-bar-refresh --notify",
+    "description": "Reapply the active affinity palette without restarting the shell"
+  },
   "magi.motion": {
     "icon": "󰔎",
     "label": "Interface Motion",

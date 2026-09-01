@@ -369,6 +369,16 @@ native and symbolic glyphs while leaving green, amber, red, disabled, and
 full-color vendor states authoritative. Inspect the resolved palette with
 `magi-affinity palette` or `magi-affinity palette unit-02`.
 
+After a successful affinity transaction, `magi-affinity` pushes the generated
+`colors.toml` and `shell.toml` directly through Omarchy's supported
+`shell applyTheme` IPC. This updates the live bar without restarting the shell,
+moving focus, or creating a transient empty bar. The call is serialized and
+bounded; a missing or unresponsive shell leaves the committed on-disk palette
+intact and reports the recovery command rather than silently claiming success.
+Run `magi-bar-refresh` or choose `MAGI Command Interface → EVA Unit Affinity →
+Refresh MAGI Bar` to retry manually. `magi-bar-refresh status` reports the last
+result without exposing the theme path or palette contents.
+
 ## Thermal, screensaver, and optional integrations
 
 `~/.config/omarchy/thermal-alerts.json` controls thresholds, clear points,
