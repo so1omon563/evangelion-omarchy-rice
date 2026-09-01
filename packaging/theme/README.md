@@ -9,7 +9,7 @@ and safety orange, plus seven coordinated wallpapers.
 Once the dedicated theme repository is published:
 
 ```bash
-omarchy theme install https://github.com/so1omon563/evangelion-omarchy-theme.git
+omarchy theme install https://github.com/so1omon563/omarchy-evangelion-theme.git
 ```
 
 The repository name resolves to the theme slug `evangelion`. Installation

@@ -115,5 +115,5 @@ repository:
 ./scripts/export-theme
 ```
 
-The ignored `build/evangelion-omarchy-theme/` directory is replaced from
+The ignored `build/omarchy-evangelion-theme/` directory is replaced from
 `packaging/theme/manifest.json` on every run, preventing hand-maintained drift.

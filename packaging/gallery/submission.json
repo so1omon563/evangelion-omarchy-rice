@@ -1,0 +1,20 @@
+{
+  "schema_version": 1,
+  "target_repository": "https://github.com/omacom/omarchy-site",
+  "target_commit": "9832321e9b9cdb4f8124dda7fd33eea776ec468a",
+  "theme_repository": "https://github.com/so1omon563/omarchy-evangelion-theme",
+  "theme_repository_commit": "c117a3ca6d2ecb07a3cd13f5a2e1e075c751b06a",
+  "public_install": "passed-isolated-omarchy-theme-install",
+  "theme_name": "Evangelion",
+  "image_target": "assets/themes/evangelion.webp",
+  "image_width": 1200,
+  "image_height": 675,
+  "image_max_bytes": 102400,
+  "source_width": 1920,
+  "source_height": 1080,
+  "source_sha256": "16145a40d96be397303a8d285e96780f8b957ee6695ba12b8f862ab936b148ee",
+  "image_sha256": "627a7fff6ef661e56eed7f340608fccad2f9efba175f082db2a2464bcff485dd",
+  "insert_after": "Eldritch",
+  "insert_before": "Event Horizon",
+  "external_pull_request_allowed": false
+}

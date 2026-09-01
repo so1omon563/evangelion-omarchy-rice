@@ -34,7 +34,7 @@ def validate(tree: Path) -> None:
 
 def main() -> None:
     parser = argparse.ArgumentParser()
-    parser.add_argument("destination", nargs="?", default=str(ROOT / "build/evangelion-omarchy-theme"))
+    parser.add_argument("destination", nargs="?", default=str(ROOT / "build/omarchy-evangelion-theme"))
     args = parser.parse_args()
     destination = Path(args.destination).resolve()
     if destination == ROOT or ROOT in destination.parents and destination.name in {"theme", "packaging", "media"}:
