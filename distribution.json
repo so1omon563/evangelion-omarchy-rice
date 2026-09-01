@@ -1,0 +1,60 @@
+{
+  "schema_version": 1,
+  "baseline": "v1.3.1",
+  "tiers": {
+    "theme": {
+      "channel": "omarchy-theme-catalog-or-git",
+      "payload": ["theme/**", "ASSETS_LICENSE.md", "LICENSE"],
+      "owns_user_config": false,
+      "activation": "explicit-theme-selection",
+      "rollback": "restore-previous-theme-payload",
+      "removal": "remove-named-theme-only-when-inactive",
+      "versioning": "independent-semver-with-derived-suite-version"
+    },
+    "plugin": {
+      "channel": "omarchy-plugin-catalog-or-git",
+      "payload": ["omarchy/plugins/evangelion.<name>/**", "LICENSE"],
+      "owns_user_config": false,
+      "activation": "explicit-install-and-layout-or-service-enable",
+      "rollback": "restore-plugin-payload-and-added-layout-entry",
+      "removal": "remove-owned-plugin-and-added-entries-only",
+      "versioning": "independent-semver-with-runtime-range"
+    },
+    "suite": {
+      "channel": "github-release",
+      "payload": ["repository-release-archive"],
+      "owns_user_config": "manifest-listed-paths-only",
+      "activation": "explicit-transactional-install",
+      "rollback": "exact-manifest-snapshot",
+      "removal": "manifest-driven-restore-and-remove",
+      "versioning": "immutable-semver-git-tag"
+    },
+    "arch": {
+      "channel": "aur-or-arch-source-package",
+      "payload": ["/usr/share/evangelion-rice/**", "/usr/bin/evangelion-rice-*"],
+      "owns_user_config": false,
+      "activation": "separate-explicit-per-user-command",
+      "rollback": "pacman-system-version-plus-user-transaction",
+      "removal": "pacman-payload-removal-and-separate-user-deactivation",
+      "versioning": "pkgver-maps-immutable-suite-tag"
+    }
+  },
+  "owners": {
+    "package_manager": ["/usr/share/evangelion-rice/**", "/usr/bin/evangelion-rice-*"],
+    "suite_transaction": ["manifest.tsv exact targets"],
+    "user": ["preserved preferences", "unrelated paths", "unselected tier content"]
+  },
+  "policies": {
+    "silent_home_overwrite": "prohibited",
+    "system_install_mutates_home": false,
+    "preview_before_first_mutation": true,
+    "optional_dependencies_degrade_cleanly": true,
+    "community_hardware_reports": "optional-post-release",
+    "artwork_commercial_distribution": false
+  },
+  "licenses": {
+    "software_and_configuration": "MIT",
+    "generated_wallpapers": "CC-BY-NC-4.0-subject-to-third-party-rights",
+    "third_party_marks": "not-granted"
+  }
+}

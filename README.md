@@ -91,6 +91,8 @@ Select individual components with `--components`, override shell detection with
 `--shell bash|zsh|fish`, or use `--no-shell-integration`. See
 [INSTALL.md](INSTALL.md) for prerequisites, package commands, component/path
 effects, transaction behavior, and first-run verification.
+See [DISTRIBUTION.md](DISTRIBUTION.md) for the v1.4 theme, plugin, suite, and
+Arch-package ownership and lifecycle contract.
 
 ## Configuration
 
