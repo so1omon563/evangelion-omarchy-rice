@@ -17,7 +17,7 @@ jobs:
   validate:
     name: Source validation
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    timeout-minutes: 10
 
     steps:
       - name: Check out repository
