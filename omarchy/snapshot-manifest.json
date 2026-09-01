@@ -1,0 +1,27 @@
+{
+  "schema_version": 1,
+  "retention": 10,
+  "components": {
+    "layouts": [
+      {"root":"config","path":"omarchy/shell.json"},
+      {"root":"config","path":"hypr/hyprland.lua"}
+    ],
+    "profiles": [
+      {"root":"config","path":"omarchy/operating-profiles.json"},
+      {"root":"state","path":"evangelion-rice/operating-profile/mode"}
+    ],
+    "affinity": [
+      {"root":"state","path":"evangelion-rice/affinity-mode"},
+      {"root":"state","path":"evangelion-rice/affinity-manual"}
+    ],
+    "settings": [
+      {"root":"config","path":"omarchy/evangelion.json"},
+      {"root":"config","path":"omarchy/magi-clock.json"},
+      {"root":"config","path":"omarchy/magi-terminal-context.json"},
+      {"root":"config","path":"omarchy/motion.json"},
+      {"root":"config","path":"omarchy/performance.json"},
+      {"root":"config","path":"omarchy/rice-health.json"},
+      {"root":"config","path":"omarchy/thermal-alerts.json"}
+    ]
+  }
+}

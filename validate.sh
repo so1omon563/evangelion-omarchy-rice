@@ -57,6 +57,7 @@ python3 "$root/tests/demo-mode.py" >/dev/null && pass "privacy-safe full-interfa
 python3 "$root/tests/localization.py" >/dev/null && pass "localization and resilient-layout foundation" || fail "localization and resilient-layout foundation"
 python3 "$root/tests/performance-budgets.py" >/dev/null && pass "enforced shell performance budgets" || fail "enforced shell performance budgets"
 python3 "$root/tests/rice-health.py" >/dev/null && pass "read-only rice health and reversible remediation" || fail "read-only rice health and reversible remediation"
+python3 "$root/tests/snapshots.py" >/dev/null && pass "private named selective configuration snapshots" || fail "private named selective configuration snapshots"
 if [[ ${EVANGELION_RELEASE_ARTIFACT_NESTED:-0} != 1 ]]; then
   python3 "$root/tests/release-artifact.py" >/dev/null && pass "reproducible complete-suite release artifact" || fail "reproducible complete-suite release artifact"
   python3 "$root/tests/arch-package.py" >/dev/null && pass "Arch package and explicit user lifecycle" || fail "Arch package and explicit user lifecycle"

@@ -1,0 +1,164 @@
+#!/usr/bin/env python3
+"""Private named snapshots for explicitly owned Evangelion configuration."""
+import argparse, datetime, hashlib, json, os, re, shutil, stat, subprocess, tempfile
+from pathlib import Path, PurePosixPath
+
+ROOT=Path(__file__).resolve().parents[1]
+HOME=Path(os.environ.get("EVA_SNAPSHOT_HOME",Path.home()))
+CONFIG_ROOT=Path(os.environ.get("XDG_CONFIG_HOME",HOME/".config")); STATE_ROOT=Path(os.environ.get("XDG_STATE_HOME",HOME/".local/state"))
+DATA=Path(os.environ.get("EVA_SNAPSHOT_DATA",ROOT if (ROOT/"omarchy").is_dir() else HOME/".local/share/evangelion-rice"))
+SPEC=Path(os.environ.get("EVA_SNAPSHOT_SPEC",DATA/"omarchy/snapshot-manifest.json" if (DATA/"omarchy/snapshot-manifest.json").is_file() else DATA/"snapshot-manifest.json"))
+STORE=Path(os.environ.get("EVA_SNAPSHOT_STORE",STATE_ROOT/"evangelion-rice/snapshots")); SKIP_ACTIVATE=os.environ.get("EVA_SNAPSHOT_SKIP_ACTIVATE")=="1"
+SECRET=re.compile(r"(?:password|passwd|secret|token|api[_-]?key|private[_-]?key|credential|cookie)",re.I)
+
+def load(path): return json.loads(path.read_text())
+def digest(path):
+    value=hashlib.sha256()
+    with path.open("rb") as stream:
+        for chunk in iter(lambda:stream.read(65536),b""): value.update(chunk)
+    return value.hexdigest()
+def atomic_json(path,value):
+    path.parent.mkdir(parents=True,exist_ok=True); fd,name=tempfile.mkstemp(prefix=".snapshot.",dir=path.parent)
+    try:
+        with os.fdopen(fd,"w") as stream: json.dump(value,stream,indent=2,sort_keys=True); stream.write("\n")
+        os.chmod(name,0o600); os.replace(name,path)
+    finally:
+        try: os.unlink(name)
+        except FileNotFoundError: pass
+def validate_name(name):
+    if not re.fullmatch(r"[a-z0-9][a-z0-9._-]{0,47}",name): raise SystemExit("Name must be 1-48 lowercase letters, digits, dots, dashes, or underscores")
+def safe_note(note):
+    if len(note)>240: raise SystemExit("Note exceeds 240 characters")
+    if SECRET.search(note): raise SystemExit("Note appears to contain secret material")
+def selected(raw,spec):
+    values=list(spec["components"]) if not raw or raw=="all" else [x.strip() for x in raw.split(",") if x.strip()]
+    unknown=set(values)-set(spec["components"])
+    if unknown: raise SystemExit("Unknown components: "+", ".join(sorted(unknown)))
+    return values
+def resolve(entry):
+    rel=PurePosixPath(entry["path"])
+    if rel.is_absolute() or ".." in rel.parts: raise SystemExit("Unsafe ownership manifest path")
+    base={"config":CONFIG_ROOT,"state":STATE_ROOT}.get(entry["root"])
+    if base is None: raise SystemExit("Unknown ownership root")
+    return base/Path(*rel.parts)
+def secret_keys(value):
+    if isinstance(value,dict): return [str(k) for k,v in value.items() if SECRET.search(str(k))]+sum((secret_keys(v) for v in value.values()),[])
+    if isinstance(value,list): return sum((secret_keys(v) for v in value),[])
+    return []
+def verify_snapshot(path):
+    try: manifest=load(path/"manifest.json")
+    except (OSError,json.JSONDecodeError): raise SystemExit("Snapshot manifest is missing or corrupt")
+    if manifest.get("schema_version")!=1 or not isinstance(manifest.get("files"),list): raise SystemExit("Unsupported snapshot manifest")
+    for row in manifest["files"]:
+        entry={"root":row.get("root"),"path":row.get("path")}; resolve(entry)
+        payload=path/"payload"/row["root"]/row["path"]
+        if row["exists"] and (not payload.is_file() or payload.is_symlink() or digest(payload)!=row["sha256"] or payload.stat().st_size!=row["size"]): raise SystemExit("Snapshot payload is corrupt: "+row["path"])
+    return manifest
+def snapshot_path(name): validate_name(name); return STORE/name
+
+def create(name,note,components):
+    validate_name(name); safe_note(note); spec=load(SPEC); chosen=selected(components,spec); target=snapshot_path(name)
+    if target.exists(): raise SystemExit("Snapshot already exists")
+    temporary=STORE/("."+name+".creating"); temporary.mkdir(parents=True,exist_ok=False); os.chmod(temporary,0o700); rows=[]
+    try:
+        for component in chosen:
+            for entry in spec["components"][component]:
+                source=resolve(entry); row={"component":component,"root":entry["root"],"path":entry["path"],"exists":source.exists()}
+                if source.exists():
+                    if not source.is_file() or source.is_symlink(): raise SystemExit("Refusing non-regular owned path: "+entry["path"])
+                    try:
+                        value=load(source)
+                        keys=secret_keys(value)
+                        if keys: raise SystemExit("Refusing secret-like keys in "+entry["path"])
+                    except (json.JSONDecodeError,UnicodeDecodeError):
+                        if source.suffix==".json": raise SystemExit("Refusing malformed JSON: "+entry["path"])
+                    payload=temporary/"payload"/entry["root"]/entry["path"]; payload.parent.mkdir(parents=True,exist_ok=True); shutil.copy2(source,payload); os.chmod(payload,0o600)
+                    row.update({"sha256":digest(payload),"size":payload.stat().st_size,"mode":stat.S_IMODE(source.stat().st_mode)})
+                rows.append(row)
+        manifest={"schema_version":1,"name":name,"note":note,"created_at":datetime.datetime.now(datetime.timezone.utc).isoformat(),"components":chosen,"files":rows}
+        atomic_json(temporary/"manifest.json",manifest); os.replace(temporary,target)
+    except BaseException:
+        shutil.rmtree(temporary,ignore_errors=True); raise
+    snapshots=sorted((p for p in STORE.iterdir() if p.is_dir() and not p.name.startswith(".") and p.name!="transactions"),key=lambda p:p.stat().st_mtime)
+    pruned=[]
+    while len(snapshots)>int(spec.get("retention",10)):
+        old=snapshots.pop(0); pruned.append(old.name); shutil.rmtree(old)
+    return {"schema_version":1,"status":"created","name":name,"components":chosen,"files":len(rows),"pruned":pruned}
+def list_snapshots():
+    values=[]
+    if STORE.is_dir():
+        for path in sorted(STORE.iterdir()):
+            if path.is_dir() and not path.name.startswith(".") and path.name!="transactions":
+                try:
+                    value=verify_snapshot(path); values.append({k:value[k] for k in ("name","note","created_at","components")})
+                except SystemExit: values.append({"name":path.name,"status":"corrupt"})
+    return {"schema_version":1,"snapshots":values,"retention":load(SPEC).get("retention",10)}
+def diff(name,components):
+    path=snapshot_path(name); manifest=verify_snapshot(path); chosen=selected(components,{"components":{x:[] for x in manifest["components"]}}); rows=[]
+    for row in manifest["files"]:
+        if row["component"] not in chosen: continue
+        current=resolve(row); exists=current.exists(); status_value="unchanged"
+        if row["exists"] and not exists: status_value="missing"
+        elif not row["exists"] and exists: status_value="created"
+        elif exists and (not current.is_file() or current.is_symlink() or digest(current)!=row["sha256"]): status_value="modified"
+        rows.append({"component":row["component"],"path":row["path"],"snapshot_exists":row["exists"],"current_exists":exists,"status":status_value})
+    value={"schema_version":1,"snapshot":name,"components":chosen,"changes":rows,"changed":sum(x["status"]!="unchanged" for x in rows)}
+    value["plan_id"]=hashlib.sha256(json.dumps(value,sort_keys=True,separators=(",",":")).encode()).hexdigest()[:16]
+    return value
+def activate(components):
+    if SKIP_ACTIVATE:return
+    if "layouts" in components: subprocess.run(["hyprctl","reload"],stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL,check=False)
+    if set(components)&{"layouts","profiles","affinity","settings"}: subprocess.run(["omarchy-shell","shell","rescanPlugins"],stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL,check=False)
+def restore(name,components,confirmation):
+    path=snapshot_path(name); manifest=verify_snapshot(path); plan=diff(name,components)
+    if confirmation!=plan["plan_id"]: raise SystemExit("Confirmation mismatch; rerun diff and pass --confirm "+plan["plan_id"])
+    stamp=datetime.datetime.now().strftime("%Y%m%d-%H%M%S")+f"-{os.getpid()}"; transaction=STORE/"transactions"/stamp; transaction.mkdir(parents=True); os.chmod(transaction,0o700); backup=[]
+    chosen=plan["components"]
+    try:
+        for row in manifest["files"]:
+            if row["component"] not in chosen: continue
+            target=resolve(row); before={"component":row["component"],"root":row["root"],"path":row["path"],"exists":target.exists()}
+            if target.exists():
+                if not target.is_file() or target.is_symlink(): raise SystemExit("Refusing non-regular restore target")
+                saved=transaction/"before"/row["root"]/row["path"]; saved.parent.mkdir(parents=True,exist_ok=True); shutil.copy2(target,saved); os.chmod(saved,0o600); before.update({"sha256":digest(saved),"size":saved.stat().st_size,"mode":stat.S_IMODE(target.stat().st_mode)})
+            backup.append(before)
+        atomic_json(transaction/"manifest.json",{"schema_version":1,"id":stamp,"snapshot":name,"components":chosen,"files":backup,"status":"prepared"})
+        for row in manifest["files"]:
+            if row["component"] not in chosen: continue
+            target=resolve(row)
+            if row["exists"]:
+                source=path/"payload"/row["root"]/row["path"]; target.parent.mkdir(parents=True,exist_ok=True); temp=target.parent/("."+target.name+".restore"); shutil.copy2(source,temp); os.chmod(temp,row["mode"]); os.replace(temp,target)
+            else: target.unlink(missing_ok=True)
+        tx=load(transaction/"manifest.json"); tx["status"]="applied"; atomic_json(transaction/"manifest.json",tx); activate(chosen); return tx
+    except BaseException:
+        if (transaction/"manifest.json").is_file(): rollback(stamp)
+        raise
+def rollback(transaction_id):
+    if not re.fullmatch(r"[0-9]{8}-[0-9]{6}-[0-9]+",transaction_id): raise SystemExit("Invalid transaction identifier")
+    transaction=STORE/"transactions"/transaction_id
+    try: manifest=load(transaction/"manifest.json")
+    except (OSError,json.JSONDecodeError): raise SystemExit("Transaction is missing or corrupt")
+    for row in manifest.get("files",[]):
+        target=resolve(row)
+        if row["exists"]:
+            saved=transaction/"before"/row["root"]/row["path"]
+            if not saved.is_file() or digest(saved)!=row["sha256"]: raise SystemExit("Rollback backup is corrupt")
+    for row in manifest["files"]:
+        target=resolve(row)
+        if row["exists"]:
+            saved=transaction/"before"/row["root"]/row["path"]; target.parent.mkdir(parents=True,exist_ok=True); temp=target.parent/("."+target.name+".rollback"); shutil.copy2(saved,temp); os.chmod(temp,row["mode"]); os.replace(temp,target)
+        else: target.unlink(missing_ok=True)
+    manifest["status"]="rolled-back"; atomic_json(transaction/"manifest.json",manifest); activate(manifest["components"]); return manifest
+
+def main():
+    parser=argparse.ArgumentParser(); sub=parser.add_subparsers(dest="command",required=True)
+    create_p=sub.add_parser("create"); create_p.add_argument("name"); create_p.add_argument("--note",default=""); create_p.add_argument("--components",default="all")
+    sub.add_parser("list")
+    show=sub.add_parser("show"); show.add_argument("name")
+    dif=sub.add_parser("diff"); dif.add_argument("name"); dif.add_argument("--components",default="all")
+    restore_p=sub.add_parser("restore"); restore_p.add_argument("name"); restore_p.add_argument("--components",default="all"); restore_p.add_argument("--confirm",required=True)
+    undo=sub.add_parser("rollback"); undo.add_argument("transaction")
+    args=parser.parse_args()
+    value=create(args.name,args.note,args.components) if args.command=="create" else list_snapshots() if args.command=="list" else verify_snapshot(snapshot_path(args.name)) if args.command=="show" else diff(args.name,args.components) if args.command=="diff" else restore(args.name,args.components,args.confirm) if args.command=="restore" else rollback(args.transaction)
+    print(json.dumps(value,indent=2,sort_keys=True)); return 0
+if __name__=="__main__": raise SystemExit(main())

@@ -163,6 +163,8 @@ Enforced shell startup, idle, polling, overlap, and cache ceilings are in
 [PERFORMANCE.md](PERFORMANCE.md).
 Suite integrity diagnosis and narrowly allowlisted reversible remediation are
 documented in [RICE_HEALTH.md](RICE_HEALTH.md).
+Private named configuration snapshots, selective diff/restore, retention, and
+transaction rollback are documented in [SNAPSHOTS.md](SNAPSHOTS.md).
 
 ## Upgrade, rollback, and removal
 
