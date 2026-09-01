@@ -102,7 +102,8 @@ with tempfile.TemporaryDirectory() as directory:
     subprocess.run(["git", "archive", "--format=tar", f"--output={archive}", "v1.3.0"], cwd=ROOT, check=True)
     subprocess.run(["tar", "-xf", archive, "-C", old], check=True)
     env = os.environ | {"HOME": str(home), "XDG_STATE_HOME": str(state), "EVANGELION_SKIP_ACTIVATE": "1",
-                        "EVANGELION_RELEASE_131_NESTED": "1"}
+                        "EVANGELION_RELEASE_131_NESTED": "1", "EVANGELION_RELEASE_ARTIFACT_NESTED": "1",
+                        "EVANGELION_CROSS_CHANNEL_NESTED": "1"}
     def install(source):
         subprocess.run([str(source / "install.sh"), "--apply", "--preset", "default", "--yes"], env=env,
                        check=True, stdout=subprocess.DEVNULL)

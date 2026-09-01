@@ -10,14 +10,14 @@ The machine-readable companion is [`distribution.json`](distribution.json).
 | Tier | Intended channel | Owned payload | Activation | Updates and rollback | Removal |
 |---|---|---|---|---|---|
 | Theme | Omarchy theme catalog or theme Git repository | `theme/` copied as one named theme | User selects `evangelion`; it never edits the active theme implicitly | Replace only files inside the named theme directory; previous version or package-manager cache supplies rollback | Remove the named theme only when it is inactive; retain unrelated themes and user config |
-| Plugin | Omarchy plugin catalog or one plugin Git repository | One audited `evangelion.*` plugin directory plus declared runtime/API dependencies | Explicit plugin install and explicit bar/service enablement | Semantic plugin version; restore the prior plugin payload and layout entry on rollback | Remove only that plugin and entries it added; preserve shared runtime while another consumer remains |
 | Suite | Versioned GitHub release archive | Repository-owned files installed by `install.sh` into documented user paths | Explicit `--apply`, component selection, confirmation, then user-level service/theme activation | Transactional snapshot before mutation; exact manifest rollback; preserved `evangelion.json` | Manifest-driven rollback removes created files and restores replaced files; no directory-wide deletion |
 | Arch package | AUR/Arch source package | Immutable suite payload under `/usr/share/evangelion-rice` and launchers under `/usr/bin` | Package installation does not modify `$HOME`; desktop user runs a separate activation command | Pacman owns system payload versions; user activation creates its own transaction for rollback | Pacman removes system payload; separate user deactivation restores that user's snapshot |
 
-Theme and plugin catalog submissions are independently usable products, not
-aliases for the suite installer. A plugin that imports suite-only files is not
-eligible for the plugin tier until the runtime contract and plugin audit say it
-is standalone.
+The theme catalog submission is an independently usable product, not an alias
+for the suite installer. MAGI plugins are internal suite components in v1.4;
+none are advertised, packaged, or installed as standalone products. The audit
+and optional runtime contract remain architectural evidence for a future
+decision, not a current distribution channel.
 
 ## Ownership boundaries
 
@@ -38,6 +38,14 @@ files require an explicit plan and confirmation. Catalog theme/plugin installs
 must not replace those files. No tier may recursively copy over `$HOME`, infer a
 desktop user from `sudo`, delete an unowned directory, or silently edit shell
 startup files.
+
+The standalone theme and suite both use
+`~/.config/omarchy/themes/evangelion`. If that path is a Git-owned standalone
+theme clone, suite activation fails read-only with remediation instructions.
+The user must switch themes and remove the clone before retrying; the installer
+never merges suite files into another channel's Git tree. Git checkout,
+release-archive, and Arch activations share the suite transaction owner and use
+explicit rollback/deactivation when changing the system-level source owner.
 
 ## Lifecycle contract
 
@@ -103,7 +111,8 @@ plugin, Arch, or AUR maintainer.
   [`MAGI_RUNTIME.md`](MAGI_RUNTIME.md). Version 1 intentionally avoids a shared
   runtime package: plugin-local fallbacks are required and MAGI integration is
   optional, additive, and theme-independent.
-- Every plugin must be classified standalone, runtime-dependent, or suite-only.
+- Every plugin remains classified, but v1.4 distributes plugins only inside the
+  complete suite.
 - The current complete classification and first extraction recommendations are
   published in [`PLUGIN_AUDIT.md`](PLUGIN_AUDIT.md).
 - Release archives must be reproducible and carry checksums plus both licenses.

@@ -5,7 +5,7 @@ test_root=$(mktemp -d)
 trap 'rm -rf -- "$test_root"' EXIT
 pass(){ printf 'PASS  %s\n' "$1"; }
 fail(){ printf 'FAIL  %s\n' "$1" >&2; exit 1; }
-run_install(){ HOME=$test_root/home XDG_STATE_HOME=$test_root/state EVANGELION_SKIP_ACTIVATE=1 EVANGELION_RELEASE_131_NESTED=1 EVANGELION_RELEASE_ARTIFACT_NESTED=1 "$root/install.sh" "$@"; }
+run_install(){ HOME=$test_root/home XDG_STATE_HOME=$test_root/state EVANGELION_SKIP_ACTIVATE=1 EVANGELION_RELEASE_131_NESTED=1 EVANGELION_RELEASE_ARTIFACT_NESTED=1 EVANGELION_CROSS_CHANNEL_NESTED=1 "$root/install.sh" "$@"; }
 run_rollback(){ HOME=$test_root/home XDG_STATE_HOME=$test_root/state EVANGELION_SKIP_ACTIVATE=1 "$root/rollback.sh" "$@"; }
 
 mkdir -p "$test_root/home" "$test_root/stubs"
@@ -90,7 +90,7 @@ run_rollback "$fish_snapshot" >/dev/null
 pass "Bash, Zsh, and Fish integration"
 
 printf 'original\n' >"$test_root/home/.bashrc"
-if HOME=$test_root/home XDG_STATE_HOME=$test_root/state EVANGELION_SKIP_ACTIVATE=1 EVANGELION_RELEASE_131_NESTED=1 EVANGELION_RELEASE_ARTIFACT_NESTED=1 EVANGELION_FORCE_INSTALL_FAILURE=1 "$root/install.sh" --apply --components shell-integration --yes >/dev/null 2>&1; then
+if HOME=$test_root/home XDG_STATE_HOME=$test_root/state EVANGELION_SKIP_ACTIVATE=1 EVANGELION_RELEASE_131_NESTED=1 EVANGELION_RELEASE_ARTIFACT_NESTED=1 EVANGELION_CROSS_CHANNEL_NESTED=1 EVANGELION_FORCE_INSTALL_FAILURE=1 "$root/install.sh" --apply --components shell-integration --yes >/dev/null 2>&1; then
   fail "forced failure unexpectedly succeeded"
 fi
 grep -qx original "$test_root/home/.bashrc" || fail "automatic rollback did not restore bashrc"

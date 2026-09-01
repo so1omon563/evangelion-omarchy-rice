@@ -74,6 +74,11 @@ jobs:
           EVANGELION_ARCH_PACKAGE_REPORT: test-results/arch-package.json
         run: ./tests/arch-package.py
 
+      - name: Validate cross-channel transitions and conflicts
+        env:
+          EVANGELION_CROSS_CHANNEL_REPORT: test-results/cross-channel.json
+        run: ./tests/cross-channel.py
+
       - name: Retain clean-user results
         if: always()
         uses: actions/upload-artifact@v4

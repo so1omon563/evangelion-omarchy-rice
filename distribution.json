@@ -11,15 +11,6 @@
       "removal": "remove-named-theme-only-when-inactive",
       "versioning": "independent-semver-with-derived-suite-version"
     },
-    "plugin": {
-      "channel": "omarchy-plugin-catalog-or-git",
-      "payload": ["omarchy/plugins/evangelion.<name>/**", "LICENSE"],
-      "owns_user_config": false,
-      "activation": "explicit-install-and-layout-or-service-enable",
-      "rollback": "restore-plugin-payload-and-added-layout-entry",
-      "removal": "remove-owned-plugin-and-added-entries-only",
-      "versioning": "independent-semver-with-runtime-range"
-    },
     "suite": {
       "channel": "github-release",
       "payload": ["repository-release-archive"],
@@ -43,6 +34,24 @@
     "package_manager": ["/usr/share/evangelion-rice/**", "/usr/bin/evangelion-rice-*"],
     "suite_transaction": ["manifest.tsv exact targets"],
     "user": ["preserved preferences", "unrelated paths", "unselected tier content"]
+  },
+  "internal_plugins": {
+    "distribution": "suite-only",
+    "standalone_advertising": false,
+    "standalone_installation": false,
+    "runtime_publication": false
+  },
+  "channel_conflicts": {
+    "theme-to-suite": {
+      "path": "~/.config/omarchy/themes/evangelion",
+      "policy": "refuse-git-owned-tree-until-user-switches-and-removes-theme"
+    },
+    "git-suite-to-release-suite": {
+      "policy": "same-transaction-owner-upgrade"
+    },
+    "release-suite-to-arch-suite": {
+      "policy": "deactivate-user-transaction-before-switching-system-owner"
+    }
   },
   "optional_runtime": {
     "contract": "magi.optional-runtime",

@@ -74,6 +74,16 @@ else
 fi
 $shell_opt_out && unset 'selected[shell-integration]'
 
+standalone_theme=$HOME/.config/omarchy/themes/evangelion
+if [[ ${selected[theme]:-0} == 1 && -d $standalone_theme/.git ]]; then
+  cat >&2 <<EOF
+CHANNEL CONFLICT // $standalone_theme is a Git-installed standalone theme.
+Switch to another theme and remove that clone before activating the complete
+suite. The installer will not merge suite-owned files into a Git-owned tree.
+EOF
+  exit 3
+fi
+
 if [[ ${EVANGELION_SKIP_ACTIVATE:-0} == 1 ]]; then "$root/preflight.py" --source-only; else "$root/preflight.py"; fi
 if [[ ${selected[neon-overdrive]:-0} == 1 ]] && ! "$root/bin/eva-capabilities" has neon-overdrive; then
   echo "Neon Overdrive integration was requested but ~/.config/omarchy/themes/neon-overdrive/scripts/neon-control was not detected." >&2

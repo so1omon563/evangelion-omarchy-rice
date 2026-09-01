@@ -40,6 +40,9 @@ fi
 for mode in full reduced off; do lua "$root/tests/hypr-motion.lua" "$mode" >/dev/null && pass "Hyprland $mode motion profile" || fail "Hyprland $mode motion profile"; done
 python3 "$root/tests/documentation.py" >/dev/null && pass "public documentation contract" || fail "public documentation contract"
 python3 "$root/tests/distribution.py" >/dev/null && pass "v1.4 distribution ownership contract" || fail "v1.4 distribution ownership contract"
+if [[ ${EVANGELION_CROSS_CHANNEL_NESTED:-0} != 1 ]]; then
+  python3 "$root/tests/cross-channel.py" >/dev/null && pass "cross-channel transition and conflict contract" || fail "cross-channel transition and conflict contract"
+fi
 python3 "$root/tests/theme-distribution.py" >/dev/null && pass "standalone Omarchy theme lifecycle" || fail "standalone Omarchy theme lifecycle"
 python3 "$root/tests/gallery-submission.py" >/dev/null && pass "official Omarchy gallery submission package" || fail "official Omarchy gallery submission package"
 python3 "$root/tests/plugin-audit.py" >/dev/null && pass "complete MAGI plugin distribution audit" || fail "complete MAGI plugin distribution audit"
