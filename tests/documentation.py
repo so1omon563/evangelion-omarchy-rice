@@ -80,6 +80,11 @@ def main():
     assert v13["gates"]["candidate_ci"] == "passed-run-33450358582"
     assert v13["community_testing"]["status"] == "optional-post-release"
     assert v13["community_testing"]["required_reports"] == 0
+    v14 = __import__("json").loads(text("release/v1.4.0.json"))
+    assert v14["final_release_allowed"] is True
+    assert v14["candidate_commit"] == "2410a7643a48df5e663c61b2bad304028cad91bf"
+    assert v14["gates"]["candidate_ci"] == "passed-run-33468175175"
+    assert v14["distribution"]["plugins"] == "suite-internal-not-standalone"
     print("PASS  public documentation contract")
 
 

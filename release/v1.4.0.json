@@ -1,0 +1,32 @@
+{
+  "schema_version": 1,
+  "release": "v1.4.0",
+  "candidate": "v1.4.0-rc.1",
+  "candidate_commit": "2410a7643a48df5e663c61b2bad304028cad91bf",
+  "final_release_allowed": true,
+  "community_testing": {
+    "status": "optional-post-release",
+    "required_reports": 0,
+    "accepted_reports": 0
+  },
+  "distribution": {
+    "theme": "published-dedicated-repository-and-gallery-pr-open",
+    "suite": "github-release-exact-tag",
+    "arch": "package-metadata-from-published-suite-artifact",
+    "plugins": "suite-internal-not-standalone",
+    "optional_runtime": "contract-only-not-published"
+  },
+  "gates": {
+    "candidate_ci": "passed-run-33468175175",
+    "candidate_ci_duration": "3m53s",
+    "validation": "passed-159-checks-zero-failures-zero-warnings",
+    "clean_install": "passed-isolated-clean-user",
+    "v13_upgrade": "passed-exact-v1.3.0-to-v1.3.1-lifecycle-baseline",
+    "release_artifact": "passed-reproducible-exact-tag-offline-lifecycle",
+    "arch_package": "passed-system-ownership-and-explicit-user-lifecycle",
+    "cross_channel": "passed-conflict-upgrade-rollback-removal-evidence",
+    "browser_motion_privacy_responsive": "passed-regression-baselines",
+    "release_media_privacy_review": "passed-hashed-public-media",
+    "documentation": "passed-selection-maintenance-support-and-release-contracts"
+  }
+}

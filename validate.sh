@@ -39,6 +39,7 @@ if [[ ${EVANGELION_RELEASE_131_NESTED:-0} != 1 ]]; then
 fi
 for mode in full reduced off; do lua "$root/tests/hypr-motion.lua" "$mode" >/dev/null && pass "Hyprland $mode motion profile" || fail "Hyprland $mode motion profile"; done
 python3 "$root/tests/documentation.py" >/dev/null && pass "public documentation contract" || fail "public documentation contract"
+python3 "$root/tests/release-v1.4.py" >/dev/null && pass "exact v1.4 release evidence" || fail "exact v1.4 release evidence"
 python3 "$root/tests/distribution.py" >/dev/null && pass "v1.4 distribution ownership contract" || fail "v1.4 distribution ownership contract"
 if [[ ${EVANGELION_CROSS_CHANNEL_NESTED:-0} != 1 ]]; then
   python3 "$root/tests/cross-channel.py" >/dev/null && pass "cross-channel transition and conflict contract" || fail "cross-channel transition and conflict contract"

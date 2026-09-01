@@ -64,6 +64,9 @@ jobs:
       - name: Test v1.3.1 mixed-cache and upgrade lifecycle
         run: ./tests/release-v1.3.1.py
 
+      - name: Validate exact v1.4 release evidence
+        run: ./tests/release-v1.4.py
+
       - name: Build and validate reproducible suite artifact
         env:
           EVANGELION_RELEASE_ARTIFACT_REPORT: test-results/release-artifact.json
