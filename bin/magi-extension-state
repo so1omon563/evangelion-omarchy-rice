@@ -1,0 +1,118 @@
+#!/usr/bin/env python3
+"""Read-only, bounded internal state adapter for MAGI suite extensions."""
+import json
+import os
+import subprocess
+import sys
+import time
+from pathlib import Path
+
+ROOT = Path(__file__).resolve().parents[1]
+CONTRACT_PATH = Path(os.environ.get("MAGI_EXTENSION_CONTRACT", ROOT / "magi-extension-contract.json"))
+
+
+def contract():
+    return json.loads(CONTRACT_PATH.read_text())
+
+
+def run(command, timeout=.25):
+    try:
+        result = subprocess.run(command, text=True, capture_output=True, timeout=timeout, check=False)
+    except FileNotFoundError:
+        return "unavailable", None
+    except subprocess.TimeoutExpired:
+        return "timed-out", None
+    if result.returncode:
+        return "unavailable", None
+    return "compatible", result.stdout
+
+
+def json_probe(command):
+    status, raw = run(command)
+    if status != "compatible":
+        return status, None
+    try:
+        value = json.loads(raw)
+    except (TypeError, json.JSONDecodeError):
+        return "invalid", None
+    return ("compatible", value) if isinstance(value, dict) else ("invalid", None)
+
+
+def lines_probe(command, required):
+    status, raw = run(command)
+    if status != "compatible":
+        return status, None
+    try:
+        value = dict(line.split("=", 1) for line in raw.splitlines() if "=" in line)
+    except (AttributeError, ValueError):
+        return "invalid", None
+    return ("compatible", value) if required <= value.keys() else ("invalid", None)
+
+
+def sanitized_settings(value):
+    motion = value.get("motion", {}) if isinstance(value.get("motion"), dict) else {}
+    context = value.get("context", {}) if isinstance(value.get("context"), dict) else {}
+    mode = motion.get("mode", "reduced")
+    return {"motion_mode": mode if mode in ("full", "reduced", "off") else "reduced",
+            "context_enabled": context.get("enabled") is True,
+            "decorative_enabled": context.get("decorative_enabled") is True}
+
+
+def collect(spec):
+    fallback = {name: value["fallback"] for name, value in spec["capabilities"].items()}
+    results = {}
+    statuses = {}
+
+    status, value = lines_probe(["magi-affinity", "status"], {"mode", "active"})
+    if status == "compatible":
+        palette_status, palette = json_probe(["magi-affinity", "palette", value["active"]])
+        if palette_status == "compatible" and isinstance(palette.get("label"), str):
+            value = {"mode": value["mode"], "active": value["active"], "label": palette["label"]}
+        else:
+            status = palette_status
+    statuses["affinity"], results["affinity"] = status, value if status == "compatible" else fallback["affinity"]
+
+    status, value = json_probe(["magi-motion", "status", "--json"])
+    valid = value and value.get("mode") in ("full", "reduced", "off")
+    statuses["motion"], results["motion"] = (status if valid else "invalid") if status == "compatible" else status, value if valid else fallback["motion"]
+
+    status, value = lines_probe(["magi-operating-profile", "status"], {"mode", "detected", "effective", "active"})
+    statuses["operating_profile"], results["operating_profile"] = status, value if status == "compatible" else fallback["operating_profile"]
+
+    status, value = json_probe(["eva-user-config", "show"])
+    settings = sanitized_settings(value) if status == "compatible" else fallback["settings"]
+    statuses["settings"], results["settings"] = status, settings
+
+    status, value = json_probe(["magi-health", "status", "--json"])
+    valid = value and value.get("level") in ("nominal", "warning", "critical") and isinstance(value.get("items"), list)
+    statuses["health"], results["health"] = (status if valid else "invalid") if status == "compatible" else status, value if valid else fallback["health"]
+
+    status, value = json_probe(["magi-context", "surface", "--json", "--compact"])
+    valid = value and isinstance(value.get("active"), bool) and isinstance(value.get("status"), str)
+    statuses["presentation"], results["presentation"] = (status if valid else "invalid") if status == "compatible" else status, value if valid else fallback["presentation"]
+
+    capabilities = {name: {"version": definition["version"], "status": statuses[name]}
+                    for name, definition in spec["capabilities"].items()}
+    return {"contract": spec["contract"], "version": spec["version"],
+            "generated_at": int(time.time()), "capabilities": capabilities, "state": results}
+
+
+def main():
+    spec = contract()
+    command = sys.argv[1] if len(sys.argv) > 1 else "snapshot"
+    if command == "capabilities":
+        value = {"contract": spec["contract"], "version": spec["version"],
+                 "scope": spec["scope"], "standalone_runtime": False,
+                 "capabilities": {name: {"version": item["version"]} for name, item in spec["capabilities"].items()}}
+    elif command == "snapshot":
+        value = collect(spec)
+    else:
+        print("Usage: magi-extension-state {capabilities|snapshot} [--json]", file=sys.stderr)
+        return 2
+    print(json.dumps(value, separators=(",", ":") if "--json" in sys.argv else None,
+                     indent=None if "--json" in sys.argv else 2, sort_keys=True))
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

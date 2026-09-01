@@ -188,6 +188,7 @@ checks are:
 ./tests/motion-regression.py
 ./tests/motion-observe.py # optional live observation
 ./tests/context-regression.py
+./tests/magi-extension-contract.py # internal widget state boundary
 ./tests/context-observe.py # optional live T480 observation; restores state
 ```
 

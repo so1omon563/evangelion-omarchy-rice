@@ -124,6 +124,11 @@ theme conflict refusal, suite install, forced partial failure, exact rollback,
 internal-plugin policy, and browser/motion/privacy/responsive compatibility;
 CI retains its machine-readable JSON evidence.
 
+`magi-extension-contract.py` runs the v1 internal suite adapter against an
+isolated fake command path. It covers capability negotiation, compatible data,
+partial failure, missing providers, malformed output, 250 ms provider timeouts,
+complete static fallback, settings minimization, and privacy-safe projection.
+
 `affinity-motion.py` verifies wallpaper detection, neutral fallback, serialized
 rapid-settle behavior, atomic profile state, manual authority, Auto feedback,
 and Off-mode instant presentation without changing any wallpaper asset.

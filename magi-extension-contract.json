@@ -1,0 +1,38 @@
+{
+  "contract": "magi.extension-state",
+  "version": "1.0.0",
+  "scope": "suite-internal",
+  "standalone_runtime": false,
+  "discovery": {
+    "command": ["magi-extension-state", "capabilities", "--json"],
+    "snapshot_command": ["magi-extension-state", "snapshot", "--json"],
+    "probe_timeout_ms": 250,
+    "snapshot_timeout_ms": 1500,
+    "local_only": true,
+    "read_only": true
+  },
+  "envelope": {
+    "required": ["contract", "version", "generated_at", "capabilities", "state"],
+    "capability_states": ["compatible", "unavailable", "timed-out", "invalid"],
+    "unknown_fields": "ignore",
+    "unknown_major": "reject"
+  },
+  "capabilities": {
+    "affinity": {"version": 1, "fallback": {"mode": "auto", "active": "neutral", "label": "NERV / MAGI NEUTRAL"}},
+    "motion": {"version": 1, "fallback": {"selected_mode": "reduced", "mode": "reduced", "holds": []}},
+    "operating_profile": {"version": 1, "fallback": {"mode": "auto", "detected": "unknown", "effective": "unknown", "active": "none"}},
+    "settings": {"version": 1, "fallback": {"motion_mode": "reduced", "context_enabled": false, "decorative_enabled": false}},
+    "health": {"version": 1, "fallback": {"level": "unknown", "issues": 0, "summary": "UNAVAILABLE", "items": []}},
+    "presentation": {"version": 1, "fallback": {"active": false, "status": "baseline", "freshness": "unknown", "signals": [], "recommendations": []}}
+  },
+  "privacy": {
+    "presentation_safe_only": true,
+    "prohibited": ["user_name", "home_path", "host_name", "ip_address", "ssid", "process_id", "window_title"]
+  },
+  "migration": {
+    "additive_fields": "minor",
+    "semantic_or_removal": "major",
+    "minimum_major_support_window": 1,
+    "current_private_consumers_may_migrate_incrementally": true
+  }
+}
