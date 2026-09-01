@@ -1,0 +1,67 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+suite_root=${EVANGELION_RICE_ROOT:-/usr/share/evangelion-rice}
+state_root=${XDG_STATE_HOME:-$HOME/.local/state}/evangelion-rice
+
+usage(){ cat <<'EOF'
+Usage: evangelion-rice <command> [options]
+
+  preflight                 Read-only live compatibility check
+  plan [installer options]  Preview user changes; never writes them
+  setup [installer options] Apply a user transaction (alias: activate)
+  upgrade [options]         Apply current package payload as a new transaction
+  status [--json]           Show package and per-user activation state
+  rollback [snapshot]       Restore one explicit user transaction
+  deactivate [snapshot]     Restore the latest or supplied transaction
+  remove [snapshot]         Alias for deactivate; does not invoke pacman
+
+Installer options include --preset, --components, --shell,
+--no-shell-integration, and --yes. This command never uses sudo or pkexec.
+EOF
+}
+
+[[ -d $suite_root && -x $suite_root/install.sh ]] || {
+  echo "Evangelion Rice package payload not found: $suite_root" >&2
+  exit 2
+}
+
+version(){
+  if [[ -f $suite_root/.pkg-version ]]; then cat "$suite_root/.pkg-version"
+  elif [[ -f $suite_root/RELEASE-PROVENANCE.json ]]; then
+    python3 -c 'import json,sys; print(json.load(open(sys.argv[1]))["version"])' "$suite_root/RELEASE-PROVENANCE.json"
+  else echo development; fi
+}
+
+status(){
+  local json=false snapshot= active=false
+  [[ ${1:-} == --json ]] && json=true
+  snapshot=$(cat "$state_root/last-install-backup" 2>/dev/null || true)
+  [[ -n $snapshot && -f $snapshot/manifest.tsv ]] && active=true
+  if $json; then
+    python3 -c 'import json,sys; print(json.dumps({"schema_version":1,"package_version":sys.argv[1],"payload_root":sys.argv[2],"activated":sys.argv[3]=="true","last_snapshot":sys.argv[4] or None},indent=2))' "$(version)" "$suite_root" "$active" "$snapshot"
+  else
+    printf 'EVANGELION RICE // package %s\n' "$(version)"
+    printf 'Payload    %s\n' "$suite_root"
+    printf 'Activated  %s\n' "$active"
+    printf 'Snapshot   %s\n' "${snapshot:-none}"
+  fi
+}
+
+command_name=${1:-help}; shift || true
+case $command_name in
+  help|-h|--help) usage ;;
+  preflight) exec "$suite_root/preflight.py" "$@" ;;
+  plan) exec "$suite_root/install.sh" --dry-run "$@" ;;
+  setup|activate|upgrade) exec "$suite_root/install.sh" --apply "$@" ;;
+  status) status "$@" ;;
+  rollback) exec "$suite_root/rollback.sh" "$@" ;;
+  deactivate|remove)
+    snapshot=${1:-$(cat "$state_root/last-install-backup" 2>/dev/null || true)}
+    [[ -n $snapshot ]] || { echo "No user activation snapshot to restore" >&2; exit 2; }
+    "$suite_root/rollback.sh" "$snapshot"
+    rm -f -- "$state_root/last-install-backup"
+    echo "USER DEACTIVATED // pacman package remains installed"
+    ;;
+  *) echo "Unknown command: $command_name" >&2; usage >&2; exit 2 ;;
+esac

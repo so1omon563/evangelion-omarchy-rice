@@ -1,0 +1,32 @@
+#!/usr/bin/env python3
+"""Generate a concrete release PKGBUILD from a verified suite archive."""
+import argparse
+import hashlib
+import json
+from pathlib import Path
+import subprocess
+import tarfile
+import tempfile
+
+ROOT = Path(__file__).resolve().parents[1]
+TEMPLATE = ROOT / "packaging/arch/PKGBUILD.release.in"
+
+parser = argparse.ArgumentParser()
+parser.add_argument("archive", type=Path)
+parser.add_argument("--output", type=Path, default=ROOT / "build/arch")
+args = parser.parse_args()
+archive = args.archive.resolve()
+subprocess.run([ROOT / "scripts/build-release", "verify", archive], check=True)
+with tempfile.TemporaryDirectory(prefix="evangelion-arch-") as raw:
+    with tarfile.open(archive, "r:gz") as tar:
+        provenance_member = next(m for m in tar.getmembers() if m.name.endswith("/RELEASE-PROVENANCE.json"))
+        provenance = json.load(tar.extractfile(provenance_member))
+version = provenance["version"]
+pkgver = version.replace("-", "_")
+checksum = hashlib.sha256(archive.read_bytes()).hexdigest()
+content = (TEMPLATE.read_text().replace("@VERSION@", version)
+           .replace("@PKGVER@", pkgver).replace("@SHA256@", checksum))
+args.output.mkdir(parents=True, exist_ok=True)
+target = args.output / "PKGBUILD"
+target.write_text(content)
+print(target)

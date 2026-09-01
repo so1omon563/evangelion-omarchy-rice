@@ -110,6 +110,8 @@ optional-integration contract are documented in [DISTRIBUTION.md](DISTRIBUTION.m
 [PLUGIN_AUDIT.md](PLUGIN_AUDIT.md), and [MAGI_RUNTIME.md](MAGI_RUNTIME.md).
 Exact-tag suite archives, checksums, provenance, and offline installation are
 covered in [RELEASE_ARTIFACTS.md](RELEASE_ARTIFACTS.md).
+Arch package ownership and explicit per-user activation are covered in
+[ARCH_PACKAGING.md](ARCH_PACKAGING.md).
 
 The browser always follows `omarchy launch browser`; no browser executable is
 hard-coded. Cava is an independent `evangelion.cava` bar plugin and hides when

@@ -1,0 +1,36 @@
+# Maintainer template. Generate a concrete PKGBUILD with scripts/build-arch-package.
+pkgname=evangelion-omarchy-rice
+pkgver=@PKGVER@
+_upstream_version=@VERSION@
+pkgrel=1
+pkgdesc='Unofficial Evangelion-inspired complete desktop suite for Omarchy'
+arch=('any')
+url='https://github.com/so1omon563/evangelion-omarchy-rice'
+license=('MIT' 'CCPL:by-nc')
+depends=('bash' 'coreutils' 'hyprland' 'jq' 'lua' 'omarchy' 'python' 'systemd')
+optdepends=(
+  'btop: presentation telemetry'
+  'brightnessctl: display and keyboard brightness controls'
+  'cava: audio spectrum widget'
+  'fastfetch: presentation system summary'
+  'libnotify: native desktop notifications'
+  'lm_sensors: additional thermal telemetry'
+  'networkmanager: network status'
+  'neovim: editor profile integration'
+  'playerctl: media controls'
+  'power-profiles-daemon: operating profile power switching'
+  'socat: multi-monitor screensaver IPC'
+  'tailscale: peer status'
+  'wireplumber: PipeWire audio controls'
+  'wl-clipboard: clipboard actions'
+  'xdg-utils: browser and capture opening'
+)
+source=("https://github.com/so1omon563/evangelion-omarchy-rice/releases/download/v${_upstream_version}/evangelion-omarchy-rice-${_upstream_version}.tar.gz")
+sha256sums=('@SHA256@')
+
+package() {
+  local source_root="$srcdir/evangelion-omarchy-rice-${_upstream_version}"
+  install -d "$pkgdir/usr/share/evangelion-rice" "$pkgdir/usr/bin"
+  cp -a "$source_root/." "$pkgdir/usr/share/evangelion-rice/"
+  install -Dm755 "$source_root/packaging/arch/evangelion-rice" "$pkgdir/usr/bin/evangelion-rice"
+}

@@ -69,6 +69,11 @@ jobs:
           EVANGELION_RELEASE_ARTIFACT_REPORT: test-results/release-artifact.json
         run: ./tests/release-artifact.py
 
+      - name: Validate Arch package and user activation lifecycle
+        env:
+          EVANGELION_ARCH_PACKAGE_REPORT: test-results/arch-package.json
+        run: ./tests/arch-package.py
+
       - name: Retain clean-user results
         if: always()
         uses: actions/upload-artifact@v4

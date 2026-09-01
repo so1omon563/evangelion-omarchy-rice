@@ -37,4 +37,5 @@ start-page/
 systemd/
 theme/
 scripts/build-release
+packaging/arch/evangelion-rice
 packaging/release/allowlist.txt

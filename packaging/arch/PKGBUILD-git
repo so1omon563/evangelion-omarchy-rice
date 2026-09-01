@@ -1,0 +1,38 @@
+pkgname=evangelion-omarchy-rice-git
+pkgver=1.4.0.r0.g0000000
+pkgrel=1
+pkgdesc='Unofficial Evangelion-inspired complete desktop suite for Omarchy (git)'
+arch=('any')
+url='https://github.com/so1omon563/evangelion-omarchy-rice'
+license=('MIT' 'CCPL:by-nc')
+depends=('bash' 'coreutils' 'git' 'hyprland' 'jq' 'lua' 'omarchy' 'python' 'systemd')
+optdepends=('btop' 'brightnessctl' 'cava' 'fastfetch' 'libnotify' 'lm_sensors'
+            'networkmanager' 'neovim' 'playerctl' 'power-profiles-daemon' 'socat'
+            'tailscale' 'wireplumber' 'wl-clipboard' 'xdg-utils')
+provides=('evangelion-omarchy-rice')
+conflicts=('evangelion-omarchy-rice')
+source=('evangelion-omarchy-rice::git+https://github.com/so1omon563/evangelion-omarchy-rice.git')
+sha256sums=('SKIP')
+
+pkgver() {
+  cd evangelion-omarchy-rice
+  git describe --long --tags --match 'v[0-9]*' | sed 's/^v//;s/-/.r/;s/-/./'
+}
+
+package() {
+  local source_root="$srcdir/evangelion-omarchy-rice"
+  local path rule include
+  mapfile -t _release_rules < <(sed '/^[[:space:]]*#/d;/^[[:space:]]*$/d' "$source_root/packaging/release/allowlist.txt")
+  install -d "$pkgdir/usr/share/evangelion-rice" "$pkgdir/usr/bin"
+  while IFS= read -r path; do
+    include=false
+    for rule in "${_release_rules[@]}"; do
+      if [[ $rule == */ && $path == "$rule"* ]] || [[ $path == "$rule" ]]; then include=true; break; fi
+    done
+    $include || continue
+    install -Dm"$(git -C "$source_root" ls-files -s -- "$path" | grep -q '^100755 ' && echo 755 || echo 644)" \
+      "$source_root/$path" "$pkgdir/usr/share/evangelion-rice/$path"
+  done < <(git -C "$source_root" ls-files)
+  printf '%s\n' "$pkgver" > "$pkgdir/usr/share/evangelion-rice/.pkg-version"
+  install -Dm755 "$source_root/packaging/arch/evangelion-rice" "$pkgdir/usr/bin/evangelion-rice"
+}
