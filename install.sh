@@ -122,6 +122,7 @@ fi
 add_tree neon-overdrive "$root/omarchy/plugins/neon.overdrive" "$HOME/.config/omarchy/plugins/neon.overdrive" 644
 add_file shell "$root/omarchy/extensions/omarchy-menu.jsonc" "$HOME/.config/omarchy/extensions/omarchy-menu.jsonc" 644
 add_file shell "$root/omarchy/evangelion.json" "$HOME/.config/omarchy/evangelion.json" 644 preserve
+add_file shell "$root/omarchy/performance.json" "$HOME/.config/omarchy/performance.json" 644 preserve
 for file in command-telemetry.json magi-clock.json magi-terminal-context.json motion.json operating-profiles.json shell.json thermal-alerts.json; do add_file shell "$root/omarchy/$file" "$HOME/.config/omarchy/$file" 644; done
 add_tree shell "$root/omarchy/hooks" "$HOME/.config/omarchy/hooks" 755
 for file in bindings.lua hyprland.lua looknfeel.lua; do add_file hypr "$root/hypr/$file" "$HOME/.config/hypr/$file" 644; done
@@ -223,7 +224,14 @@ fi
 if [[ -f $root/RELEASE-PROVENANCE.json ]]; then
   "$root/scripts/build-release" verify-root "$root"
 else
-  EVANGELION_SOURCE_ONLY=${EVANGELION_SKIP_ACTIVATE:-0} "$root/validate.sh"
+  # The installer owns this transaction's activation check. Avoid recursively
+  # running historical upgrade/channel installers inside it; those gates run
+  # directly in CI and in the contributor validation entry point.
+  EVANGELION_SOURCE_ONLY=${EVANGELION_SKIP_ACTIVATE:-0} \
+    EVANGELION_RELEASE_131_NESTED=1 \
+    EVANGELION_CROSS_CHANNEL_NESTED=1 \
+    EVANGELION_RELEASE_ARTIFACT_NESTED=1 \
+    "$root/validate.sh"
 fi
 mkdir -p "$state_root"; printf '%s\n' "$backup_root" >"$state_root/last-install-backup"
 transaction_started=false; trap - ERR

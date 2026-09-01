@@ -1,0 +1,139 @@
+#!/usr/bin/env python3
+"""Opt-in, payload-blind MAGI performance aggregate collector."""
+
+import argparse
+import json
+import os
+import shutil
+import subprocess
+import tempfile
+import time
+from pathlib import Path
+
+CONFIG = Path(os.environ.get("EVA_PERFORMANCE_CONFIG", Path.home()/".config/omarchy/performance.json"))
+STATE_DIR = Path(os.environ.get("EVA_PERFORMANCE_STATE_DIR", Path.home()/".local/state/evangelion-rice/performance"))
+STATE = STATE_DIR/"aggregate.json"
+DEFAULTS = {"schema_version":1,"enabled":False,"sample_interval_ms":2000,"probe_timeout_ms":350,
+            "maximum_components":6,"maximum_samples":256}
+PROBES = [
+    ("health", ["magi-health", "status", "--json"]),
+    ("context", ["magi-context", "status", "--json", "--compact"]),
+    ("extension-state", ["magi-extension-state", "snapshot", "--json"]),
+    ("motion", ["magi-motion", "status", "--json"]),
+]
+CACHES = [
+    ("context", Path.home()/".local/state/evangelion-rice/context/state.json"),
+    ("health", Path.home()/".local/state/evangelion-rice/health-updates.json"),
+    ("mission", Path.home()/".local/state/evangelion-rice/mission/state.json"),
+    ("motion", Path.home()/".local/state/evangelion-rice/motion/state.json"),
+]
+PROHIBITED = ("stdout", "stderr", "command_line", "path", "pid", "hostname", "username", "ssid", "window_title")
+
+def load(path, fallback):
+    try:
+        value=json.loads(path.read_text())
+        return value if isinstance(value,dict) else fallback.copy()
+    except (OSError,ValueError,json.JSONDecodeError): return fallback.copy()
+
+def atomic(path, value):
+    path.parent.mkdir(parents=True,exist_ok=True)
+    fd,name=tempfile.mkstemp(prefix=".magi-performance-",dir=path.parent)
+    try:
+        with os.fdopen(fd,"w") as stream: json.dump(value,stream,separators=(",",":")); stream.write("\n")
+        os.chmod(name,0o600); os.replace(name,path)
+    finally:
+        try: os.unlink(name)
+        except OSError: pass
+
+def config():
+    value={**DEFAULTS,**load(CONFIG,{})}
+    value["sample_interval_ms"]=max(1000,min(60000,int(value["sample_interval_ms"])))
+    value["probe_timeout_ms"]=max(50,min(1000,int(value["probe_timeout_ms"])))
+    value["maximum_components"]=max(1,min(12,int(value["maximum_components"])))
+    value["maximum_samples"]=max(16,min(1024,int(value["maximum_samples"])))
+    value["enabled"]=value["enabled"] is True
+    return value
+
+def set_enabled(enabled):
+    value=config(); value["enabled"]=bool(enabled); atomic(CONFIG,value); return value["enabled"]
+
+def blank():
+    return {"schema_version":1,"samples":0,"probe_cursor":0,"probes":{},"cache_mtimes":{},"cache":{},
+            "event_changes":0,"started_at":int(time.time()),"updated_at":None}
+
+def probe_sample(name, command, timeout_ms):
+    if not shutil.which(command[0]): return {"availability":"unavailable","latency_ms":0.0}
+    started=time.monotonic()
+    try:
+        result=subprocess.run(command,stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL,
+                              timeout=timeout_ms/1000,check=False)
+        availability="available" if result.returncode==0 else "failed"
+    except subprocess.TimeoutExpired: availability="timed-out"
+    except OSError: availability="unavailable"
+    return {"availability":availability,"latency_ms":round((time.monotonic()-started)*1000,2)}
+
+def motion_mode():
+    value=load(Path.home()/".local/state/evangelion-rice/motion/state.json",{})
+    mode=str(value.get("mode",value.get("selected_mode","full")))
+    return mode if mode in {"full","reduced","off"} else "full"
+
+def public(value, cfg):
+    probes=[]
+    for name,row in value.get("probes",{}).items():
+        probes.append({"component":name,"availability":row.get("availability","unknown"),
+                       "samples":int(row.get("samples",0)),"average_ms":round(float(row.get("average_ms",0)),2),
+                       "maximum_ms":round(float(row.get("maximum_ms",0)),2),
+                       "refresh_hz":round(float(row.get("refresh_hz",1000/(cfg["sample_interval_ms"]*len(PROBES)))),3)})
+    probes.sort(key=lambda row:(row["average_ms"],row["maximum_ms"]),reverse=True)
+    caches=[{"component":name,"availability":row.get("availability","unavailable"),
+             "age_seconds":row.get("age_seconds")} for name,row in sorted(value.get("cache",{}).items())]
+    return {"schema_version":1,"enabled":cfg["enabled"],"motion_mode":motion_mode(),
+            "sample_interval_ms":cfg["sample_interval_ms"],"samples":int(value.get("samples",0)),
+            "event_changes":int(value.get("event_changes",0)),"updated_at":value.get("updated_at"),
+            "components":probes[:cfg["maximum_components"]],"caches":caches,
+            "privacy":{"payload_capture":False,"aggregate_only":True}}
+
+def sample():
+    cfg=config()
+    if not cfg["enabled"]: return public(blank(),cfg)
+    value=load(STATE,blank()); now=time.time(); cursor=int(value.get("probe_cursor",0))%len(PROBES)
+    name,command=PROBES[cursor]; observed=probe_sample(name,command,cfg["probe_timeout_ms"])
+    previous=value.setdefault("probes",{}).get(name,{})
+    count=min(cfg["maximum_samples"],int(previous.get("samples",0))+1)
+    total=float(previous.get("average_ms",0))*min(int(previous.get("samples",0)),count-1)+observed["latency_ms"]
+    previous_observed=previous.get("last_observed_at")
+    observed_interval=(now-previous_observed)*1000 if previous_observed else cfg["sample_interval_ms"]*len(PROBES)
+    average_interval=float(previous.get("average_interval_ms",observed_interval))*.8+observed_interval*.2
+    value["probes"][name]={"availability":observed["availability"],"samples":count,
+                           "average_ms":round(total/count,2),"maximum_ms":max(float(previous.get("maximum_ms",0)),observed["latency_ms"]),
+                           "average_interval_ms":round(average_interval,2),"last_observed_at":now,
+                           "refresh_hz":round(1000/max(1,average_interval),3)}
+    value["probe_cursor"]=(cursor+1)%len(PROBES); value["samples"]=min(cfg["maximum_samples"],int(value.get("samples",0))+1)
+    for cache_name,cache_path in CACHES:
+        try:
+            modified=cache_path.stat().st_mtime; age=max(0,int(now-modified)); available="available"
+            if value.setdefault("cache_mtimes",{}).get(cache_name) not in (None,modified): value["event_changes"]=int(value.get("event_changes",0))+1
+            value["cache_mtimes"][cache_name]=modified
+        except OSError: modified=None; age=None; available="unavailable"
+        value.setdefault("cache",{})[cache_name]={"availability":available,"age_seconds":age}
+    value["updated_at"]=int(now); atomic(STATE,value); return public(value,cfg)
+
+def main():
+    parser=argparse.ArgumentParser(); sub=parser.add_subparsers(dest="command")
+    for name in ("status","sample"): sub.add_parser(name).add_argument("--json",action="store_true")
+    sub.add_parser("toggle"); sub.add_parser("enable"); sub.add_parser("disable")
+    export=sub.add_parser("export"); export.add_argument("output",type=Path)
+    args=parser.parse_args(); command=args.command or "status"
+    if command in {"toggle","enable","disable"}:
+        current=config()["enabled"]; enabled=set_enabled(not current if command=="toggle" else command=="enable")
+        print("enabled" if enabled else "disabled"); return
+    value=sample() if command=="sample" else public(load(STATE,blank()),config())
+    serialized=json.dumps(value,separators=(",",":"))
+    if any(key in serialized.lower() for key in PROHIBITED): raise SystemExit("privacy boundary violation")
+    if command=="export": atomic(args.output,value); print("MAGI performance aggregate exported"); return
+    if getattr(args,"json",False): print(serialized)
+    else:
+        print(f"MAGI PERFORMANCE // {'ACTIVE' if value['enabled'] else 'DISABLED'} // {value['samples']} SAMPLES")
+        for row in value["components"]: print(f"{row['component'].upper():<18} AVG {row['average_ms']:>7.2f} MS  MAX {row['maximum_ms']:>7.2f} MS  {row['availability'].upper()}")
+
+if __name__=="__main__": main()

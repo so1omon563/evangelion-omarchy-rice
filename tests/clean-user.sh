@@ -78,6 +78,8 @@ expect "fresh clean-user full install" test -f "$test_root/home/.config/omarchy/
 expect "portable user configuration preserved" grep -q '"project_dir":"/srv/operator/project"' "$test_root/home/.config/omarchy/evangelion.json"
 expect "shell plugins installed" test -f "$test_root/home/.config/omarchy/plugins/evangelion.cava/manifest.json"
 expect "context inspector installed" test -f "$test_root/home/.config/omarchy/plugins/evangelion.context/BarWidget.qml"
+expect "disabled performance overlay installed" jq -e '.enabled == false' "$test_root/home/.config/omarchy/performance.json"
+expect "performance overlay service installed" test -f "$test_root/home/.config/omarchy/plugins/evangelion.performance/Service.qml"
 expect "static recovery installed" test -x "$test_root/home/.local/bin/magi-recovery"
 expect "static recovery assets installed" test -f "$test_root/home/.local/share/evangelion-rice/recovery/shell.json"
 expect "migration assistant installed" test -x "$test_root/home/.local/bin/magi-migrate"

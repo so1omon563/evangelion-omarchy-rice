@@ -58,7 +58,11 @@ def main():
         state_path = home / ".local/state/evangelion-rice/context/state.json"
         assert state_path.stat().st_mode & 0o777 == 0o600
         explanation = run(home, "explain").stdout
-        assert any(code in explanation for code in ("context-nominal", "environment-mobile", "collectors-unavailable"))
+        # Collection intentionally observes the current machine, so thermal,
+        # power, dock, and unavailable-capability reasons are all legitimate.
+        # Pin the explanation to the state produced by this isolated refresh
+        # instead of assuming one particular hardware outcome.
+        assert refreshed["reasons"] and refreshed["reasons"][0]["code"] in explanation
 
         disabled = json.loads(run(home, "disable", "--json").stdout)
         assert disabled["derived_state"]["status"] == "disabled"

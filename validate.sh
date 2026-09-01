@@ -52,6 +52,7 @@ python3 "$root/tests/magi-extension-contract.py" >/dev/null && pass "internal MA
 python3 "$root/tests/recovery.py" >/dev/null && pass "static MAGI recovery transaction" || fail "static MAGI recovery transaction"
 python3 "$root/tests/migration.py" >/dev/null && pass "guided versioned configuration migration" || fail "guided versioned configuration migration"
 python3 "$root/tests/visual-regression.py" --self-test >/dev/null && pass "canonical visual regression baselines" || fail "canonical visual regression baselines"
+python3 "$root/tests/performance-overlay.py" >/dev/null && pass "opt-in aggregate performance overlay" || fail "opt-in aggregate performance overlay"
 if [[ ${EVANGELION_RELEASE_ARTIFACT_NESTED:-0} != 1 ]]; then
   python3 "$root/tests/release-artifact.py" >/dev/null && pass "reproducible complete-suite release artifact" || fail "reproducible complete-suite release artifact"
   python3 "$root/tests/arch-package.py" >/dev/null && pass "Arch package and explicit user lifecycle" || fail "Arch package and explicit user lifecycle"

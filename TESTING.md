@@ -33,6 +33,16 @@ concurrency coverage:
 ./tests/context-regression.py
 ```
 
+The opt-in developer overlay has an isolated fake-command and fake-state test:
+
+```bash
+./tests/performance-overlay.py
+```
+
+It proves disabled-idle behavior, one-probe-per-cycle bounds, timeout handling,
+rolling aggregate limits, payload-blind exports, atomic private state, keyboard
+toggle wiring, and explicit Full/Reduced/Off presentation behavior.
+
 It uses a temporary home and asserts that read-only status creates no state,
 invalid configuration is not overwritten, private/network primitives are not
 imported, and a delayed older refresh cannot overwrite the latest request.

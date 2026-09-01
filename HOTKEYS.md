@@ -18,8 +18,29 @@ Omarchy's complete live keybinding reference.
 | `Super + Alt + H` | Open the NERV system-health panel |
 | `Super + Alt + C` | Open the MAGI world and mission clock |
 | `Super + Alt + G` | Open the MAGI context inspector |
+| `Super + Alt + F` | Toggle the opt-in MAGI developer performance overlay |
 | `Super + Alt + R` | Toggle the stock-only static recovery mode |
 | `Super + K` | Show every active Omarchy keybinding |
+
+## Developer performance overlay
+
+Press `Super + Alt + F` to opt into or disengage the developer overlay. It is
+disabled by default and does no sampling while disabled. While active, it runs
+one allowlisted probe every two seconds and shows aggregate command latency,
+cache age/activity, overlay render events, and the most expensive components.
+It never stores command output, process IDs, paths, window titles, or network
+identity. Full, Reduced, and Off use progressively shorter or immediate overlay
+transitions.
+
+```bash
+magi-performance enable
+magi-performance status --json
+magi-performance sample --json
+magi-performance export ./magi-performance-report.json
+magi-performance disable
+```
+
+Exports contain only the same bounded aggregate schema shown by the overlay.
 
 ## Static recovery mode
 

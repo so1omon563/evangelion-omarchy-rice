@@ -50,6 +50,8 @@ run_install --apply --preset full --yes >/dev/null
 [[ -f $test_root/home/.config/fastfetch/config.jsonc && -f $test_root/home/.config/nvim/lua/plugins/eva-terminal-profile.lua ]] || fail "full preset omitted extras"
 [[ -f $test_root/home/.config/omarchy/evangelion.json ]] || fail "full preset omitted portable user configuration"
 [[ -f $test_root/home/.config/omarchy/motion.json && -f $test_root/home/.config/omarchy/plugins/evangelion.motion/manifest.json ]] || fail "full preset omitted motion foundation"
+[[ -f $test_root/home/.config/omarchy/performance.json && -f $test_root/home/.config/omarchy/plugins/evangelion.performance/manifest.json ]] || fail "full preset omitted opt-in performance overlay"
+jq -e '.enabled == false and .sample_interval_ms >= 1000' "$test_root/home/.config/omarchy/performance.json" >/dev/null || fail "performance overlay is not disabled and bounded by default"
 [[ -x $test_root/home/.local/bin/magi-context ]] || fail "full preset omitted MAGI context controller"
 [[ -f $test_root/home/.local/lib/evangelion-rice/magi_context_collectors.py ]] || fail "full preset omitted MAGI context collectors"
 [[ -f $test_root/home/.local/lib/evangelion-rice/magi_context_policy.py ]] || fail "full preset omitted MAGI context policy"
@@ -62,11 +64,13 @@ grep -qF 'source "$HOME/.config/omarchy/evangelion.bash"' "$test_root/home/.bash
 initial_full_snapshot=$(cat "$test_root/state/evangelion-rice/last-install-backup")
 sed -i 's#"project_dir": ""#"project_dir": "/tmp/custom-project"#' "$test_root/home/.config/omarchy/evangelion.json"
 sed -i 's#"mode": "full"#"mode": "reduced"#' "$test_root/home/.config/omarchy/evangelion.json"
+jq '.enabled=true' "$test_root/home/.config/omarchy/performance.json" >"$test_root/performance.json" && mv "$test_root/performance.json" "$test_root/home/.config/omarchy/performance.json"
 mkdir -p "$test_root/home/.config/omarchy/plugins/so1omon.cava"
 printf 'legacy\n' >"$test_root/home/.config/omarchy/plugins/so1omon.cava/marker"
 run_install --apply --components shell --yes >/dev/null
 grep -qF '"project_dir": "/tmp/custom-project"' "$test_root/home/.config/omarchy/evangelion.json" || fail "repeat install replaced user configuration"
 grep -qF '"mode": "reduced"' "$test_root/home/.config/omarchy/evangelion.json" || fail "repeat install replaced motion preference"
+jq -e '.enabled == true' "$test_root/home/.config/omarchy/performance.json" >/dev/null || fail "repeat install replaced performance opt-in preference"
 [[ ! -e $test_root/home/.config/omarchy/plugins/so1omon.cava && -f $test_root/home/.config/omarchy/plugins/evangelion.cava/manifest.json ]] || fail "legacy plugin namespace migration failed"
 migration_snapshot=$(cat "$test_root/state/evangelion-rice/last-install-backup")
 run_rollback "$migration_snapshot" >/dev/null

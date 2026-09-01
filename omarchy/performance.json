@@ -1,0 +1,8 @@
+{
+  "schema_version": 1,
+  "enabled": false,
+  "sample_interval_ms": 2000,
+  "probe_timeout_ms": 350,
+  "maximum_components": 6,
+  "maximum_samples": 256
+}

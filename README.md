@@ -201,6 +201,7 @@ checks are:
 ./tests/context-regression.py
 ./tests/magi-extension-contract.py # internal widget state boundary
 ./tests/visual-regression.py --self-test # canonical privacy-safe frames and CI diffs
+./tests/performance-overlay.py # opt-in aggregate developer telemetry
 ./tests/context-observe.py # optional live T480 observation; restores state
 ```
 

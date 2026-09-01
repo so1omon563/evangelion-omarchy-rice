@@ -1,7 +1,8 @@
 # MAGI plugin distribution audit
 
-This is the SO1-384 audit of every directory under `omarchy/plugins/` at the
-v1.3.1 baseline. The machine-readable evidence is `plugin-audit.json`.
+This is the evolving audit of every directory under `omarchy/plugins/`, updated
+for the v1.5 development baseline. The machine-readable evidence is
+`plugin-audit.json`.
 
 ## Classification rules
 
@@ -45,6 +46,7 @@ dependencies.
 | `evangelion.motion` | service/library | Suite-only | Current suite configuration and state paths |
 | `evangelion.notifications` | service | Suite-only | Full notification-daemon replacement + context/motion |
 | `evangelion.operating-profile` | service | Suite-only | Context automation and transactional profiles |
+| `evangelion.performance` | service | Suite-only | Aggregate collector, preserved opt-in state, privacy contract, motion |
 | `evangelion.power` | bar | Suite-only | Cloned native panel + broad Omarchy command API |
 | `evangelion.power-sequence` | service | Suite-only | UPower transition lifecycle + suite sound/IPC |
 | `evangelion.privacy` | bar | Optionally integrated | Safety helper/probes + motion; actions need separate review |
@@ -56,13 +58,13 @@ dependencies.
 | `evangelion.world-clock` | bar | Optionally integrated | Clock command/schema, motion, project-specific zone default |
 | `neon.overdrive` | bar | Compatibility-only | External-theme compatibility; superseded by native Cava |
 
-The automated contract verifies that all 31 tracked directories appear exactly once,
+The automated contract verifies that all 32 tracked directories appear exactly once,
 all non-orphan entries match their manifests and entry points, declared sibling
 imports match the source, and no entry is mislabeled as verified standalone.
 
 ## Dependency findings
 
-- Seventeen plugins hard-import `evangelion.motion`; four icon wrappers
+- Eighteen plugins hard-import `evangelion.motion`; four icon wrappers
   hard-import `evangelion.icon-theme`. QML import failure occurs before any
   graceful runtime fallback can render.
 - Several widgets initialize a plausible nominal default and ignore a failed

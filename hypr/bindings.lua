@@ -23,6 +23,7 @@ o.bind("SUPER + ALT + T", "Open MAGI mission timer", "omarchy-shell magi-mission
 o.bind("SUPER + ALT + H", "Open NERV system health", "omarchy-shell magi-health toggle")
 o.bind("SUPER + ALT + C", "Open MAGI world clock", "omarchy-shell magi-clock toggle")
 o.bind("SUPER + ALT + G", "Open MAGI context inspector", "omarchy-shell magi-context-inspector toggle")
+o.bind("SUPER + ALT + F", "Toggle MAGI developer performance overlay", "magi-performance toggle")
 
 -- Open the unified MAGI command interface. SUPER + SPACE remains Omarchy's
 -- standard root menu, so both launch paths stay available.

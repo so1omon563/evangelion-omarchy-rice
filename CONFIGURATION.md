@@ -75,6 +75,26 @@ magi-context status
 magi-context explain
 ```
 
+## Developer performance overlay
+
+`~/.config/omarchy/performance.json` is created disabled and preserved on
+upgrades. The supported bounds are a 1–60 second sample interval, a 50–1000 ms
+probe timeout, 1–12 displayed components, and 16–1024 rolling samples. The
+collector executes only while explicitly enabled and rotates through one fixed,
+allowlisted aggregate probe per interval.
+
+```bash
+magi-performance enable
+magi-performance status --json
+magi-performance export ./magi-performance-report.json
+magi-performance disable
+```
+
+No provider output is parsed or retained. Reports contain component names,
+availability, aggregate latency, cache age/activity, sample counts, and motion
+mode only; they exclude command output, paths, process IDs, window titles, and
+machine or network identity.
+
 ## MAGI context foundation
 
 `magi-context` publishes capability-aware local observations for power and

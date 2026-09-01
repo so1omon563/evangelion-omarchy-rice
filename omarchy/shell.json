@@ -52,7 +52,8 @@
     { "id": "evangelion.thermal" },
     { "id": "evangelion.update-operation" },
     { "id": "evangelion.mode-transition" },
-    { "id": "evangelion.icon-theme" }
+    { "id": "evangelion.icon-theme" },
+    { "id": "evangelion.performance" }
   ],
   "disabledPlugins": [
     "omarchy.lock",

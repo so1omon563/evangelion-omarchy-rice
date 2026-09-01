@@ -1,0 +1,11 @@
+{
+  "schemaVersion": 1,
+  "id": "evangelion.performance",
+  "name": "MAGI Developer Performance Overlay",
+  "version": "1.0.0",
+  "author": "Evangelion Rice",
+  "description": "Opt-in aggregate shell diagnostics without private payload capture.",
+  "kinds": ["service"],
+  "keepLoaded": true,
+  "entryPoints": {"service": "Service.qml"}
+}
