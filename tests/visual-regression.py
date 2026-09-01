@@ -90,9 +90,17 @@ def masked(source, target, case):
 
 def compare(expected, actual, diff, case):
     with tempfile.TemporaryDirectory() as directory:
-        masked(expected, Path(directory) / "expected.png", case); masked(actual, Path(directory) / "actual.png", case)
+        expected_masked, actual_masked = Path(directory) / "expected-masked.png", Path(directory) / "actual-masked.png"
+        expected_normalized, actual_normalized = Path(directory) / "expected.png", Path(directory) / "actual.png"
+        masked(expected, expected_masked, case); masked(actual, actual_masked, case)
+        # Normalize sub-pixel glyph antialiasing across librsvg/FreeType builds.
+        # The area threshold remains strict and the failure-path test proves
+        # that a visible structural change still fails after normalization.
+        sigma = MATRIX["defaults"]["normalization_blur_sigma"]
+        for source, target in ((expected_masked, expected_normalized), (actual_masked, actual_normalized)):
+            subprocess.run([IMAGE, str(source), "-blur", f"0x{sigma}", str(target)], check=True, capture_output=True)
         metric = subprocess.run(["compare", "-metric", "AE", "-fuzz", f"{MATRIX['defaults']['fuzz_percent']}%",
-                                 str(Path(directory) / "expected.png"), str(Path(directory) / "actual.png"), str(diff)],
+                                 str(expected_normalized), str(actual_normalized), str(diff)],
                                 text=True, capture_output=True)
         changed = int(float((metric.stderr.strip() or "0").split()[0]))
     pixels = int(case.get("width", MATRIX["defaults"]["width"])) * int(case.get("height", MATRIX["defaults"]["height"]))

@@ -12,8 +12,12 @@ capabilities without multiplying every dimension into hundreds of images.
 
 Failures retain `actual.png`, `expected.png`, `diff.png`, and `report.json`
 under `test-results/visual-regression/`. Each case declares a maximum changed
-pixel percentage and global fuzz threshold. Masks are narrowly named rectangles
-for fields that are intentionally dynamic in a future live-capture adapter.
+pixel percentage. Before comparison, a small blur and bounded color fuzz remove
+sub-pixel glyph antialiasing differences between librsvg/FreeType builds; the
+strict changed-area threshold still catches structural changes. The `--self-test`
+path deliberately perturbs a frame to verify that invariant. Masks are narrowly
+named rectangles for fields that are intentionally dynamic in a future
+live-capture adapter.
 
 Baseline changes require an explicit approval environment and flag:
 
