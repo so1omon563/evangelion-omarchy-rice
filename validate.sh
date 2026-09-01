@@ -118,6 +118,13 @@ jq -e '.bar.layout.left | map(.id) | index("evangelion.media") as $media | index
 
 duplicates=$(sed -n 's/.*o\.bind("\([^"]*\)".*/\1/p' "$root/hypr/bindings.lua" | sort | uniq -d)
 [[ -z $duplicates ]] && pass "no duplicate custom hotkeys" || fail "duplicate hotkeys: $duplicates"
+if [[ -d /usr/share/omarchy/default/hypr/bindings ]]; then
+  stock_hotkeys=$(find /usr/share/omarchy/default/hypr/bindings -type f -name '*.lua' -exec sed -n 's/.*o\.bind("\([^"]*\)".*/\1/p' {} + | sort -u)
+  custom_hotkeys=$(sed -n 's/.*o\.bind("\([^"]*\)".*/\1/p' "$root/hypr/bindings.lua" | sort -u)
+  intentional_overrides=$(sed -n 's/.*hl\.unbind("\([^"]*\)".*/\1/p' "$root/hypr/bindings.lua" | sort -u)
+  stock_collisions=$(comm -12 <(printf '%s\n' "$custom_hotkeys") <(printf '%s\n' "$stock_hotkeys") | grep -vxFf <(printf '%s\n' "$intentional_overrides") || true)
+  [[ -z $stock_collisions ]] && pass "custom hotkeys do not collide with Omarchy defaults" || fail "stock hotkey collisions: $stock_collisions"
+fi
 missing_commands=()
 while IFS= read -r command; do
   [[ -f $root/bin/$command ]] && continue

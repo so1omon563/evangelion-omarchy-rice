@@ -92,7 +92,7 @@ The last command is the global kill switch; it does not hide recommendations.
 
 ## Surfaces and accessibility
 
-The context inspector is available from `Super + Alt + G`, the MAGI menu, or
+The context inspector is available from `Super + Ctrl + Alt + G`, the MAGI menu, or
 the bar glyph. Keyboard navigation and bounded scrolling remain available on
 small displays. It renders a second presentation allowlist and never shows raw
 signal values or numeric confidence.

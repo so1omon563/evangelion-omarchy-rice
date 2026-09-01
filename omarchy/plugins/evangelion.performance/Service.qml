@@ -79,7 +79,7 @@ Item {
         } }
         Rectangle { width:parent.width; height:1; color:"#7450a6" }
         Text { text:"POLL // "+String(root.report.sample_interval_ms||2000)+" MS  ·  ONE PROBE/CYCLE  ·  RENDER EVENTS // "+root.renderEvents; color:"#aaa2b5"; font.family:"JetBrainsMono Nerd Font"; font.pixelSize:10 }
-        Text { text:"SUPER + ALT + F TO DISENGAGE"; color:"#9cf23a"; font.family:"JetBrainsMono Nerd Font"; font.pixelSize:10; font.bold:true }
+        Text { text:"SUPER + CTRL + ALT + F TO DISENGAGE"; color:"#9cf23a"; font.family:"JetBrainsMono Nerd Font"; font.pixelSize:10; font.bold:true }
       }
     }
   }

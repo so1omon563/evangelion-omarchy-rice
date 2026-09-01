@@ -162,7 +162,7 @@ The bar's compact context glyph opens the responsive inspector. It reads the
 shared state rather than detecting anything itself and refreshes collectors only
 when the panel is opened or Refresh is explicitly selected. Displayed facts use
 a second fixed allowlist; raw signal values and the numeric confidence field are
-not rendered. The panel is also available with `Super + Alt + G` or from
+not rendered. The panel is also available with `Super + Ctrl + Alt + G` or from
 `MAGI Command Interface → Context Inspector`.
 
 ### Context-aware surfaces

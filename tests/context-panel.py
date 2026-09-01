@@ -34,7 +34,8 @@ def main():
     assert "automatic_actions" in SOURCE
     assert "HELD // MANUAL PROFILE" in SOURCE and "ACTION QUEUED" in SOURCE
     assert '"magi.context.panel"' in MENU and '"magi.context.refresh"' in MENU
-    assert "SUPER + ALT + G" in BINDINGS
+    assert "SUPER + CTRL + ALT + G" in BINDINGS
+    assert "SUPER + ALT + G" not in BINDINGS
     print("PASS  responsive privacy-bounded MAGI context inspector")
 
 

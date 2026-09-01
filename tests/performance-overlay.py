@@ -50,6 +50,7 @@ assert 'running:root.enabled' in qml and 'root.enabled && !sampleProbe.running' 
 assert 'Motion.MotionState' in qml and 'motion.full?180:80' in qml and 'enabled:!motion.off' in qml
 assert 'payload_capture:false' in qml and 'WlrKeyboardFocus.None' in qml
 assert 'refresh_hz' in qml and 'CACHE FRESHNESS' in qml and 'age_seconds' in qml
-assert 'SUPER + ALT + F' in bindings and 'magi-performance toggle' in bindings
-assert 'Super + Alt + F' in docs and 'disabled by default' in docs
+assert 'SUPER + CTRL + ALT + F' in bindings and 'magi-performance toggle' in bindings
+assert 'SUPER + ALT + F' not in bindings
+assert 'Super + Ctrl + Alt + F' in docs and 'disabled by default' in docs
 print("PASS  disabled-idle, bounded payload-blind aggregates, export, hotkey, and motion policy")

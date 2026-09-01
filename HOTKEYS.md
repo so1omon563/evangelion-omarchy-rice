@@ -17,14 +17,14 @@ Omarchy's complete live keybinding reference.
 | `Super + Alt + T` | Open the MAGI mission timer |
 | `Super + Alt + H` | Open the NERV system-health panel |
 | `Super + Alt + C` | Open the MAGI world and mission clock |
-| `Super + Alt + G` | Open the MAGI context inspector |
-| `Super + Alt + F` | Toggle the opt-in MAGI developer performance overlay |
+| `Super + Ctrl + Alt + G` | Open the MAGI context inspector |
+| `Super + Ctrl + Alt + F` | Toggle the opt-in MAGI developer performance overlay |
 | `Super + Alt + R` | Toggle the stock-only static recovery mode |
 | `Super + K` | Show every active Omarchy keybinding |
 
 ## Developer performance overlay
 
-Press `Super + Alt + F` to opt into or disengage the developer overlay. It is
+Press `Super + Ctrl + Alt + F` to opt into or disengage the developer overlay. It is
 disabled by default and does no sampling while disabled. While active, it runs
 one allowlisted probe every two seconds and shows aggregate command latency,
 cache age/activity, overlay render events, and the most expensive components.
@@ -211,7 +211,7 @@ magi-health preview --seconds 30
 
 ## MAGI context inspector
 
-Press `Super + Alt + G`, click the compact context glyph immediately before the
+Press `Super + Ctrl + Alt + G`, click the compact context glyph immediately before the
 privacy indicator, or choose `MAGI Command Interface → Context Inspector`.
 Opening the panel explicitly refreshes the bounded local observations. The
 panel shows the selected state, freshness, stable reason, allowlisted
