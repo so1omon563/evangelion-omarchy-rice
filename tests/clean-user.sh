@@ -51,7 +51,7 @@ for command in omarchy omarchy-menu omarchy-shell hyprctl systemctl voxtype xdg-
 run_env=(env HOME="$test_root/home" XDG_CONFIG_HOME="$test_root/home/.config" XDG_STATE_HOME="$test_root/state"
   PATH="$test_root/stubs:$PATH" XDG_SESSION_TYPE=wayland XDG_CURRENT_DESKTOP=Hyprland
   HYPRLAND_INSTANCE_SIGNATURE=clean-user-test EVANGELION_TEST_EVENT_LOG="$event_log")
-run_env+=(EVANGELION_RELEASE_131_NESTED=1)
+run_env+=(EVANGELION_RELEASE_131_NESTED=1 EVANGELION_RELEASE_ARTIFACT_NESTED=1)
 run_install(){ "${run_env[@]}" "$root/install.sh" "$@"; }
 run_rollback(){ "${run_env[@]}" "$root/rollback.sh" "$@"; }
 
