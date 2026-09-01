@@ -17,7 +17,8 @@ assert data["theme_repository"] == "https://github.com/so1omon563/omarchy-evange
 assert data["theme_repository_commit"] == "c117a3ca6d2ecb07a3cd13f5a2e1e075c751b06a"
 assert data["public_install"] == "passed-isolated-omarchy-theme-install"
 assert data["insert_after"] == "Eldritch" and data["insert_before"] == "Event Horizon"
-assert data["external_pull_request_allowed"] is False
+assert data["external_pull_request_allowed"] is True
+assert data["pull_request"] == "https://github.com/omacom/omarchy-site/pull/140"
 assert preview.stat().st_size <= data["image_max_bytes"]
 payload = preview.read_bytes()
 assert payload[:4] == b"RIFF" and payload[8:12] == b"WEBP"
@@ -27,7 +28,7 @@ width, height = struct.unpack("<HH", payload[marker + 3:marker + 7])
 assert (width & 0x3FFF, height & 0x3FFF) == (data["image_width"], data["image_height"])
 assert hashlib.sha256(payload).hexdigest() == data["image_sha256"]
 assert data["source_sha256"] != "PENDING"
-assert "Do not open the pull request" in submission
+assert "Pull request opened after owner approval" in submission
 assert 'assets/themes/evangelion.webp' in submission
 assert 'alt="Evangelion theme"' in submission
 assert "unofficial non-commercial fan theme" in submission

@@ -3,7 +3,8 @@
 Target: [`omacom/omarchy-site`](https://github.com/omacom/omarchy-site)
 
 Prepared against upstream commit `9832321e9b9cdb4f8124dda7fd33eea776ec468a`.
-Do not open the pull request without the repository owner's explicit approval.
+Pull request opened after owner approval:
+[`omacom/omarchy-site#140`](https://github.com/omacom/omarchy-site/pull/140).
 
 Theme source: [`so1omon563/omarchy-evangelion-theme`](https://github.com/so1omon563/omarchy-evangelion-theme)
 at verified commit `c117a3ca6d2ecb07a3cd13f5a2e1e075c751b06a`.
@@ -55,8 +56,8 @@ SHA-256 and the output SHA-256 are recorded in `submission.json`.
 
 ## Owner approval checklist
 
-- [ ] Dedicated public theme repository contents and install command approved
-- [ ] `evangelion.webp` visually approved at full resolution
-- [ ] Fan-project and non-commercial artwork language approved
-- [ ] Exact HTML block and alphabetical position approved
-- [ ] Permission explicitly given to fork and open the external pull request
+- [x] Dedicated public theme repository contents and install command approved
+- [x] `evangelion.webp` visually approved at full resolution
+- [x] Fan-project and non-commercial artwork language approved
+- [x] Exact HTML block and alphabetical position approved
+- [x] Permission explicitly given to fork and open the external pull request

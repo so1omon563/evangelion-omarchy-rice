@@ -16,5 +16,7 @@
   "image_sha256": "627a7fff6ef661e56eed7f340608fccad2f9efba175f082db2a2464bcff485dd",
   "insert_after": "Eldritch",
   "insert_before": "Event Horizon",
-  "external_pull_request_allowed": false
+  "owner_approved_at": "2026-08-31T19:34:00-07:00",
+  "external_pull_request_allowed": true,
+  "pull_request": "https://github.com/omacom/omarchy-site/pull/140"
 }
