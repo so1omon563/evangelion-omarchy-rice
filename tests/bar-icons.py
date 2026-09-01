@@ -48,6 +48,10 @@ for forbidden_chrome in ("Rectangle {", "HoverHandler", "border.color", "stateCo
     assert forbidden_chrome not in frame, forbidden_chrome
 
 assert 'text             = "#B79ACB"' in bar_theme
+affinity = (root / "bin/magi-affinity").read_text()
+assert 'text = "#$bar_icon"' in affinity
+for color in ("A995B8", "D8B84E", "79BFE3", "B79ACB", "D77A64"):
+    assert f"bar_icon={color}" in affinity
 
 for forbidden in ("/home/", "so1omon", "Screen.name"):
     assert forbidden not in frame
@@ -56,6 +60,7 @@ assert "full-color" in docs
 assert "Symbolic icons" in docs
 assert "#B79ACB" in docs
 assert "no per-widget frames" in docs
+assert "Unit-00 Prototype" in docs and "Unit-02" in docs
 assert "fallback" in docs.lower()
 
 print("bar icon unification contracts passed")

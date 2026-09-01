@@ -25,11 +25,11 @@ detect() {
 
 load_profile() {
   case "$1" in
-    unit-00-prototype) label="EVA-00 PROTOTYPE"; terminal="unit-00-prototype"; accent=F6C744; accent2=3BA7D8; selection=5B4215; muted=756843; background=120F08; dark=0B0905; darker=060503; lighter=28200D; foreground=F2E9D2; dim=A49370; active=FF8A24 ;;
-    unit-00-refit) label="EVA-00 REFIT"; terminal="unit-00-refit"; accent=55D9FF; accent2=F2F6FF; selection=173D68; muted=526B83; background=08121E; dark=050B12; darker=03070B; lighter=102A43; foreground=E8F1FF; dim=8297AD; active=3E83FF ;;
-    unit-01) label="EVA-01 TEST TYPE"; terminal="eva-01"; accent=9CF23A; accent2=8F4BC8; selection=4B286D; muted=665577; background=120D18; dark=0B0810; darker=060408; lighter=24172F; foreground=E8E1EF; dim=8E809A; active=B76CFF ;;
-    unit-02) label="EVA-02 PRODUCTION"; terminal="unit-02"; accent=FF5A36; accent2=F6A52F; selection=61251C; muted=7D5148; background=160907; dark=0D0504; darker=070302; lighter=32100C; foreground=F5E5DF; dim=A98278; active=FF334F ;;
-    neutral) label="NERV / MAGI NEUTRAL"; terminal="magi"; accent=9CF23A; accent2=8F4BC8; selection=4B286D; muted=665577; background=120D18; dark=0B0810; darker=060408; lighter=24172F; foreground=E8E1EF; dim=8E809A; active=FF4055 ;;
+    unit-00-prototype) label="EVA-00 PROTOTYPE"; terminal="unit-00-prototype"; accent=F6C744; accent2=3BA7D8; selection=5B4215; muted=756843; background=120F08; dark=0B0905; darker=060503; lighter=28200D; foreground=F2E9D2; dim=A49370; bar_icon=D8B84E; active=FF8A24 ;;
+    unit-00-refit) label="EVA-00 REFIT"; terminal="unit-00-refit"; accent=55D9FF; accent2=F2F6FF; selection=173D68; muted=526B83; background=08121E; dark=050B12; darker=03070B; lighter=102A43; foreground=E8F1FF; dim=8297AD; bar_icon=79BFE3; active=3E83FF ;;
+    unit-01) label="EVA-01 TEST TYPE"; terminal="eva-01"; accent=9CF23A; accent2=8F4BC8; selection=4B286D; muted=665577; background=120D18; dark=0B0810; darker=060408; lighter=24172F; foreground=E8E1EF; dim=8E809A; bar_icon=B79ACB; active=B76CFF ;;
+    unit-02) label="EVA-02 PRODUCTION"; terminal="unit-02"; accent=FF5A36; accent2=F6A52F; selection=61251C; muted=7D5148; background=160907; dark=0D0504; darker=070302; lighter=32100C; foreground=F5E5DF; dim=A98278; bar_icon=D77A64; active=FF334F ;;
+    neutral) label="NERV / MAGI NEUTRAL"; terminal="magi"; accent=9CF23A; accent2=8F4BC8; selection=4B286D; muted=665577; background=120D18; dark=0B0810; darker=060408; lighter=24172F; foreground=E8E1EF; dim=8E809A; bar_icon=A995B8; active=FF4055 ;;
     *) printf 'Unknown affinity: %s\n' "$1" >&2; exit 2 ;;
   esac
 }
@@ -74,7 +74,7 @@ write_shell() {
 [bar]
 background = "#$dark"
 background-alpha = 0.82
-text = "#$foreground"
+text = "#$bar_icon"
 active = "#$active"
 scale-with-font = true
 size-horizontal = 30
@@ -248,7 +248,17 @@ apply_hypr() {
 command=${1:-status}
 case "$command" in
   detect) detect "${2:-}" ;;
-  status) mode=$(cat "$mode_file" 2>/dev/null || echo auto); active=$(cat "$active_file" 2>/dev/null || detect "$(readlink -f "$background_link" 2>/dev/null || true)"); printf 'mode=%s\nactive=%s\nbackground=%s\n' "$mode" "$active" "$(readlink -f "$background_link" 2>/dev/null || echo unknown)" ;;
+  palette)
+    profile=${2:-$(cat "$active_file" 2>/dev/null || detect "$(readlink -f "$background_link" 2>/dev/null || true)")}
+    load_profile "$profile"
+    printf '{"profile":"%s","label":"%s","bar_icon":"#%s","background":"#%s","accent":"#%s","active":"#%s"}\n' "$profile" "$label" "$bar_icon" "$dark" "$accent" "$active"
+    ;;
+  status)
+    mode=$(cat "$mode_file" 2>/dev/null || echo auto)
+    affinity=$(cat "$active_file" 2>/dev/null || detect "$(readlink -f "$background_link" 2>/dev/null || true)")
+    load_profile "$affinity"
+    printf 'mode=%s\nactive=%s\nbar_icon=#%s\nbackground=%s\n' "$mode" "$affinity" "$bar_icon" "$(readlink -f "$background_link" 2>/dev/null || echo unknown)"
+    ;;
   list) printf '%s\n' neutral unit-00-prototype unit-00-refit unit-01 unit-02 ;;
   auto|reset)
     old_mode=$(cat "$mode_file" 2>/dev/null || echo auto)
@@ -285,5 +295,5 @@ case "$command" in
     else profile=$(detect "${2:-$(readlink -f "$background_link" 2>/dev/null || true)}"); fi
     apply_profile "$profile"
     ;;
-  *) echo 'Usage: magi-affinity {status|list|detect BACKGROUND|auto|reset|set PROFILE|apply [BACKGROUND]}' >&2; exit 2 ;;
+  *) echo 'Usage: magi-affinity {status|palette [PROFILE]|list|detect BACKGROUND|auto|reset|set PROFILE|apply [BACKGROUND]}' >&2; exit 2 ;;
 esac

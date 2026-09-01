@@ -90,6 +90,7 @@ exact context state it found:
 ```bash
 systemctl --user daemon-reload
 systemctl --user --no-pager --full status magi-affinity.path magi-start-page.service
+magi-affinity palette
 journalctl --user -u magi-start-page.service --since "10 minutes ago" --no-pager
 curl --fail http://127.0.0.1:8765/api/status | jq .
 ```

@@ -22,10 +22,11 @@ transaction rollback, failed-subsystem reporting, undo, and a kill switch keep
 the operator authoritative.
 
 Agents, Bluetooth, Dropbox, and Tailscale retain their upstream implementation
-behind transparent adapters. Native glyphs and symbolic tray icons share an
-EVA-violet resting foreground without per-widget frames; meaningful active,
-warning, and urgent colors remain native. Full-color vendor tray artwork keeps
-its identity.
+behind transparent adapters. Native glyphs and symbolic tray icons share a
+dedicated resting foreground without per-widget frames; wallpaper affinity
+selects gold, ice blue, violet, coral, or neutral lavender independently of
+general panel text. Meaningful active, warning, and urgent colors remain
+native. Full-color vendor tray artwork keeps its identity.
 
 The v1.3 suite adds schema migration, process restart, killed-refresh,
 latest-request convergence, private-sentinel, and optional state-restoring live

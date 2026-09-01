@@ -363,6 +363,12 @@ foreground while full-color vendor icons retain their identity. See
 [BAR_ICONS.md](BAR_ICONS.md) for the inventory, implementation paths, and the
 per-widget stock fallback procedure.
 
+The resting foreground is a dedicated affinity token rather than the general
+panel text color. Auto and manual Unit-00/01/02 selections therefore recolor
+native and symbolic glyphs while leaving green, amber, red, disabled, and
+full-color vendor states authoritative. Inspect the resolved palette with
+`magi-affinity palette` or `magi-affinity palette unit-02`.
+
 ## Thermal, screensaver, and optional integrations
 
 `~/.config/omarchy/thermal-alerts.json` controls thresholds, clear points,

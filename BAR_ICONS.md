@@ -21,6 +21,22 @@ warning, and urgent colors, while green, amber, and red stay reserved for real
 state changes. The stock tray deliberately leaves full-color StatusNotifier
 artwork intact, so it stays upstream rather than being forked or recolored.
 
+Wallpaper affinity replaces the resting token without changing those semantic
+rules:
+
+| Affinity | Resting bar/icon token |
+| --- | --- |
+| NERV/MAGI Neutral | lavender `#A995B8` |
+| Unit-00 Prototype | armor gold `#D8B84E` |
+| Unit-00 Refit | ice blue `#79BFE3` |
+| Unit-01 | EVA violet `#B79ACB` |
+| Unit-02 | restrained coral `#D77A64` |
+
+Each token has at least 4.5:1 contrast against its generated bar background.
+`magi-affinity palette [PROFILE]` reports the resolved colors as JSON. Auto and
+manual affinity modes use the same table, so changing a wallpaper cannot reset
+the bar to the general near-white panel foreground.
+
 ## Compatibility and fallback
 
 The adapters require the corresponding first-party Omarchy plugin beneath

@@ -625,6 +625,7 @@ omarchy-menu summon magi          # Open the MAGI interface
 omarchy-menu summon system        # Open NERV Session Control
 magi-presentation                 # Toggle the presentation layout
 magi-affinity status              # Report automatic/manual mode and active unit
+magi-affinity palette             # Report the active bar/icon palette as JSON
 magi-affinity set unit-02         # Hold a manual affinity across wallpapers
 magi-affinity auto                # Resume wallpaper-driven affinity
 magi-media status                 # Print the active player and track
