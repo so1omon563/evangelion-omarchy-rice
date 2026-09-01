@@ -112,6 +112,11 @@ Full/Reduced/Off paths without waiting for real idle or powering off a display.
 freshness states, MAGI workspace labels, unavailable fallbacks, two-second
 bounded refresh contract, and privacy field exclusions.
 
+`release-v1.3.1.py` executes both mixed browser-bundle directions, requires
+versioned/no-store assets, and performs an exact v1.3.0 install followed by a
+v1.3.1 upgrade, upgrade rollback, repeated upgrade, and complete removal in an
+isolated home.
+
 `affinity-motion.py` verifies wallpaper detection, neutral fallback, serialized
 rapid-settle behavior, atomic profile state, manual authority, Auto feedback,
 and Off-mode instant presentation without changing any wallpaper asset.
