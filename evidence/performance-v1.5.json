@@ -1,0 +1,19 @@
+{
+  "schema_version": 1,
+  "ticket": "SO1-409",
+  "reference": "ThinkPad T480 · Omarchy 4.0 · 1920x1080",
+  "before": {
+    "measurement_available": false,
+    "reason": "The v1.5 baseline had no versioned budget collector or CI gate."
+  },
+  "after": {
+    "measured_at": "2026-09-01",
+    "startup_ready_ms": 357.0,
+    "idle_cpu_percent": 10.0,
+    "idle_rss_mib": 547.45,
+    "command_p95_ms": 65.71,
+    "static_inventory_status": "passed",
+    "declared_components": 8
+  },
+  "interpretation": "The observed reference baseline informed regression ceilings with headroom; it is evidence, not a cross-device performance promise."
+}

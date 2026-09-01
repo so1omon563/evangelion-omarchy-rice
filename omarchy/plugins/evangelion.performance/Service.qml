@@ -77,6 +77,7 @@ Item {
           Text { width:165; text:String(modelData.component).toUpperCase(); color:"#eee8ff"; font.family:"JetBrainsMono Nerd Font"; font.pixelSize:10 }
           Text { text:modelData.age_seconds===null?"UNAVAILABLE":String(modelData.age_seconds)+" S OLD"; color:modelData.age_seconds!==null&&modelData.age_seconds>300?"#f6a52f":"#55d9ff"; font.family:"JetBrainsMono Nerd Font"; font.pixelSize:10; font.bold:true }
         } }
+        Text { text:"BUDGET GATE // "+String(root.report.budgets?.status||"unavailable").toUpperCase()+"  ·  VIOLATIONS "+String((root.report.budgets?.failures||[]).length); color:root.report.budgets?.status==="failed"?"#ff4055":root.report.budgets?.status==="passed"?"#9cf23a":"#f6a52f"; font.family:"JetBrainsMono Nerd Font"; font.pixelSize:11; font.bold:true }
         Rectangle { width:parent.width; height:1; color:"#7450a6" }
         Text { text:"POLL // "+String(root.report.sample_interval_ms||2000)+" MS  ·  ONE PROBE/CYCLE  ·  RENDER EVENTS // "+root.renderEvents; color:"#aaa2b5"; font.family:"JetBrainsMono Nerd Font"; font.pixelSize:10 }
         Text { text:"SUPER + CTRL + ALT + F TO DISENGAGE"; color:"#9cf23a"; font.family:"JetBrainsMono Nerd Font"; font.pixelSize:10; font.bold:true }

@@ -13,6 +13,7 @@ from pathlib import Path
 CONFIG = Path(os.environ.get("EVA_PERFORMANCE_CONFIG", Path.home()/".config/omarchy/performance.json"))
 STATE_DIR = Path(os.environ.get("EVA_PERFORMANCE_STATE_DIR", Path.home()/".local/state/evangelion-rice/performance"))
 STATE = STATE_DIR/"aggregate.json"
+BUDGET_REPORT = STATE_DIR/"budget-report.json"
 DEFAULTS = {"schema_version":1,"enabled":False,"sample_interval_ms":2000,"probe_timeout_ms":350,
             "maximum_components":6,"maximum_samples":256}
 PROBES = [
@@ -87,10 +88,12 @@ def public(value, cfg):
     probes.sort(key=lambda row:(row["average_ms"],row["maximum_ms"]),reverse=True)
     caches=[{"component":name,"availability":row.get("availability","unavailable"),
              "age_seconds":row.get("age_seconds")} for name,row in sorted(value.get("cache",{}).items())]
+    budget=load(BUDGET_REPORT,{"status":"unavailable","checks":[],"failures":[],"unavailable":["not-measured"]})
+    budget={"status":budget.get("status","unavailable"),"failures":budget.get("failures",[]),"unavailable":budget.get("unavailable",[])}
     return {"schema_version":1,"enabled":cfg["enabled"],"motion_mode":motion_mode(),
             "sample_interval_ms":cfg["sample_interval_ms"],"samples":int(value.get("samples",0)),
             "event_changes":int(value.get("event_changes",0)),"updated_at":value.get("updated_at"),
-            "components":probes[:cfg["maximum_components"]],"caches":caches,
+            "components":probes[:cfg["maximum_components"]],"caches":caches,"budgets":budget,
             "privacy":{"payload_capture":False,"aggregate_only":True}}
 
 def sample():

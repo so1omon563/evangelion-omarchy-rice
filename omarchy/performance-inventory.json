@@ -1,0 +1,13 @@
+{
+  "schema_version": 1,
+  "components": [
+    {"id":"evangelion.performance","background_poll_ms":2000,"enabled_by_default":false,"concurrent_probes":1,"hidden_animation":false},
+    {"id":"evangelion.world-clock","background_poll_ms":30000,"enabled_by_default":true,"concurrent_probes":1,"hidden_animation":false},
+    {"id":"evangelion.mission","background_poll_ms":5000,"enabled_by_default":true,"concurrent_probes":1,"hidden_animation":false},
+    {"id":"evangelion.communications","background_poll_ms":15000,"enabled_by_default":true,"concurrent_probes":1,"hidden_animation":false},
+    {"id":"evangelion.privacy","background_poll_ms":7000,"enabled_by_default":true,"concurrent_probes":1,"hidden_animation":false},
+    {"id":"evangelion.health","background_poll_ms":45000,"enabled_by_default":true,"concurrent_probes":1,"hidden_animation":false},
+    {"id":"evangelion.battery","background_poll_ms":30000,"enabled_by_default":true,"concurrent_probes":1,"hidden_animation":false,"exception":"evangelion.battery"},
+    {"id":"evangelion.thermal","background_poll_ms":null,"enabled_by_default":true,"concurrent_probes":1,"hidden_animation":false,"exception":"evangelion.thermal"}
+  ]
+}

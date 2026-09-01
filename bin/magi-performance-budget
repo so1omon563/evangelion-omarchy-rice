@@ -1,0 +1,101 @@
+#!/usr/bin/env python3
+"""Deterministic performance-budget evaluator with graceful live instrumentation."""
+import datetime, glob, json, os, subprocess, sys, tempfile, time
+from pathlib import Path
+
+ROOT=Path(__file__).resolve().parents[1]
+SHARE=Path.home()/".local/share/evangelion-rice/performance"
+CONFIG=Path(os.environ.get("EVA_BUDGET_CONFIG",ROOT/"omarchy/performance-budgets.json" if (ROOT/"omarchy/performance-budgets.json").is_file() else SHARE/"performance-budgets.json"))
+INVENTORY=Path(os.environ.get("EVA_BUDGET_INVENTORY",ROOT/"omarchy/performance-inventory.json" if (ROOT/"omarchy/performance-inventory.json").is_file() else SHARE/"performance-inventory.json"))
+REPORT=Path(os.environ.get("EVA_BUDGET_REPORT",Path.home()/".local/state/evangelion-rice/performance/budget-report.json"))
+
+def load(path): return json.loads(path.read_text())
+def atomic(value):
+    REPORT.parent.mkdir(parents=True,exist_ok=True); fd,name=tempfile.mkstemp(prefix=".budget.",dir=REPORT.parent)
+    try:
+        with os.fdopen(fd,"w") as stream: json.dump(value,stream,separators=(",",":")); stream.write("\n")
+        os.chmod(name,0o600); os.replace(name,REPORT)
+    finally:
+        try: os.unlink(name)
+        except FileNotFoundError: pass
+def evaluate(measured):
+    cfg=load(CONFIG); limits=cfg["budgets"]; checks=[]
+    for key,limit in limits.items():
+        value=measured.get(key); available=isinstance(value,(int,float)); passed=None if not available else value>=limit if key=="minimum_background_poll_ms" else value<=limit
+        checks.append({"metric":key,"available":available,"value":value if available else None,"limit":limit,"passed":passed})
+    cache_ages=measured.get("cache_age_seconds",{})
+    for key,limit in cfg["cache_max_age_seconds"].items():
+        value=cache_ages.get(key); available=isinstance(value,(int,float)); passed=None if not available else value<=limit
+        checks.append({"metric":f"cache.{key}.age_seconds","available":available,"value":value if available else None,"limit":limit,"passed":passed})
+    failures=[row["metric"] for row in checks if row["passed"] is False]
+    unavailable=[row["metric"] for row in checks if not row["available"]]
+    return {"schema_version":1,"status":"failed" if failures else "partial" if unavailable else "passed","checks":checks,"failures":failures,"unavailable":unavailable,"measured_at":int(time.time()),"reference":cfg["reference"]}
+def live():
+    latencies=[]
+    for _ in range(5):
+        began=time.monotonic()
+        try: result=subprocess.run(["omarchy-shell","shell","ping"],stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL,timeout=.5)
+        except (OSError,subprocess.TimeoutExpired): continue
+        if result.returncode==0: latencies.append((time.monotonic()-began)*1000)
+    pids=[]
+    for path in Path("/proc").glob("[0-9]*/comm"):
+        try:
+            if path.read_text().strip()=="quickshell": pids.append(path.parent)
+        except OSError: pass
+    def ticks():
+        process=0
+        for proc in pids:
+            try:
+                fields=(proc/"stat").read_text().split(); process+=int(fields[13])+int(fields[14])
+            except (OSError,ValueError,IndexError): pass
+        try: system=sum(int(value) for line in Path("/proc/stat").read_text().splitlines()[:1] for value in line.split()[1:])
+        except (OSError,ValueError): system=0
+        return process,system
+    before=ticks(); time.sleep(.5); after=ticks(); cpu=100*(after[0]-before[0])/max(1,after[1]-before[1])*(os.cpu_count() or 1) if pids else None
+    rss=0
+    for proc in pids:
+        try: rss+=int(next(line.split()[1] for line in (proc/"status").read_text().splitlines() if line.startswith("VmRSS:")))
+        except (OSError,StopIteration,ValueError): pass
+    startup=None
+    logs=sorted(glob.glob(f"/run/user/{os.getuid()}/quickshell/by-id/*/log.log"),key=lambda path:Path(path).stat().st_mtime,reverse=True)
+    if logs:
+        launched=loaded=None
+        for line in Path(logs[0]).read_text(errors="ignore").splitlines():
+            if "Launching config:" in line: launched=line[:23]
+            elif launched and "Configuration Loaded" in line: loaded=line[:23]; break
+        try: startup=(datetime.datetime.fromisoformat(loaded)-datetime.datetime.fromisoformat(launched)).total_seconds()*1000 if launched and loaded else None
+        except ValueError: pass
+    cache_files={"context":"context/state.json","health":"health-updates.json","mission":"mission-timer.json","motion":"motion/state.json"}; cache_ages={}
+    state=Path.home()/".local/state/evangelion-rice"
+    now=time.time()
+    for key,name in cache_files.items():
+        try:
+            path=state/name
+            if key=="mission":
+                mission=load(path)
+                if not mission.get("running"): cache_ages[key]=None; continue
+            cache_ages[key]=round(max(0,now-path.stat().st_mtime),2)
+        except (OSError,json.JSONDecodeError): cache_ages[key]=None
+    return {"startup_ready_ms":round(startup,2) if startup is not None else None,"idle_cpu_percent":round(cpu,3) if cpu is not None else None,"idle_rss_mib":round(rss/1024,2) if pids else None,"command_p95_ms":round(max(latencies),2) if latencies else None,"minimum_background_poll_ms":load(CONFIG)["budgets"]["minimum_background_poll_ms"],"maximum_concurrent_probes":1,"cache_age_seconds":cache_ages}
+def static_check():
+    cfg=load(CONFIG); inventory=load(INVENTORY); failures=[]
+    for row in inventory["components"]:
+        interval=row.get("background_poll_ms")
+        if row.get("enabled_by_default") and interval is not None and interval<cfg["budgets"]["minimum_background_poll_ms"] and not row.get("exception"): failures.append(row["id"]+":poll")
+        if row.get("concurrent_probes",0)>cfg["budgets"]["maximum_concurrent_probes"]: failures.append(row["id"]+":overlap")
+        if row.get("hidden_animation"): failures.append(row["id"]+":hidden-animation")
+        if row.get("exception") not in (None,*cfg["exceptions"].keys()): failures.append(row["id"]+":unknown-exception")
+    return {"schema_version":1,"status":"failed" if failures else "passed","failures":failures,"components":len(inventory["components"])}
+
+args=sys.argv[1:] or ["status"]; command=args.pop(0)
+if command=="check":
+    measured=load(Path(args[0])) if args else {}; result=evaluate(measured); atomic(result); print(json.dumps(result,separators=(",",":"))); raise SystemExit(1 if result["failures"] else 0)
+elif command=="measure":
+    result=evaluate(live()); atomic(result); print(json.dumps(result,separators=(",",":")))
+elif command=="static":
+    result=static_check(); print(json.dumps(result,separators=(",",":"))); raise SystemExit(1 if result["failures"] else 0)
+elif command=="status":
+    try: result=load(REPORT)
+    except (OSError,json.JSONDecodeError): result={"schema_version":1,"status":"unavailable","checks":[],"failures":[],"unavailable":["not-measured"]}
+    print(json.dumps(result,separators=(",",":")))
+else: raise SystemExit("Usage: magi-performance-budget {static|measure|check [MEASUREMENTS.json]|status}")

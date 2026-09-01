@@ -159,6 +159,8 @@ For deterministic screenshots, onboarding, and private bug reproduction, see
 [DEMO.md](DEMO.md).
 The v1.5 string-catalog, pseudo-locale, RTL, formatting, and contributor
 contracts are documented in [LOCALIZATION.md](LOCALIZATION.md).
+Enforced shell startup, idle, polling, overlap, and cache ceilings are in
+[PERFORMANCE.md](PERFORMANCE.md).
 
 ## Upgrade, rollback, and removal
 

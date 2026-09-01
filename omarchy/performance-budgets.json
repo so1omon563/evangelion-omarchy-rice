@@ -1,0 +1,19 @@
+{
+  "schema_version": 1,
+  "reference": "ThinkPad T480 · Omarchy 4.0 · 1920x1080",
+  "budgets": {
+    "startup_ready_ms": 3000,
+    "idle_cpu_percent": 12,
+    "idle_rss_mib": 650,
+    "command_p95_ms": 350,
+    "minimum_background_poll_ms": 5000,
+    "maximum_concurrent_probes": 1
+  },
+  "cache_max_age_seconds": {"context": 300, "health": 900, "mission": 3600, "motion": 86400},
+  "exceptions": {
+    "evangelion.battery": "30-second safety telemetry",
+    "evangelion.thermal": "event-driven safety monitor",
+    "evangelion.lock": "short timers run only while authentication is visible",
+    "evangelion.notifications": "short timers run only for visible notification lifecycle"
+  }
+}
