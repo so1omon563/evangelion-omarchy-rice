@@ -1,7 +1,9 @@
 #!/usr/bin/env python3
 """v1.3.1 mixed-bundle and exact v1.3.0 upgrade regressions."""
 import json
+import hashlib
 import os
+import struct
 import subprocess
 import tempfile
 from pathlib import Path
@@ -59,6 +61,20 @@ assert 'app.js?v=' in current_html and 'style.css?v=' in current_html
 assert 'app.js?v=' not in old_html
 server = (ROOT / "start-page/server.py").read_text()
 assert '"Cache-Control", "no-store, max-age=0"' in server
+
+media = ROOT / "media/start-page.png"
+payload = media.read_bytes()
+assert payload[:8] == b"\x89PNG\r\n\x1a\n"
+assert struct.unpack(">II", payload[16:24]) == (1600, 900)
+chunks, offset = [], 8
+while offset < len(payload):
+    length = struct.unpack(">I", payload[offset:offset + 4])[0]
+    chunks.append(payload[offset + 4:offset + 8].decode())
+    offset += length + 12
+assert set(chunks) <= {"IHDR", "IDAT", "IEND"}, chunks
+hashes = {filename: digest for digest, filename in
+          (line.split(maxsplit=1) for line in (ROOT / "media/release-media.sha256").read_text().splitlines())}
+assert hashes["start-page.png"] == hashlib.sha256(payload).hexdigest()
 
 # Exercise an exact v1.3.0 install, current upgrade, upgrade rollback, repeat
 # upgrade, and uninstall-equivalent rollback in an isolated home.

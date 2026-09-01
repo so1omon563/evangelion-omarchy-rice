@@ -9,7 +9,7 @@ in `release-media.sha256`; validation rejects any unreviewed replacement.
 | File | Source |
 |---|---|
 | `desktop-hero.png` | Live workspace OSD over wallpaper 7, with the telemetry bar removed |
-| `start-page.png` | Headless Chromium capture using `?demo=1` fictional telemetry |
+| `start-page.png` | v1.3.1 1600×900 headless Chromium capture using `?demo=1` fictional telemetry; visually matches the corrected Zen layout without publishing browser chrome |
 | `session-menu.png` | Real menu panel isolated from a live capture and composited over project wallpaper 3 |
 | `lock-screen.png` | Clean live lock-screen capture |
 | `wallpaper-gallery.png` | Contact sheet generated from all seven audited wallpapers |
@@ -43,3 +43,9 @@ To capture the start page without exposing live telemetry, visit:
 ```text
 http://127.0.0.1:8765/?demo=1
 ```
+
+The v1.3.1 replacement visibly includes Manual / Unit-01 affinity with a
+Current badge, MAGI-01 / Melchior workspace identity, and the fictional
+Engineering profile. The complete frame contains no browser sidebar, account
+identity, host data, local path, window title, or live activity. Metadata was
+stripped after capture; the PNG contains only image data chunks.
