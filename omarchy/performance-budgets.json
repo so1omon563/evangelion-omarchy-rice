@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "reference": "ThinkPad T480 · Omarchy 4.0 · 1920x1080",
+  "reference": "Omarchy 4.0 · 1920x1080 reference class",
   "budgets": {
     "startup_ready_ms": 3000,
     "idle_cpu_percent": 12,
