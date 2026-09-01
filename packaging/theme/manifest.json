@@ -1,0 +1,27 @@
+{
+  "schema_version": 1,
+  "name": "evangelion",
+  "derived_from_suite": "v1.3.1",
+  "files": {
+    "theme/colors.toml": "colors.toml",
+    "theme/btop.theme": "btop.theme",
+    "theme/icons.theme": "icons.theme",
+    "theme/keyboard.rgb": "keyboard.rgb",
+    "theme/shell.bar.toml": "shell.bar.toml",
+    "theme/shell.controls.toml": "shell.controls.toml",
+    "theme/shell.font.toml": "shell.font.toml",
+    "theme/shell.launcher.toml": "shell.launcher.toml",
+    "theme/shell.lock.toml": "shell.lock.toml",
+    "theme/shell.menu.toml": "shell.menu.toml",
+    "theme/shell.notifications.toml": "shell.notifications.toml",
+    "theme/shell.popups.toml": "shell.popups.toml",
+    "theme/shell.spacing.toml": "shell.spacing.toml",
+    "theme/backgrounds.sha256": "backgrounds.sha256",
+    "theme/ARTWORK.md": "ARTWORK.md",
+    "theme/backgrounds": "backgrounds",
+    "packaging/theme/README.md": "README.md",
+    "LICENSE": "LICENSE",
+    "ASSETS_LICENSE.md": "ASSETS_LICENSE.md",
+    "media/wallpaper-gallery.png": "preview.png"
+  }
+}

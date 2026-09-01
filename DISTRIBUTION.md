@@ -107,3 +107,13 @@ plugin, Arch, or AUR maintainer.
 
 Changes to these boundaries require updating both this document and
 `distribution.json`, plus the distribution contract test.
+
+Build the standalone theme root without creating or publishing an external
+repository:
+
+```bash
+./scripts/export-theme
+```
+
+The ignored `build/evangelion-omarchy-theme/` directory is replaced from
+`packaging/theme/manifest.json` on every run, preventing hand-maintained drift.

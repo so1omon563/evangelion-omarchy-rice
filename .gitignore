@@ -3,6 +3,7 @@
 /test-results/
 /validation/
 /backups/
+/build/
 
 # Generated Python and editor state
 **/__pycache__/

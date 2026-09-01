@@ -40,6 +40,7 @@ fi
 for mode in full reduced off; do lua "$root/tests/hypr-motion.lua" "$mode" >/dev/null && pass "Hyprland $mode motion profile" || fail "Hyprland $mode motion profile"; done
 python3 "$root/tests/documentation.py" >/dev/null && pass "public documentation contract" || fail "public documentation contract"
 python3 "$root/tests/distribution.py" >/dev/null && pass "v1.4 distribution ownership contract" || fail "v1.4 distribution ownership contract"
+python3 "$root/tests/theme-distribution.py" >/dev/null && pass "standalone Omarchy theme lifecycle" || fail "standalone Omarchy theme lifecycle"
 python3 "$root/tests/release-v1.3.py" >/dev/null && pass "v1.3 release documentation and media contract" || fail "v1.3 release documentation and media contract"
 if rg -n 'Work/evangelion-rice' "$root/bin" "$root/lib" "$root/omarchy" >/dev/null; then fail "owner-specific project path remains"; else pass "no owner-specific project path"; fi
 python3 -m py_compile "$root/preflight.py" 2>/dev/null && pass "compatibility preflight parses" || fail "compatibility preflight parse"
