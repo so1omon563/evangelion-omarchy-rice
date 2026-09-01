@@ -25,6 +25,7 @@ pass "dry-run is target-read-only"
 run_install --apply --preset minimal --yes >/dev/null
 [[ -f $test_root/home/.config/omarchy/themes/evangelion/colors.toml && -x $test_root/home/.local/bin/magi-affinity ]] || fail "minimal install incomplete"
 [[ -x $test_root/home/.local/bin/magi-recovery && -f $test_root/home/.local/share/evangelion-rice/recovery/shell.json ]] || fail "minimal install omitted recovery path"
+[[ -x $test_root/home/.local/bin/magi-migrate && -f $test_root/home/.local/share/evangelion-rice/migrations/1.4.1-to-1.5.0.json ]] || fail "minimal install omitted migration assistant"
 [[ ! -e $test_root/home/.config/hypr/hyprland.lua ]] || fail "minimal install leaked components"
 pass "fresh minimal install"
 

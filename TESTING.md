@@ -134,6 +134,12 @@ fixtures, enters the stock-only recovery path, checks the minimized evidence,
 proves repeated activation is idempotent, restores exact bytes and permissions,
 and verifies that targets absent before recovery return to absence afterward.
 
+`migration.py` proves that preview is byte-for-byte read-only, unresolved and
+unknown conflict choices block before mutation, per-file keep/replace choices
+are journaled, successful migration rolls back exactly, and a forced failure
+after the first write blocks new work until validated recovery restores every
+original file and permission.
+
 `affinity-motion.py` verifies wallpaper detection, neutral fallback, serialized
 rapid-settle behavior, atomic profile state, manual authority, Auto feedback,
 and Off-mode instant presentation without changing any wallpaper asset.

@@ -1,5 +1,40 @@
 # Upgrade, rollback, and removal
 
+## Guided migration into v1.5
+
+The v1.5 suite includes a versioned configuration migration assistant. Preview
+is always read-only and reports the detected source version, target version,
+preserved preferences, every complete-file replacement, ownership, conflicts,
+and the exact decisions still required:
+
+```bash
+magi-migrate preview
+magi-migrate preview --json
+magi-migrate status --json
+```
+
+Apply refuses to start until every reported conflict has an explicit `keep` or
+`replace` choice. Conflict IDs come directly from the preview; for example:
+
+```bash
+magi-migrate apply \
+  --resolve shell=replace \
+  --resolve hyprland=replace \
+  --resolve bindings=keep \
+  --resolve looknfeel=replace
+```
+
+`keep` leaves that exact user file untouched. `replace` first captures its
+bytes and permissions. The resulting snapshot path is printed and may be
+restored explicitly with `magi-migrate rollback <snapshot>`. No choice implies
+permission, and there is no “reset everything” fallback.
+
+If power loss or process termination interrupts an apply, the active journal
+blocks additional migrations. Inspect `magi-migrate status --json`, then run
+`magi-migrate recover`. Recovery validates every required backup before
+restoring anything and returns all touched files to their pre-apply state.
+Static desktop recovery remains separately available through `magi-recovery`.
+
 ## Upgrade from v1.3.1 to v1.4
 
 v1.4 preserves the v1.3.1 desktop behavior while adding distribution metadata,

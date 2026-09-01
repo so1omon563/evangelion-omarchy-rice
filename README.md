@@ -164,6 +164,11 @@ Use `Super + Alt + R` when the compositor is responsive, or run it from a TTY;
 `magi-recovery exit` restores the prior configuration. See
 [HOTKEYS.md](HOTKEYS.md#static-recovery-mode) for the complete recovery path.
 
+For v1.5 configuration changes, run `magi-migrate preview` before applying an
+upgrade. The assistant names every preserved setting and replacement and
+requires `keep` or `replace` for each conflict. Interrupted applies are held for
+explicit `magi-migrate recover`; see [UPGRADING.md](UPGRADING.md#guided-migration-into-v15).
+
 Every changed target is recorded in a transaction snapshot under
 `~/.local/state/evangelion-rice/install-backups/`. Failed activation or
 validation automatically rolls back the active transaction.

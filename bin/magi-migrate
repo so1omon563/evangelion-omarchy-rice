@@ -1,0 +1,206 @@
+#!/usr/bin/env python3
+"""Guided, exact, versioned Evangelion configuration migrations."""
+import argparse
+import hashlib
+import json
+import os
+import shutil
+import subprocess
+import sys
+import tempfile
+import time
+from pathlib import Path
+import re
+
+COMMAND_ROOT = Path(__file__).resolve().parents[1]
+DATA_ROOT = Path(os.environ.get("XDG_DATA_HOME", Path.home() / ".local/share")) / "evangelion-rice"
+ROOT = Path(os.environ.get("EVANGELION_MIGRATION_ROOT", DATA_ROOT if (DATA_ROOT / "migrations").is_dir() else COMMAND_ROOT))
+CONFIG = Path(os.environ.get("XDG_CONFIG_HOME", Path.home() / ".config"))
+STATE = Path(os.environ.get("XDG_STATE_HOME", Path.home() / ".local/state")) / "evangelion-rice/migrations"
+INSTALLED = STATE / "installed-version"
+ACTIVE = STATE / "active"
+
+
+def digest(path):
+    return hashlib.sha256(path.read_bytes()).hexdigest()
+
+
+def confined(root, relative):
+    path = Path(relative)
+    if path.is_absolute() or ".." in path.parts:
+        raise ValueError(f"Unsafe migration path: {relative}")
+    resolved = (root / path).resolve(strict=False)
+    if root.resolve() not in resolved.parents:
+        raise ValueError(f"Unsafe migration path: {relative}")
+    return resolved
+
+
+def atomic_text(path, text, mode=0o600):
+    path.parent.mkdir(parents=True, exist_ok=True)
+    descriptor, temporary = tempfile.mkstemp(prefix=f".{path.name}.", dir=path.parent)
+    try:
+        with os.fdopen(descriptor, "w") as stream:
+            stream.write(text); stream.flush(); os.fsync(stream.fileno())
+        os.chmod(temporary, mode); os.replace(temporary, path)
+    finally:
+        try: os.unlink(temporary)
+        except FileNotFoundError: pass
+
+
+def load_plan():
+    requested = os.environ.get("EVANGELION_MIGRATION_PLAN", "1.4.1-to-1.5.0.json")
+    path = ROOT / "migrations" / requested
+    value = json.loads(path.read_text())
+    if value.get("schema_version") != 1 or not isinstance(value.get("operations"), list):
+        raise ValueError(f"Unsupported migration plan: {path}")
+    for operation in value["operations"]:
+        if not re.fullmatch(r"[a-z0-9-]+", str(operation.get("id", ""))):
+            raise ValueError("Migration operation IDs must be lowercase slugs")
+        confined(ROOT, operation.get("source", ""))
+        confined(CONFIG, operation.get("target", ""))
+    return value
+
+
+def installed_version(plan):
+    try: return INSTALLED.read_text().strip()
+    except OSError:
+        return plan["source_version"] if (CONFIG / "omarchy/shell.json").exists() else "uninstalled"
+
+
+def inspect(plan):
+    operations = []
+    for operation in plan["operations"]:
+        source, target = confined(ROOT, operation["source"]), confined(CONFIG, operation["target"])
+        if not source.is_file(): raise ValueError(f"Migration payload missing: {source}")
+        if not target.exists(): status = "create"
+        elif digest(source) == digest(target): status = "unchanged"
+        else: status = "conflict"
+        operations.append({**operation, "status": status, "target_exists": target.exists(),
+                           "replacement_required": status == "conflict"})
+    return {"schema_version": 1, "migration": plan["id"],
+            "source_version": installed_version(plan), "target_version": plan["target_version"],
+            "preserved": plan["preserved"], "operations": operations,
+            "required_actions": [f"resolve {item['id']}=keep|replace" for item in operations if item["status"] == "conflict"],
+            "read_only": True}
+
+
+def parse_resolutions(values):
+    result = {}
+    for value in values:
+        if "=" not in value: raise ValueError("Resolution must be ID=keep or ID=replace")
+        key, choice = value.split("=", 1)
+        if choice not in ("keep", "replace") or not key: raise ValueError("Resolution must be ID=keep or ID=replace")
+        result[key] = choice
+    return result
+
+
+def snapshot_path():
+    return STATE / "snapshots" / f"{time.strftime('%Y%m%d-%H%M%S')}-{os.getpid()}"
+
+
+def save_journal(snapshot, value):
+    atomic_text(snapshot / "journal.json", json.dumps(value, indent=2, sort_keys=True) + "\n")
+
+
+def restore(snapshot):
+    journal = json.loads((snapshot / "journal.json").read_text())
+    # Validate every required backup before modifying a target.
+    for item in journal["operations"]:
+        if item["action"] == "replace" and not (snapshot / "files" / item["id"]).is_file():
+            raise ValueError(f"Missing migration backup: {item['id']}")
+    for item in reversed(journal["operations"]):
+        target = confined(CONFIG, item["target"])
+        if item["action"] == "replace":
+            target.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copy2(snapshot / "files" / item["id"], target)
+        elif item["action"] == "create":
+            target.unlink(missing_ok=True)
+    prior = journal.get("prior_version")
+    if prior is None: INSTALLED.unlink(missing_ok=True)
+    else: atomic_text(INSTALLED, prior + "\n")
+    journal["state"] = "rolled-back"; save_journal(snapshot, journal)
+
+
+def activate_runtime():
+    if os.environ.get("EVANGELION_SKIP_ACTIVATE") == "1": return
+    subprocess.run(["hyprctl", "reload"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, check=False)
+    subprocess.run(["omarchy", "restart", "shell"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, check=False)
+
+
+def apply(plan, resolutions, force_failure=False):
+    if ACTIVE.is_symlink(): raise ValueError("Interrupted migration detected; run magi-migrate recover")
+    report = inspect(plan)
+    conflicts = {item["id"] for item in report["operations"] if item["status"] == "conflict"}
+    unknown = set(resolutions) - {item["id"] for item in report["operations"]}
+    missing = conflicts - set(resolutions)
+    if unknown: raise ValueError("Unknown conflict IDs: " + ", ".join(sorted(unknown)))
+    if missing: raise ValueError("Unresolved conflicts: " + ", ".join(sorted(missing)))
+    if report["source_version"] not in (plan["source_version"], plan["target_version"]):
+        raise ValueError(f"Plan expects {plan['source_version']}; found {report['source_version']}")
+    snapshot = snapshot_path(); (snapshot / "files").mkdir(parents=True)
+    prior = INSTALLED.read_text().strip() if INSTALLED.exists() else None
+    journal = {"schema_version": 1, "migration": plan["id"], "state": "applying",
+               "prior_version": prior, "target_version": plan["target_version"], "operations": []}
+    for item in report["operations"]:
+        choice = resolutions.get(item["id"], "replace")
+        action = "keep" if item["status"] == "conflict" and choice == "keep" else item["status"]
+        if action == "unchanged": action = "keep"
+        if action == "conflict": action = "replace"
+        journal["operations"].append({"id": item["id"], "target": item["target"], "action": action})
+        target = confined(CONFIG, item["target"])
+        if action == "replace": shutil.copy2(target, snapshot / "files" / item["id"])
+    save_journal(snapshot, journal)
+    STATE.mkdir(parents=True, exist_ok=True); ACTIVE.symlink_to(snapshot)
+    try:
+        changed = 0
+        for item, recorded in zip(report["operations"], journal["operations"]):
+            if recorded["action"] in ("keep",): continue
+            target = confined(CONFIG, item["target"]); target.parent.mkdir(parents=True, exist_ok=True)
+            descriptor, temporary = tempfile.mkstemp(prefix=f".{target.name}.", dir=target.parent)
+            os.close(descriptor); shutil.copy2(confined(ROOT, item["source"]), temporary); os.replace(temporary, target)
+            changed += 1
+            if force_failure and changed == 1: raise RuntimeError("forced migration interruption")
+        atomic_text(INSTALLED, plan["target_version"] + "\n")
+        journal["state"] = "completed"; save_journal(snapshot, journal); ACTIVE.unlink()
+        activate_runtime()
+    except Exception:
+        # Leave the journal active: recover validates the whole snapshot first.
+        raise
+    return snapshot, journal
+
+
+def main():
+    parser = argparse.ArgumentParser(prog="magi-migrate")
+    sub = parser.add_subparsers(dest="command", required=True)
+    for name in ("preview", "status"): sub.add_parser(name).add_argument("--json", action="store_true")
+    applier = sub.add_parser("apply"); applier.add_argument("--resolve", action="append", default=[]); applier.add_argument("--json", action="store_true")
+    rollback = sub.add_parser("rollback"); rollback.add_argument("snapshot", nargs="?")
+    sub.add_parser("recover")
+    args = parser.parse_args()
+    try:
+        plan = load_plan()
+        if args.command == "preview": value = inspect(plan)
+        elif args.command == "status":
+            active = ACTIVE.resolve() if ACTIVE.is_symlink() else None
+            value = {"schema_version": 1, "installed_version": installed_version(plan),
+                     "target_version": plan["target_version"], "interrupted": active is not None,
+                     "active_snapshot": str(active) if active else None}
+        elif args.command == "apply":
+            snapshot, journal = apply(plan, parse_resolutions(args.resolve), os.environ.get("EVANGELION_FORCE_MIGRATION_FAILURE") == "1")
+            value = {"schema_version": 1, "status": "completed", "snapshot": str(snapshot),
+                     "migration": plan["id"], "operations": journal["operations"]}
+        elif args.command == "recover":
+            if not ACTIVE.is_symlink(): raise ValueError("No interrupted migration")
+            snapshot = ACTIVE.resolve(); restore(snapshot); ACTIVE.unlink(); activate_runtime()
+            print(f"MIGRATION RECOVERED // {snapshot}"); return 0
+        else:
+            snapshot = Path(args.snapshot) if args.snapshot else max((STATE / "snapshots").iterdir(), key=lambda p: p.stat().st_mtime)
+            restore(snapshot); ACTIVE.unlink(missing_ok=True); activate_runtime()
+            print(f"MIGRATION ROLLED BACK // {snapshot}"); return 0
+        print(json.dumps(value, indent=None if getattr(args, "json", False) else 2, sort_keys=True))
+        return 0
+    except (OSError, ValueError, RuntimeError, json.JSONDecodeError) as error:
+        print(error, file=sys.stderr); return 2
+
+
+if __name__ == "__main__": raise SystemExit(main())

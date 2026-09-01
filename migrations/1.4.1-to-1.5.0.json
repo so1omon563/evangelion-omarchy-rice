@@ -1,0 +1,18 @@
+{
+  "schema_version": 1,
+  "id": "1.4.1-to-1.5.0",
+  "source_version": "1.4.1",
+  "target_version": "1.5.0",
+  "preserved": [
+    "omarchy/evangelion.json",
+    "evangelion-rice affinity state",
+    "evangelion-rice context state",
+    "unrelated user files"
+  ],
+  "operations": [
+    {"id": "shell", "source": "omarchy/shell.json", "target": "omarchy/shell.json", "kind": "complete-file", "owner": "suite"},
+    {"id": "hyprland", "source": "hypr/hyprland.lua", "target": "hypr/hyprland.lua", "kind": "complete-file", "owner": "suite"},
+    {"id": "bindings", "source": "hypr/bindings.lua", "target": "hypr/bindings.lua", "kind": "complete-file", "owner": "suite"},
+    {"id": "looknfeel", "source": "hypr/looknfeel.lua", "target": "hypr/looknfeel.lua", "kind": "complete-file", "owner": "suite"}
+  ]
+}

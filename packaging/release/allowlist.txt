@@ -10,6 +10,7 @@ HOTKEYS.md
 INSTALL.md
 LICENSE
 MAGI_RUNTIME.md
+MAGI_EXTENSION_CONTRACT.md
 MAINTAINING.md
 PLUGIN_AUDIT.md
 README.md
@@ -24,11 +25,14 @@ dependencies.tsv
 distribution.json
 install.sh
 magi-runtime-contract.json
+magi-extension-contract.json
 plugin-audit.json
 preflight.py
 rollback.sh
 validate.sh
 bin/
+migrations/
+recovery/
 fastfetch/
 hypr/
 lib/
