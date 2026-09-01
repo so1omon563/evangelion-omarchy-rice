@@ -110,6 +110,8 @@ did not succeed or predates the active affinity publication; run
 `magi-bar-refresh`. `unavailable` means the affinity command, Hyprland IPC, or
 local backend could not answer. The page keeps its static controls usable and
 shows an explicit unavailable label instead of retaining old semantic state.
+All page assets are served with `no-store` headers so a normal refresh cannot
+combine HTML and JavaScript from different installed versions.
 
 Preflight blocks if another process owns port 8765. Identify it before stopping
 anything.

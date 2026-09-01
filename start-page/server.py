@@ -127,7 +127,10 @@ def affinity_surface():
 
 
 def desktop_surface():
-    return {"affinity": affinity_surface(), "workspace": workspace(), "updated_at": int(time.time())}
+    profile = key_values(["magi-operating-profile", "status"])
+    return {"affinity": affinity_surface(), "workspace": workspace(),
+            "profile": profile.get("active", profile.get("effective", "unavailable")),
+            "updated_at": int(time.time())}
 
 
 def media():
@@ -220,11 +223,18 @@ class Handler(SimpleHTTPRequestHandler):
     def log_message(self, *args):
         pass
 
+    def end_headers(self):
+        # The app is installed as a small atomic bundle. Prevent browsers from
+        # mixing an older HTML shell with newer JavaScript after an update.
+        self.send_header("Cache-Control", "no-store, max-age=0")
+        self.send_header("Pragma", "no-cache")
+        self.send_header("Expires", "0")
+        super().end_headers()
+
     def json_response(self, payload, code=200):
         body = json.dumps(payload).encode()
         self.send_response(code)
         self.send_header("Content-Type", "application/json")
-        self.send_header("Cache-Control", "no-store")
         self.send_header("Content-Length", str(len(body)))
         self.end_headers()
         self.wfile.write(body)

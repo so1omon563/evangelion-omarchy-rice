@@ -39,8 +39,11 @@ app = (ROOT / "start-page/app.js").read_text()
 html = (ROOT / "start-page/index.html").read_text()
 server = (ROOT / "start-page/server.py").read_text()
 assert '"/api/desktop"' in server
+assert '"magi-operating-profile", "status"' in server
 assert "setInterval(syncDesktop, 2000)" in app
 assert "rail-affinity-state" in app and 'id="rail-affinity-state"' in html
+assert '"Cache-Control", "no-store, max-age=0"' in server
+assert "if (affinityState)" in app and "if ($('rail-affinity-state'))" in app
 assert "hyprctl" in server, "workspace IPC contract missing"
 for forbidden in ("activewindow", "clients -j", "hostname", "address"):
     assert forbidden not in server.lower(), f"private desktop field leaked: {forbidden}"

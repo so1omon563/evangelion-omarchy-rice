@@ -116,7 +116,8 @@ function paintRail(data) {
   document.body.dataset.affinity = affinity;
   document.body.dataset.affinityState = data.affinity?.state || 'unavailable';
   $('rail-affinity').textContent = `${(data.affinity?.mode || 'unknown').toUpperCase()} // ${(data.affinity?.label || 'AFFINITY UNAVAILABLE').toUpperCase()}`;
-  $('rail-affinity-state').textContent = (data.affinity?.state || 'unavailable').toUpperCase();
+  const affinityState = $('rail-affinity-state');
+  if (affinityState) affinityState.textContent = (data.affinity?.state || 'unavailable').toUpperCase();
   $('rail-workspace').textContent = data.workspace?.available ? `${String(data.workspace.id).padStart(2, '0')} // ${data.workspace.label.toUpperCase()}` : '— // WORKSPACE UNAVAILABLE';
   $('rail-profile').textContent = data.profile.toUpperCase();
   $('rail-uptime').textContent = formatUptime(data.uptime);
@@ -158,7 +159,7 @@ async function sync() {
     $('sync').textContent = data.affinity?.state === 'current' ? 'SYNCHRONIZED' : `PALETTE ${(data.affinity?.state || 'unavailable').toUpperCase()}`;
   } catch (error) {
     $('sync').textContent = 'LOCAL DATA UNAVAILABLE';
-    $('rail-affinity-state').textContent = 'UNAVAILABLE';
+    if ($('rail-affinity-state')) $('rail-affinity-state').textContent = 'UNAVAILABLE';
     $('rail-workspace').textContent = '— // WORKSPACE UNAVAILABLE';
   }
 }
@@ -175,7 +176,7 @@ async function syncDesktop() {
     $('sync').textContent = desktop.affinity?.state === 'current' ? 'SYNCHRONIZED' : `PALETTE ${(desktop.affinity?.state || 'unavailable').toUpperCase()}`;
   } catch (error) {
     document.body.dataset.affinityState = 'unavailable';
-    $('rail-affinity-state').textContent = 'UNAVAILABLE';
+    if ($('rail-affinity-state')) $('rail-affinity-state').textContent = 'UNAVAILABLE';
     $('rail-workspace').textContent = '— // WORKSPACE UNAVAILABLE';
     $('sync').textContent = 'LOCAL DATA UNAVAILABLE';
   }
