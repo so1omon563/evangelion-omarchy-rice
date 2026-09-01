@@ -1,0 +1,70 @@
+{
+  "contract": "magi.optional-runtime",
+  "version": "1.0.0",
+  "decision": "intentionally-avoided-as-separate-package",
+  "distribution": {
+    "package": null,
+    "qml_library": null,
+    "plugin_strategy": "self-contained-core-with-optional-capability-adapters",
+    "hidden_installation": false
+  },
+  "discovery": {
+    "command": ["magi-runtime", "capabilities", "--json"],
+    "timeout_ms": 250,
+    "local_only": true,
+    "read_only": true,
+    "compatible_range": ">=1.0.0 <2.0.0"
+  },
+  "capabilities": {
+    "motion": {
+      "version": "1.0.0",
+      "command": ["magi-runtime", "motion", "status", "--json"],
+      "schema": {
+        "schema_version": 1,
+        "mode": ["full", "reduced", "off"]
+      },
+      "fallback": {
+        "mode": "reduced",
+        "continuous_decorative_animation": false,
+        "critical_feedback_ms": 0
+      }
+    }
+  },
+  "qml": {
+    "public_cross_repository_import": false,
+    "adapter_properties": {
+      "available": "bool",
+      "contractVersion": "string",
+      "motionMode": "full|reduced|off"
+    }
+  },
+  "state": {
+    "reserved_path": "$XDG_STATE_HOME/magi-runtime/v1/<capability>.json",
+    "cache_max_age_seconds": 30,
+    "command_authoritative": true,
+    "atomic_replace": true
+  },
+  "failure_states": ["absent", "compatible", "stale", "incompatible"],
+  "compatibility_tests": [
+    "runtime-absent",
+    "runtime-present-compatible",
+    "runtime-state-stale",
+    "runtime-major-incompatible",
+    "runtime-schema-incompatible",
+    "runtime-malformed",
+    "runtime-command-failure",
+    "runtime-timeout"
+  ],
+  "first_candidates": {
+    "evangelion.cava": {
+      "required": ["compatible Omarchy bar API"],
+      "recommended": ["cava"],
+      "optional": ["magi.optional-runtime/motion"]
+    },
+    "evangelion.media": {
+      "required": ["compatible Omarchy bar API", "compatible omarchy.media service"],
+      "recommended": [],
+      "optional": ["magi.optional-runtime/motion"]
+    }
+  }
+}

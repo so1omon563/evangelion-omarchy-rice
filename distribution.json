@@ -44,6 +44,15 @@
     "suite_transaction": ["manifest.tsv exact targets"],
     "user": ["preserved preferences", "unrelated paths", "unselected tier content"]
   },
+  "optional_runtime": {
+    "contract": "magi.optional-runtime",
+    "version": "1.0.0",
+    "decision": "intentionally-avoided-as-separate-package",
+    "specification": "MAGI_RUNTIME.md",
+    "machine_contract": "magi-runtime-contract.json",
+    "plugin_local_fallbacks_required": true,
+    "hidden_installation": false
+  },
   "policies": {
     "silent_home_overwrite": "prohibited",
     "system_install_mutates_home": false,

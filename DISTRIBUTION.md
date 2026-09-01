@@ -99,7 +99,10 @@ plugin, Arch, or AUR maintainer.
 ## Downstream gates
 
 - Theme extraction must contain only the theme-tier payload and notices.
-- The optional MAGI runtime must expose a versioned API with no theme dependency.
+- Reusable plugins follow the versioned, capability-detected contract in
+  [`MAGI_RUNTIME.md`](MAGI_RUNTIME.md). Version 1 intentionally avoids a shared
+  runtime package: plugin-local fallbacks are required and MAGI integration is
+  optional, additive, and theme-independent.
 - Every plugin must be classified standalone, runtime-dependent, or suite-only.
 - The current complete classification and first extraction recommendations are
   published in [`PLUGIN_AUDIT.md`](PLUGIN_AUDIT.md).

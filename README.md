@@ -105,6 +105,10 @@ and optional integrations are documented in
 boundary, precedence, reasons, recommendations, automation controls,
 accessibility behavior, and performance contract are in [CONTEXT.md](CONTEXT.md).
 
+Distribution boundaries, the complete plugin audit, and the deliberately small
+optional-integration contract are documented in [DISTRIBUTION.md](DISTRIBUTION.md),
+[PLUGIN_AUDIT.md](PLUGIN_AUDIT.md), and [MAGI_RUNTIME.md](MAGI_RUNTIME.md).
+
 The browser always follows `omarchy launch browser`; no browser executable is
 hard-coded. Cava is an independent `evangelion.cava` bar plugin and hides when
 Cava is unavailable. Neon Overdrive is a separately selected compatibility
