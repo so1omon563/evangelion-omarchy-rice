@@ -12,6 +12,9 @@ from pathlib import Path
 ROOT = Path(__file__).parent
 HOME = Path.home()
 WEATHER_CACHE = HOME / ".cache/evangelion-rice/weather.json"
+STATE_ROOT = HOME / ".local/state/evangelion-rice"
+AFFINITY_ACTIVE = STATE_ROOT / "affinity-active"
+BAR_REFRESH = STATE_ROOT / "bar-refresh.json"
 EVENTS = deque(maxlen=8)
 EVENT_LOCK = threading.Lock()
 PREVIOUS = {}
@@ -88,13 +91,43 @@ def network():
 
 
 def workspace():
-    names = {1: "MELCHIOR", 2: "BALTHASAR", 3: "CASPER", 4: "ENTRY PLUG", 5: "TERMINAL"}
+    names = {1: "MAGI-01 · MELCHIOR", 2: "MAGI-02 · BALTHASAR", 3: "MAGI-03 · CASPER",
+             4: "WORKSPACE-04 · ENTRY", 5: "WORKSPACE-05 · TERMINAL"}
     try:
         data = json.loads(run(["hyprctl", "-j", "activeworkspace"]))
-        workspace_id = data.get("id", 0)
-        return {"id": workspace_id, "name": names.get(workspace_id, data.get("name", "UNKNOWN"))}
-    except json.JSONDecodeError:
-        return {"id": 0, "name": "UNKNOWN"}
+        workspace_id = int(data.get("id", 0))
+        if workspace_id <= 0:
+            raise ValueError
+        return {"available": True, "id": workspace_id,
+                "label": names.get(workspace_id, f"WORKSPACE-{workspace_id:02d}")}
+    except (json.JSONDecodeError, TypeError, ValueError):
+        return {"available": False, "id": None, "label": "WORKSPACE UNAVAILABLE"}
+
+
+def affinity_surface():
+    """Project published affinity state without repeating wallpaper policy."""
+    affinity = key_values(["magi-affinity", "status"])
+    mode = affinity.get("mode")
+    active = affinity.get("active")
+    valid_profiles = {"neutral", "unit-00-prototype", "unit-00-refit", "unit-01", "unit-02"}
+    if mode == "disabled":
+        return {"mode": "disabled", "active": "neutral", "label": "NERV / NEUTRAL", "state": "disabled"}
+    if mode not in {"auto", "manual"} or active not in valid_profiles:
+        return {"mode": "unknown", "active": "neutral", "label": "AFFINITY UNAVAILABLE", "state": "unavailable"}
+    labels = {"neutral": "NERV / NEUTRAL", "unit-00-prototype": "UNIT-00 PROTOTYPE",
+              "unit-00-refit": "UNIT-00 REFIT", "unit-01": "UNIT-01", "unit-02": "UNIT-02"}
+    state = "current"
+    try:
+        refresh = json.loads(BAR_REFRESH.read_text())
+        if refresh.get("result") != "success" or BAR_REFRESH.stat().st_mtime < AFFINITY_ACTIVE.stat().st_mtime:
+            state = "stale"
+    except (OSError, json.JSONDecodeError):
+        state = "stale"
+    return {"mode": mode, "active": active, "label": labels[active], "state": state}
+
+
+def desktop_surface():
+    return {"affinity": affinity_surface(), "workspace": workspace(), "updated_at": int(time.time())}
 
 
 def media():
@@ -128,7 +161,7 @@ def media():
 
 def record_events(snapshot):
     checks = {
-        "workspace": (snapshot["workspace"]["name"], "WORKSPACE", lambda value: f"CHANNEL {value.upper()} ACTIVE"),
+        "workspace": (snapshot["workspace"]["label"], "WORKSPACE", lambda value: f"CHANNEL {value.upper()} ACTIVE"),
         "affinity": (snapshot["affinity"]["active"], "AFFINITY", lambda value: f"{value.upper()} COLOR LINK"),
         "profile": (snapshot["profile"], "PROFILE", lambda value: f"{value.upper()} OPERATING PROFILE"),
         "network": (snapshot["network"]["online"], "NETWORK", lambda value: "UPLINK RESTORED" if value else "UPLINK LOST"),
@@ -161,7 +194,6 @@ def status():
             capacities.append(int(path.read_text()))
         except (OSError, ValueError):
             pass
-    affinity = key_values(["magi-affinity", "status"])
     profile = key_values(["magi-operating-profile", "status"])
     snapshot = {
         "theme": {key: colors.get(key) for key in ("accent", "selection", "background", "dark_background", "foreground", "dark_foreground", "orange", "cyan", "bright_red") if colors.get(key)},
@@ -171,7 +203,7 @@ def status():
         "media": media(),
         "weather": weather(),
         "workspace": workspace(),
-        "affinity": {"mode": affinity.get("mode", "unknown"), "active": affinity.get("active", "neutral")},
+        "affinity": affinity_surface(),
         "profile": profile.get("active", profile.get("effective", "unknown")),
         "context": context_surface(),
         "ambient": ambient_surface(),
@@ -200,6 +232,8 @@ class Handler(SimpleHTTPRequestHandler):
     def do_GET(self):
         if self.path == "/api/status":
             self.json_response(status())
+        elif self.path == "/api/desktop":
+            self.json_response(desktop_surface())
         else:
             super().do_GET()
 

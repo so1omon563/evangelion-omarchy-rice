@@ -101,7 +101,15 @@ be run repeatedly. If it reports that shell IPC is unavailable, use
 non-restarting IPC path automatically.
 journalctl --user -u magi-start-page.service --since "10 minutes ago" --no-pager
 curl --fail http://127.0.0.1:8765/api/status | jq .
+curl --fail http://127.0.0.1:8765/api/desktop | jq .
 ```
+
+The desktop projection should show `affinity.state` as `current` and a
+workspace with `available: true`. `stale` means the last bar palette refresh
+did not succeed or predates the active affinity publication; run
+`magi-bar-refresh`. `unavailable` means the affinity command, Hyprland IPC, or
+local backend could not answer. The page keeps its static controls usable and
+shows an explicit unavailable label instead of retaining old semantic state.
 
 Preflight blocks if another process owns port 8765. Identify it before stopping
 anything.

@@ -10,8 +10,8 @@ const demoData = {
   network: {online: true, interface: 'magi-link'},
   media: {available: true, status: 'Playing', artist: 'NERV SYMPHONIC CHANNEL', title: 'DECISIVE BATTLE', length: 238, position: 76, player: 'demo', volume: 72, players: ['demo']},
   weather: {available: true, message: 'TOKYO-3 · Temp 24°C · Wind E 12km/h', stale: false},
-  workspace: {id: 1, name: 'MELCHIOR'},
-  affinity: {mode: 'manual', active: 'unit-01'},
+  workspace: {available: true, id: 1, label: 'MAGI-01 · MELCHIOR'},
+  affinity: {mode: 'manual', active: 'unit-01', label: 'UNIT-01', state: 'current'},
   profile: 'engineering',
   context: {schema_version: 1, active: true, status: 'mobile', freshness: 'fresh', reason_code: 'mobile-operations', label: 'Mobile operations', facts: {display_mode: 'mobile'}},
   ambient: {schema_version: 1, active: true, band: 'evening', mission: 'work', focus: false, quiet: false, copy: 'MISSION IN PROGRESS', scene_offset: 2},
@@ -112,10 +112,12 @@ function paintMedia(media) {
 }
 
 function paintRail(data) {
-  const affinity = data.affinity.active || 'neutral';
+  const affinity = data.affinity?.active || 'neutral';
   document.body.dataset.affinity = affinity;
-  $('rail-affinity').textContent = affinity.replaceAll('-', ' ').toUpperCase();
-  $('rail-workspace').textContent = `${data.workspace.id || '—'} // ${data.workspace.name.toUpperCase()}`;
+  document.body.dataset.affinityState = data.affinity?.state || 'unavailable';
+  $('rail-affinity').textContent = `${(data.affinity?.mode || 'unknown').toUpperCase()} // ${(data.affinity?.label || 'AFFINITY UNAVAILABLE').toUpperCase()}`;
+  $('rail-affinity-state').textContent = (data.affinity?.state || 'unavailable').toUpperCase();
+  $('rail-workspace').textContent = data.workspace?.available ? `${String(data.workspace.id).padStart(2, '0')} // ${data.workspace.label.toUpperCase()}` : '— // WORKSPACE UNAVAILABLE';
   $('rail-profile').textContent = data.profile.toUpperCase();
   $('rail-uptime').textContent = formatUptime(data.uptime);
   $('rail-network').textContent = data.network.online ? 'CONNECTED' : 'OFFLINE';
@@ -153,8 +155,28 @@ async function sync() {
     const map = {background: 'bg', dark_background: 'dark', foreground: 'fg', dark_foreground: 'muted', bright_red: 'red'};
     Object.entries(data.theme).forEach(([key, value]) => document.documentElement.style.setProperty(`--${map[key] || key}`, value));
     paintMagi(data); paintTelemetry(data); paintMedia(data.media); paintWeather(data.weather); paintRail(data); paintContext(data.context); paintAmbient(data.ambient); paintEvents(data.events); paintAlert(data);
-    $('sync').textContent = 'SYNCHRONIZED';
+    $('sync').textContent = data.affinity?.state === 'current' ? 'SYNCHRONIZED' : `PALETTE ${(data.affinity?.state || 'unavailable').toUpperCase()}`;
   } catch (error) {
+    $('sync').textContent = 'LOCAL DATA UNAVAILABLE';
+    $('rail-affinity-state').textContent = 'UNAVAILABLE';
+    $('rail-workspace').textContent = '— // WORKSPACE UNAVAILABLE';
+  }
+}
+
+async function syncDesktop() {
+  if (demoMode) return;
+  try {
+    const desktop = await fetch('/api/desktop', {cache: 'no-store'}).then(response => {
+      if (!response.ok) throw new Error('desktop link unavailable');
+      return response.json();
+    });
+    if (currentData) Object.assign(currentData, desktop);
+    paintRail({...currentData, ...desktop, profile: currentData?.profile || 'unknown', uptime: currentData?.uptime || 0, network: currentData?.network || {online: false}});
+    $('sync').textContent = desktop.affinity?.state === 'current' ? 'SYNCHRONIZED' : `PALETTE ${(desktop.affinity?.state || 'unavailable').toUpperCase()}`;
+  } catch (error) {
+    document.body.dataset.affinityState = 'unavailable';
+    $('rail-affinity-state').textContent = 'UNAVAILABLE';
+    $('rail-workspace').textContent = '— // WORKSPACE UNAVAILABLE';
     $('sync').textContent = 'LOCAL DATA UNAVAILABLE';
   }
 }
@@ -221,7 +243,7 @@ document.addEventListener('pointermove', event => {
 
 const savedDensity = localStorage.getItem('nerv-density');
 if (['compact', 'standard', 'command'].includes(savedDensity)) { densityIndex = ['compact', 'standard', 'command'].indexOf(savedDensity); document.body.dataset.density = savedDensity; $('density-toggle').textContent = `DENSITY // ${savedDensity.slice(0, 3).toUpperCase()}`; }
-clock(); sync(); setInterval(clock, 1000); setInterval(sync, 30000);
+clock(); sync(); setInterval(clock, 1000); setInterval(syncDesktop, 2000); setInterval(sync, 30000);
 setTimeout(() => $('boot-copy').textContent = 'CONNECTING TELEMETRY BUS', 450);
 setTimeout(() => $('boot-copy').textContent = 'MAGI CONSENSUS CONFIRMED', 950);
 setTimeout(() => $('boot-sequence').classList.add('complete'), 1450);

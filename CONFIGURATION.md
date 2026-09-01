@@ -311,6 +311,14 @@ omarchy weather location --clear
 The page listens only on `127.0.0.1:8765`; control requests accept allowlisted
 loopback origins.
 
+Its status rail reports the published EVA affinity mode and identity, palette
+freshness (`current`, `stale`, `unavailable`, or `disabled`), and the active
+MAGI workspace label. A lightweight local-only `/api/desktop` projection checks
+those fields every two seconds; the full weather, media, and hardware snapshot
+remains on its 30-second interval. Workspace data is limited to the numeric ID
+and configured label. Window titles, application names, paths, hostnames, and
+workspace contents are never collected or returned.
+
 ## Operating and terminal profiles
 
 `~/.config/omarchy/operating-profiles.json` defines `docked` and `mobile`

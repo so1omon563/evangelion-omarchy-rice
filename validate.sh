@@ -33,6 +33,7 @@ python3 "$root/tests/mode-transition.py" /tmp/evangelion-mode-transition.json >/
 python3 "$root/tests/bar-motion.py" /tmp/evangelion-bar-motion.json >/dev/null && pass "stateful MAGI bar motion contracts" || fail "stateful MAGI bar motion contracts"
 python3 "$root/tests/bar-icons.py" >/dev/null && pass "unified upstream and tray icon contracts" || fail "unified upstream and tray icon contracts"
 python3 "$root/tests/bar-refresh.py" >/dev/null && pass "live affinity bar refresh contracts" || fail "live affinity bar refresh contracts"
+python3 "$root/tests/start-page-context.py" >/dev/null && pass "start-page desktop context contracts" || fail "start-page desktop context contracts"
 for mode in full reduced off; do lua "$root/tests/hypr-motion.lua" "$mode" >/dev/null && pass "Hyprland $mode motion profile" || fail "Hyprland $mode motion profile"; done
 python3 "$root/tests/documentation.py" >/dev/null && pass "public documentation contract" || fail "public documentation contract"
 python3 "$root/tests/release-v1.3.py" >/dev/null && pass "v1.3 release documentation and media contract" || fail "v1.3 release documentation and media contract"

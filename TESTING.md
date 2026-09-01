@@ -108,6 +108,10 @@ stationary power confirmations without invoking any real session action.
 `lifecycle-motion.py` enforces lock-first phase arbitration, immediate
 screensaver dismissal, boot retirement, authoritative timers, and complete
 Full/Reduced/Off paths without waiting for real idle or powering off a display.
+`start-page-context.py` verifies the local desktop endpoint's affinity identity,
+freshness states, MAGI workspace labels, unavailable fallbacks, two-second
+bounded refresh contract, and privacy field exclusions.
+
 `affinity-motion.py` verifies wallpaper detection, neutral fallback, serialized
 rapid-settle behavior, atomic profile state, manual authority, Auto feedback,
 and Off-mode instant presentation without changing any wallpaper asset.
