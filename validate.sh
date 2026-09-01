@@ -44,6 +44,9 @@ python3 "$root/tests/theme-distribution.py" >/dev/null && pass "standalone Omarc
 python3 "$root/tests/gallery-submission.py" >/dev/null && pass "official Omarchy gallery submission package" || fail "official Omarchy gallery submission package"
 python3 "$root/tests/plugin-audit.py" >/dev/null && pass "complete MAGI plugin distribution audit" || fail "complete MAGI plugin distribution audit"
 python3 "$root/tests/magi-runtime-contract.py" >/dev/null && pass "optional MAGI runtime compatibility contract" || fail "optional MAGI runtime compatibility contract"
+if [[ ${EVANGELION_RELEASE_ARTIFACT_NESTED:-0} != 1 ]]; then
+  python3 "$root/tests/release-artifact.py" >/dev/null && pass "reproducible complete-suite release artifact" || fail "reproducible complete-suite release artifact"
+fi
 python3 "$root/tests/release-v1.3.py" >/dev/null && pass "v1.3 release documentation and media contract" || fail "v1.3 release documentation and media contract"
 if rg -n 'Work/evangelion-rice' "$root/bin" "$root/lib" "$root/omarchy" >/dev/null; then fail "owner-specific project path remains"; else pass "no owner-specific project path"; fi
 python3 -m py_compile "$root/preflight.py" 2>/dev/null && pass "compatibility preflight parses" || fail "compatibility preflight parse"

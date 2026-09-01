@@ -122,3 +122,8 @@ repository:
 
 The ignored `build/omarchy-evangelion-theme/` directory is replaced from
 `packaging/theme/manifest.json` on every run, preventing hand-maintained drift.
+
+Build and verify a reproducible complete-suite archive from an exact semantic
+version tag with `./scripts/build-release`; see
+[`RELEASE_ARTIFACTS.md`](RELEASE_ARTIFACTS.md). Construction is local and CI
+validation-only until a release receives explicit publication approval.

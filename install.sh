@@ -208,7 +208,11 @@ if [[ ${EVANGELION_SKIP_ACTIVATE:-0} != 1 ]]; then
   [[ ${selected[hypr]:-0} == 1 ]] && hyprctl reload >/dev/null
   if [[ ${selected[services]:-0} == 1 ]]; then systemctl --user daemon-reload; systemctl --user enable --now magi-affinity.path magi-start-page.service >/dev/null; fi
 fi
-EVANGELION_SOURCE_ONLY=${EVANGELION_SKIP_ACTIVATE:-0} "$root/validate.sh"
+if [[ -f $root/RELEASE-PROVENANCE.json ]]; then
+  "$root/scripts/build-release" verify-root "$root"
+else
+  EVANGELION_SOURCE_ONLY=${EVANGELION_SKIP_ACTIVATE:-0} "$root/validate.sh"
+fi
 mkdir -p "$state_root"; printf '%s\n' "$backup_root" >"$state_root/last-install-backup"
 transaction_started=false; trap - ERR
 printf 'INSTALL COMPLETE // rollback snapshot: %s\n' "$backup_root"

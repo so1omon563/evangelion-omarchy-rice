@@ -1,0 +1,186 @@
+#!/usr/bin/env python3
+"""Build or verify a deterministic complete-suite release archive."""
+import argparse
+import gzip
+import hashlib
+import io
+import json
+import os
+from pathlib import Path, PurePosixPath
+import re
+import subprocess
+import tarfile
+import tempfile
+
+ROOT = Path(__file__).resolve().parents[1]
+ALLOWLIST = "packaging/release/allowlist.txt"
+
+
+def git(*args, text=True):
+    return subprocess.check_output(["git", "-C", str(ROOT), *args], text=text)
+
+
+def digest(data):
+    return hashlib.sha256(data).hexdigest()
+
+
+def allowed(path, rules):
+    return any(path == rule or (rule.endswith("/") and path.startswith(rule)) for rule in rules)
+
+
+def tag_details(ref):
+    if not re.fullmatch(r"v[0-9]+\.[0-9]+\.[0-9]+(?:[-+][0-9A-Za-z.-]+)?", ref):
+        raise SystemExit("release ref must be a semantic version tag such as v1.4.0")
+    try:
+        git("show-ref", "--verify", "--quiet", f"refs/tags/{ref}")
+    except subprocess.CalledProcessError:
+        raise SystemExit(f"release ref is not an exact local tag: {ref}")
+    commit = git("rev-parse", f"{ref}^{{commit}}").strip()
+    timestamp = int(git("show", "-s", "--format=%ct", commit).strip())
+    return commit, timestamp, ref[1:]
+
+
+def source_files(ref):
+    raw_rules = git("show", f"{ref}:{ALLOWLIST}").splitlines()
+    rules = [line.strip() for line in raw_rules if line.strip() and not line.lstrip().startswith("#")]
+    tracked = git("ls-tree", "-r", "--name-only", ref).splitlines()
+    selected = sorted(path for path in tracked if allowed(path, rules))
+    missing = [rule for rule in rules if not any(allowed(path, [rule]) for path in selected)]
+    if missing:
+        raise SystemExit("allowlist entries missing from tag: " + ", ".join(missing))
+    return selected
+
+
+def blob(ref, path):
+    return git("show", f"{ref}:{path}", text=False)
+
+
+def git_mode(ref, path):
+    mode = git("ls-tree", ref, "--", path).split()[0]
+    return 0o755 if mode == "100755" else 0o644
+
+
+def add_bytes(tar, name, data, mode, timestamp):
+    info = tarfile.TarInfo(name)
+    info.size = len(data)
+    info.mode = mode
+    info.mtime = timestamp
+    info.uid = info.gid = 0
+    info.uname = info.gname = "root"
+    tar.addfile(info, io.BytesIO(data))
+
+
+def build(ref, output):
+    commit, timestamp, version = tag_details(ref)
+    files = source_files(ref)
+    prefix = f"evangelion-omarchy-rice-{version}"
+    payload = [(path, blob(ref, path), git_mode(ref, path)) for path in files]
+    provenance = {
+        "schema_version": 1,
+        "project": "evangelion-omarchy-rice",
+        "version": version,
+        "tag": ref,
+        "commit": commit,
+        "source_date_epoch": timestamp,
+        "allowlist": ALLOWLIST,
+        "publish": False,
+    }
+    provenance_bytes = (json.dumps(provenance, indent=2, sort_keys=True) + "\n").encode()
+    manifest_rows = [f"{digest(data)}  {path}" for path, data, _ in payload]
+    manifest_rows.append(f"{digest(provenance_bytes)}  RELEASE-PROVENANCE.json")
+    manifest_bytes = ("\n".join(manifest_rows) + "\n").encode()
+
+    output.mkdir(parents=True, exist_ok=True)
+    archive = output / f"{prefix}.tar.gz"
+    with archive.open("wb") as raw:
+        with gzip.GzipFile(filename="", mode="wb", fileobj=raw, mtime=0, compresslevel=9) as gz:
+            with tarfile.open(fileobj=gz, mode="w", format=tarfile.GNU_FORMAT) as tar:
+                for path, data, mode in payload:
+                    add_bytes(tar, f"{prefix}/{path}", data, mode, timestamp)
+                add_bytes(tar, f"{prefix}/RELEASE-PROVENANCE.json", provenance_bytes, 0o644, timestamp)
+                add_bytes(tar, f"{prefix}/RELEASE-MANIFEST.sha256", manifest_bytes, 0o644, timestamp)
+    checksum = digest(archive.read_bytes())
+    checksum_file = output / f"{archive.name}.sha256"
+    checksum_file.write_text(f"{checksum}  {archive.name}\n")
+    print(archive)
+    return archive
+
+
+def safe_members(tar):
+    members = tar.getmembers()
+    for member in members:
+        path = PurePosixPath(member.name)
+        if path.is_absolute() or ".." in path.parts or not member.isfile():
+            raise SystemExit(f"unsafe or unsupported archive member: {member.name}")
+    return members
+
+
+def verify_root(root):
+    root = root.resolve()
+    provenance_path = root / "RELEASE-PROVENANCE.json"
+    manifest_path = root / "RELEASE-MANIFEST.sha256"
+    if not provenance_path.is_file() or not manifest_path.is_file():
+        raise SystemExit("not a complete-suite release root")
+    provenance = json.loads(provenance_path.read_text())
+    manifest = manifest_path.read_text().splitlines()
+    expected = set()
+    for row in manifest:
+        checksum, rel = row.split("  ", 1)
+        path = PurePosixPath(rel)
+        if path.is_absolute() or ".." in path.parts:
+            raise SystemExit(f"unsafe manifest path: {rel}")
+        candidate = root / rel
+        if not candidate.is_file() or digest(candidate.read_bytes()) != checksum:
+            raise SystemExit(f"payload checksum mismatch: {rel}")
+        expected.add(rel)
+    actual = {str(path.relative_to(root)) for path in root.rglob("*") if path.is_file()}
+    expected.add("RELEASE-MANIFEST.sha256")
+    if actual != expected:
+        raise SystemExit("release root file set differs from internal manifest")
+    if provenance.get("publish") is not False:
+        raise SystemExit("unapproved artifact claims publication")
+    print(f"VERIFIED ROOT // {root.name}")
+
+
+def verify(archive):
+    archive = archive.resolve()
+    checksum_file = Path(str(archive) + ".sha256")
+    if not checksum_file.is_file():
+        raise SystemExit(f"missing checksum file: {checksum_file}")
+    fields = checksum_file.read_text().strip().split()
+    if len(fields) != 2 or fields[1] != archive.name or fields[0] != digest(archive.read_bytes()):
+        raise SystemExit("archive checksum mismatch")
+    with tempfile.TemporaryDirectory(prefix="evangelion-release-verify-") as raw:
+        target = Path(raw)
+        with tarfile.open(archive, "r:gz") as tar:
+            members = safe_members(tar)
+            tar.extractall(target, members=members, filter="data")
+        roots = list(target.iterdir())
+        if len(roots) != 1:
+            raise SystemExit("archive must contain exactly one root directory")
+        root = roots[0]
+        verify_root(root)
+    print(f"VERIFIED // {archive.name}")
+
+
+def main():
+    parser = argparse.ArgumentParser()
+    sub = parser.add_subparsers(dest="action", required=True)
+    create = sub.add_parser("build")
+    create.add_argument("--tag", required=True)
+    create.add_argument("--output", type=Path, default=ROOT / "build" / "release")
+    check = sub.add_parser("verify")
+    check.add_argument("archive", type=Path)
+    root_check = sub.add_parser("verify-root")
+    root_check.add_argument("root", type=Path, nargs="?", default=Path.cwd())
+    args = parser.parse_args()
+    if args.action == "build":
+        build(args.tag, args.output)
+    elif args.action == "verify":
+        verify(args.archive)
+    else:
+        verify_root(args.root)
+
+
+if __name__ == "__main__":
+    main()
