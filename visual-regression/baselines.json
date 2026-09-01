@@ -1,0 +1,11 @@
+{
+  "files": {
+    "neutral-full-desktop-nominal.png": "750f64f32e352f546aeaa4c59d6072ab87f1d78545e61a1e0061c362bfe25cae",
+    "unit00-reduced-laptop-warning.png": "d0c595bee060165ce18efb255b05a321cf79209f6d7bd383ae428388abf4e825",
+    "unit00refit-off-hidpi-critical.png": "c946a83724b83029ee14b7237cb2f7c1ef9c7e0aed1e1d33f1745d1e87839213",
+    "unit01-full-wide-nominal.png": "2465988d40384a8f1c5c3576bb1222188f9fd4f31449f1db4129d827f8a658e3",
+    "unit02-reduced-projector-warning.png": "75bbbb60b34cf55e9b4e9a95a69de944585b9a4076f74ddb5f2cd75f65e6417d"
+  },
+  "renderer_version": 1,
+  "schema_version": 1
+}

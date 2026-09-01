@@ -200,6 +200,7 @@ checks are:
 ./tests/motion-observe.py # optional live observation
 ./tests/context-regression.py
 ./tests/magi-extension-contract.py # internal widget state boundary
+./tests/visual-regression.py --self-test # canonical privacy-safe frames and CI diffs
 ./tests/context-observe.py # optional live T480 observation; restores state
 ```
 

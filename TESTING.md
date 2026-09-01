@@ -140,6 +140,13 @@ are journaled, successful migration rolls back exactly, and a forced failure
 after the first write blocks new work until validated recovery restores every
 original file and permission.
 
+`visual-regression.py` renders a privacy-safe pairwise matrix of canonical MAGI
+surfaces with ImageMagick, applies named masks and pixel tolerances, verifies
+the checked-in SHA-256 provenance manifest, and retains actual/expected/diff
+images. Its self-test deliberately perturbs a frame and proves that the failure
+path emits a nonempty inspectable diff. Baseline approval requires both the
+`--approve` flag and `VISUAL_BASELINE_APPROVED=1`; CI cannot approve changes.
+
 `affinity-motion.py` verifies wallpaper detection, neutral fallback, serialized
 rapid-settle behavior, atomic profile state, manual authority, Auto feedback,
 and Off-mode instant presentation without changing any wallpaper asset.
