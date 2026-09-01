@@ -41,4 +41,17 @@ for row in (ROOT / "media/release-media.sha256").read_text().splitlines():
     digest, filename = row.split(maxsplit=1)
     assert hashlib.sha256((ROOT / "media" / filename).read_bytes()).hexdigest() == digest
 
-print("PASS  exact v1.4 candidate, distribution, documentation, and privacy evidence")
+patch = json.loads((ROOT / "release/v1.4.1.json").read_text())
+assert patch["release"] == "v1.4.1"
+assert patch["candidate"] == "v1.4.1-rc.1"
+assert patch["candidate_commit"] == "ef158578213ed80c88ae95678ec925b089ac593d"
+assert patch["final_release_allowed"] is True
+assert patch["scope"] == "documentation-and-distribution-metadata-only"
+assert patch["theme_repository_commit"] == "7c02612"
+assert patch["gates"]["candidate_ci"] == "passed-run-33470493258"
+patch_tagged = subprocess.check_output(
+    ["git", "-C", str(ROOT), "rev-list", "-n", "1", patch["candidate"]], text=True
+).strip()
+assert patch_tagged == patch["candidate_commit"]
+
+print("PASS  exact v1.4 candidates, distribution, documentation, and privacy evidence")

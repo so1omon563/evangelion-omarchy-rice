@@ -1,0 +1,24 @@
+{
+  "schema_version": 1,
+  "release": "v1.4.1",
+  "candidate": "v1.4.1-rc.1",
+  "candidate_commit": "ef158578213ed80c88ae95678ec925b089ac593d",
+  "final_release_allowed": true,
+  "scope": "documentation-and-distribution-metadata-only",
+  "theme_repository_commit": "7c02612",
+  "community_testing": {
+    "status": "optional-post-release",
+    "required_reports": 0
+  },
+  "gates": {
+    "candidate_ci": "passed-run-33470493258",
+    "candidate_ci_duration": "3m24s",
+    "validation": "passed-160-checks-zero-failures-zero-warnings",
+    "documentation_audit": "passed-all-public-guides-and-stale-claim-guards",
+    "theme_export": "passed-exact-two-file-public-repository-sync",
+    "theme_lifecycle": "passed-install-apply-cycle-update-removal",
+    "release_artifact": "passed-reproducible-offline-lifecycle",
+    "cross_channel": "passed-conflict-upgrade-rollback-removal",
+    "runtime_behavior": "unchanged-from-v1.4.0"
+  }
+}
