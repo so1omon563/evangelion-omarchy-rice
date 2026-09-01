@@ -17,7 +17,10 @@ jobs:
   validate:
     name: Source validation
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    # A cold Ubuntu package index can consume most of the old 10-minute budget
+    # before validation begins. Keep the gate bounded without making runner
+    # provisioning latency indistinguishable from a test failure.
+    timeout-minutes: 20
 
     steps:
       - name: Check out repository
