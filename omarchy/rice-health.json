@@ -1,0 +1,8 @@
+{
+  "schema_version": 1,
+  "suite_version": "1.5.0-dev",
+  "required_services": ["magi-start-page.service", "magi-affinity.path"],
+  "owned_port": {"number": 8765, "service": "magi-start-page.service"},
+  "stale_seconds": {"health_cache": 1800},
+  "allowlisted_fixes": ["quarantine-stale-health-cache"]
+}

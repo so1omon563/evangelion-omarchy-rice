@@ -113,8 +113,11 @@ add_tree tools "$root/lib" "$HOME/.local/lib/evangelion-rice" 644
 add_tree tools "$root/recovery" "$HOME/.local/share/evangelion-rice/recovery" 644
 add_tree tools "$root/migrations" "$HOME/.local/share/evangelion-rice/migrations" 644
 add_tree tools "$root/omarchy/i18n" "$HOME/.local/share/evangelion-rice/i18n" 644
+add_file tools "$root/VERSION" "$HOME/.local/share/evangelion-rice/.suite-version" 644
+add_file tools "$root/dependencies.tsv" "$HOME/.local/share/evangelion-rice/dependencies.tsv" 644
 add_file tools "$root/omarchy/performance-budgets.json" "$HOME/.local/share/evangelion-rice/performance/performance-budgets.json" 644
 add_file tools "$root/omarchy/performance-inventory.json" "$HOME/.local/share/evangelion-rice/performance/performance-inventory.json" 644
+add_file tools "$root/omarchy/rice-health.json" "$HOME/.local/share/evangelion-rice/rice-health.json" 644
 add_tree theme "$root/theme" "$HOME/.config/omarchy/themes/evangelion" 644
 add_tree shell "$root/omarchy/plugins" "$HOME/.config/omarchy/plugins" 644
 if [[ ${selected[shell]:-0} == 1 ]]; then

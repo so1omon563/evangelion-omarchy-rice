@@ -1,0 +1,163 @@
+#!/usr/bin/env python3
+"""Read-only MAGI suite diagnosis with narrowly allowlisted remediation."""
+import argparse, hashlib, json, os, re, shutil, socket, subprocess, tempfile, time
+from pathlib import Path
+
+ROOT=Path(__file__).resolve().parents[1]
+HOME=Path(os.environ.get("EVA_RICE_HEALTH_HOME",Path.home()))
+DATA=Path(os.environ.get("EVA_RICE_HEALTH_ROOT",ROOT if (ROOT/"omarchy").is_dir() else HOME/".local/share/evangelion-rice"))
+CONFIG=Path(os.environ.get("EVA_RICE_HEALTH_CONFIG",DATA/"omarchy/rice-health.json" if (DATA/"omarchy/rice-health.json").is_file() else DATA/"rice-health.json"))
+STATE=Path(os.environ.get("EVA_RICE_HEALTH_STATE",HOME/".local/state/evangelion-rice/rice-health"))
+DEPS=Path(os.environ.get("EVA_RICE_HEALTH_DEPENDENCIES",DATA/"dependencies.tsv"))
+SHELL=Path(os.environ.get("EVA_RICE_HEALTH_SHELL",HOME/".config/omarchy/shell.json"))
+PLUGINS=Path(os.environ.get("EVA_RICE_HEALTH_PLUGINS",HOME/".config/omarchy/plugins"))
+HEALTH_CACHE=Path(os.environ.get("EVA_RICE_HEALTH_CACHE",HOME/".local/state/evangelion-rice/health-updates.json"))
+INSTALLED_OVERRIDE=os.environ.get("EVA_RICE_HEALTH_INSTALLED")
+
+def load(path,default=None):
+    try: return json.loads(path.read_text())
+    except (OSError,json.JSONDecodeError): return default
+def run(args,timeout=1):
+    try: return subprocess.run(args,text=True,capture_output=True,timeout=timeout,check=False)
+    except (OSError,subprocess.SubprocessError): return None
+def finding(fid,category,severity,status,summary,evidence,reason,fix=None):
+    value={"id":fid,"category":category,"severity":severity,"status":status,"summary":summary,"evidence":evidence,"reason":reason}
+    if fix: value["remediation"]=fix
+    return value
+def command_exists(name): return shutil.which(name) is not None
+
+def diagnose():
+    cfg=load(CONFIG,{}) or {}; rows=[]
+    target=str(cfg.get("suite_version","unknown")); installed="unknown"
+    version_sources=[Path(INSTALLED_OVERRIDE)] if INSTALLED_OVERRIDE else [DATA/"VERSION",DATA/".suite-version",DATA/".pkg-version",HOME/".local/state/evangelion-rice/migrations/installed-version"]
+    for version_source in version_sources:
+        try: installed=version_source.read_text().strip() or "unknown"; break
+        except OSError: pass
+    status="passed" if installed==target else "unavailable" if installed=="unknown" else "failed"
+    rows.append(finding("suite.version","version","warning" if status=="failed" else "info",status,
+        "Suite version aligned" if status=="passed" else "Installed version evidence unavailable" if status=="unavailable" else "Suite version drift detected",
+        {"installed":installed,"expected":target},"Migration state should match the packaged suite version."))
+
+    missing={"required":[],"recommended":[],"optional":[]}; deps_available=DEPS.is_file()
+    try:
+        for line in DEPS.read_text().splitlines():
+            if not line or line.startswith("#"): continue
+            fields=line.split("\t")
+            if len(fields)<3 or fields[0] not in missing: continue
+            absent=[name for name in fields[2].split(",") if not command_exists(name)]
+            if absent: missing[fields[0]].append({"feature":fields[1],"commands":absent})
+    except OSError: pass
+    severity="critical" if missing["required"] else "warning" if missing["recommended"] else "info"
+    dep_status="unavailable" if not deps_available else "failed" if missing["required"] or missing["recommended"] else "passed"
+    rows.append(finding("suite.dependencies","dependencies",severity,dep_status,
+        "Dependency manifest unavailable" if not deps_available else "Dependencies require attention" if severity!="info" else "Required and recommended dependencies ready",
+        {"required_missing":len(missing["required"]),"recommended_missing":len(missing["recommended"]),"optional_missing":len(missing["optional"])},
+        "Required gaps block features; recommended gaps reduce the intended experience."))
+
+    service_states={}; service_probe=command_exists("systemctl")
+    for service in cfg.get("required_services",[]):
+        result=run(["systemctl","--user","is-active",service]) if service_probe else None
+        unreachable=result and "failed to connect" in result.stderr.lower()
+        service_states[service]="active" if result and result.returncode==0 else "unavailable" if not result or unreachable else "inactive"
+    inactive=[name for name,state in service_states.items() if state=="inactive"]
+    rows.append(finding("suite.services","services","warning" if inactive else "info","failed" if inactive else "passed" if service_probe else "unavailable",
+        f"{len(inactive)} required service units inactive" if inactive else "Required service units active" if service_probe else "Service manager unavailable",
+        {"checked":len(service_states),"inactive":len(inactive),"unavailable":sum(x=="unavailable" for x in service_states.values())},
+        "Inactive suite units can leave widgets stale or local surfaces unreachable."))
+
+    shell=load(SHELL); broken=[]; configured=[]
+    if isinstance(shell,dict):
+        layout=shell.get("bar",{}).get("layout",{})
+        configured=[row.get("id") for section in layout.values() if isinstance(section,list) for row in section if isinstance(row,dict) and str(row.get("id","")).startswith("evangelion.")]
+        configured += [row.get("id") for row in shell.get("plugins",[]) if isinstance(row,dict) and str(row.get("id","")).startswith("evangelion.")]
+        for plugin in configured:
+            directory=PLUGINS/plugin; manifest=load(directory/"manifest.json")
+            if not isinstance(manifest,dict) or manifest.get("id")!=plugin: broken.append(plugin)
+            else:
+                for entry in manifest.get("entryPoints",{}).values():
+                    if not (directory/entry).is_file(): broken.append(plugin); break
+    rows.append(finding("suite.widgets","widgets","critical" if broken else "info","failed" if broken else "passed" if isinstance(shell,dict) else "unavailable",
+        f"{len(set(broken))} configured widgets are broken" if broken else "Configured widgets resolve" if isinstance(shell,dict) else "Shell configuration unreadable",
+        {"configured":len(configured),"broken":len(set(broken))},"A configured plugin must have a matching manifest and every declared entry point."))
+
+    conflicts=[]
+    if PLUGINS.is_dir():
+        for directory in PLUGINS.iterdir():
+            if not directory.is_dir(): continue
+            manifest=load(directory/"manifest.json")
+            if directory.name.startswith("so1omon.") or isinstance(manifest,dict) and manifest.get("id")!=directory.name: conflicts.append(directory.name)
+    rows.append(finding("suite.ownership","ownership","warning" if conflicts else "info","failed" if conflicts else "passed",
+        f"{len(conflicts)} plugin ownership conflicts" if conflicts else "Plugin ownership clean",{"conflicts":len(conflicts)},
+        "Legacy or mismatched plugin namespaces can shadow packaged suite plugins."))
+
+    port=cfg.get("owned_port",{}); bound=False
+    try:
+        with socket.socket() as probe: bound=probe.connect_ex(("127.0.0.1",int(port.get("number",8765))))==0
+    except (OSError,ValueError): pass
+    owner_active=service_states.get(port.get("service"))=="active"; collision=bound and not owner_active
+    rows.append(finding("suite.port","ports","warning" if collision else "info","failed" if collision else "passed",
+        "Local suite port may be owned by another process" if collision else "Local suite port state is consistent",
+        {"port":int(port.get("number",8765)),"bound":bound,"expected_service_active":owner_active},
+        "A bound suite port is only expected while its declared user service is active."))
+
+    invalid=[]
+    for name,path in (("rice-health",CONFIG),("shell",SHELL)):
+        value=load(path)
+        if not isinstance(value,dict) or not isinstance(value.get("schema_version",value.get("version")),int): invalid.append(name)
+    rows.append(finding("suite.schemas","schemas","critical" if invalid else "info","failed" if invalid else "passed",
+        f"{len(invalid)} configuration schemas invalid" if invalid else "Configuration schemas valid",{"checked":2,"invalid":len(invalid)},
+        "Configuration must parse as an object with an integer schema version."))
+
+    stale=False; age=None
+    try: age=max(0,int(time.time()-HEALTH_CACHE.stat().st_mtime)); stale=age>int(cfg.get("stale_seconds",{}).get("health_cache",1800))
+    except OSError: pass
+    rows.append(finding("suite.cache.health","cache","warning" if stale else "info","failed" if stale else "passed" if age is not None else "unavailable",
+        "Health cache is stale" if stale else "Health cache fresh" if age is not None else "Health cache unavailable",
+        {"available":age is not None,"age_seconds":age,"maximum_age_seconds":int(cfg.get("stale_seconds",{}).get("health_cache",1800))},
+        "Stale cached update state can misrepresent system health.","quarantine-stale-health-cache" if stale else None))
+    failures=sum(row["status"]=="failed" for row in rows); critical=sum(row["status"]=="failed" and row["severity"]=="critical" for row in rows)
+    return {"schema_version":1,"status":"critical" if critical else "attention" if failures else "nominal","findings":rows,"failures":failures,"fixes":sorted({row["remediation"] for row in rows if "remediation" in row}),"checked_at":int(time.time()),"read_only":True}
+
+def plan(fix):
+    cfg=load(CONFIG,{}) or {}
+    if fix not in cfg.get("allowlisted_fixes",[]): raise SystemExit("Remediation is not allowlisted")
+    if fix!="quarantine-stale-health-cache": raise SystemExit("Unknown remediation")
+    value={"schema_version":1,"fix":fix,"changes":[{"operation":"quarantine","target":"health update cache","effect":"forces a fresh update check"}],"rollback":"restores the exact prior cache","requires_confirmation":True}
+    value["plan_id"]=hashlib.sha256(json.dumps(value,sort_keys=True,separators=(",",":")).encode()).hexdigest()[:16]
+    return value
+def atomic(path,value):
+    path.parent.mkdir(parents=True,exist_ok=True); fd,name=tempfile.mkstemp(prefix=".rice-health.",dir=path.parent)
+    with os.fdopen(fd,"w") as stream: json.dump(value,stream,separators=(",",":")); stream.write("\n")
+    os.chmod(name,0o600); os.replace(name,path)
+def apply_fix(fix,confirmation):
+    value=plan(fix)
+    if confirmation!=value["plan_id"]: raise SystemExit(f"Confirmation mismatch; preview again and pass --confirm {value['plan_id']}")
+    stamp=time.strftime("%Y%m%d-%H%M%S")+f"-{os.getpid()}"; transaction=STATE/"transactions"/stamp; transaction.mkdir(parents=True); os.chmod(transaction,0o700)
+    manifest={"schema_version":1,"id":stamp,"fix":fix,"original_exists":HEALTH_CACHE.exists(),"target":"health update cache","status":"applied"}
+    if HEALTH_CACHE.exists(): shutil.copy2(HEALTH_CACHE,transaction/"health-updates.json"); HEALTH_CACHE.unlink()
+    atomic(transaction/"manifest.json",manifest); atomic(STATE/"last-transaction.json",{"id":stamp})
+    return manifest
+def rollback(transaction_id):
+    if not re.fullmatch(r"[0-9]{8}-[0-9]{6}-[0-9]+",transaction_id): raise SystemExit("Invalid transaction identifier")
+    transaction=STATE/"transactions"/transaction_id; manifest=load(transaction/"manifest.json")
+    if not isinstance(manifest,dict) or manifest.get("fix")!="quarantine-stale-health-cache": raise SystemExit("Unknown or invalid transaction")
+    backup=transaction/"health-updates.json"
+    if manifest.get("original_exists"):
+        if not backup.is_file(): raise SystemExit("Transaction backup is missing")
+        HEALTH_CACHE.parent.mkdir(parents=True,exist_ok=True); shutil.copy2(backup,HEALTH_CACHE)
+    else: HEALTH_CACHE.unlink(missing_ok=True)
+    manifest["status"]="rolled-back"; atomic(transaction/"manifest.json",manifest); return manifest
+
+def main():
+    parser=argparse.ArgumentParser(); sub=parser.add_subparsers(dest="command")
+    sub.add_parser("diagnose").add_argument("--json",action="store_true")
+    preview=sub.add_parser("preview"); preview.add_argument("fix"); preview.add_argument("--json",action="store_true")
+    apply=sub.add_parser("apply"); apply.add_argument("fix"); apply.add_argument("--confirm",required=True)
+    undo=sub.add_parser("rollback"); undo.add_argument("transaction")
+    args=parser.parse_args(); command=args.command or "diagnose"
+    value=diagnose() if command=="diagnose" else plan(args.fix) if command=="preview" else apply_fix(args.fix,args.confirm) if command=="apply" else rollback(args.transaction)
+    print(json.dumps(value,separators=(",",":")) if getattr(args,"json",False) or command!="diagnose" else f"MAGI RICE HEALTH // {value['status'].upper()} // {value['failures']} FINDINGS")
+    if command=="diagnose" and not getattr(args,"json",False):
+        for row in value["findings"]: print(f"{row['category'].upper():<14} {row['status'].upper():<11} {row['summary']}")
+    return 1 if command=="diagnose" and value["status"]=="critical" else 0
+if __name__=="__main__": raise SystemExit(main())

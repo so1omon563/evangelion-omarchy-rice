@@ -161,6 +161,8 @@ The v1.5 string-catalog, pseudo-locale, RTL, formatting, and contributor
 contracts are documented in [LOCALIZATION.md](LOCALIZATION.md).
 Enforced shell startup, idle, polling, overlap, and cache ceilings are in
 [PERFORMANCE.md](PERFORMANCE.md).
+Suite integrity diagnosis and narrowly allowlisted reversible remediation are
+documented in [RICE_HEALTH.md](RICE_HEALTH.md).
 
 ## Upgrade, rollback, and removal
 
