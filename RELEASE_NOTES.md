@@ -1,5 +1,32 @@
 # Release notes
 
+## v1.4.0 — distribution and packaging
+
+v1.4 makes the project consumable beyond the reference laptop without splitting
+the coordinated MAGI desktop into misleading standalone pieces. Users can now
+choose a declarative theme-only repository, a reproducible complete-suite
+release archive, a development checkout, or an Arch package with explicit
+per-user activation. MAGI plugins remain suite-internal components; the optional
+runtime specification is an architectural boundary, not a published package.
+
+The standalone theme is prepared for the official Omarchy gallery and links
+back to the complete experience. Complete-suite archives are built from exact
+tags with deterministic metadata, checksums, internal manifests, provenance,
+and an allowlisted payload. The Arch design keeps pacman-owned files under
+`/usr/share` and never mutates a user's home during package installation.
+
+Cross-channel tests cover ownership collisions, theme-to-suite refusal, exact
+v1.3 upgrade behavior, forced partial-failure rollback, release and Arch
+lifecycles, and the browser, motion, privacy, responsive, Omarchy, and optional
+MAGI fallback baselines. CI retains machine-readable ownership evidence.
+
+Start with [DISTRIBUTION_GUIDE.md](DISTRIBUTION_GUIDE.md). Maintainers should use
+[MAINTAINING.md](MAINTAINING.md) for synchronization, privacy-reviewed media,
+gallery review, exact-candidate CI, and release checklists. Existing v1.3.1
+installations upgrade transactionally with the same preset or component list;
+personal `evangelion.json` remains preserved and rollback restores the exact
+pre-upgrade files.
+
 ## v1.3.1 — start-page and affinity stabilization
 
 v1.3.1 is a narrowly scoped stabilization release on the v1.3 baseline. Native

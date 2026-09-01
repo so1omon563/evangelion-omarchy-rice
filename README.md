@@ -2,11 +2,13 @@
 
 [![MAGI Integrity Check](https://github.com/so1omon563/evangelion-omarchy-rice/actions/workflows/validate.yml/badge.svg)](https://github.com/so1omon563/evangelion-omarchy-rice/actions/workflows/validate.yml)
 
-> **v1.3.1:** the stabilization release adds affinity-aware native icons,
-> restart-free live palette refresh, semantic affinity/workspace/profile state
-> on the NERV start page, and cache-safe Zen/Chromium upgrades. The v1.3 line
-> also includes local explainable context, advisory recommendations, separately
-> opted-in bounded automation, and ambient presentation. It is validated by source
+> **v1.4 candidate:** the distribution release adds a standalone gallery-ready
+> theme, reproducible complete-suite archives, explicit Arch user activation,
+> cross-channel conflict/rollback tests, and clear selection and maintainer
+> workflows. MAGI plugins remain coordinated suite-internal components. The
+> v1.3 desktop baseline—including affinity-aware icons, restart-free palette
+> refresh, semantic start-page state, explainable local context, and bounded
+> opt-in automation—remains intact. It is validated by source
 > CI, an isolated clean-user lifecycle, transactional install/rollback tests,
 > privacy/interruption regressions, the responsive display matrix, and the reference T480. Community compatibility reports are
 > welcome through [BETA_TESTING.md](BETA_TESTING.md), but are not a release gate.
@@ -91,8 +93,9 @@ Select individual components with `--components`, override shell detection with
 `--shell bash|zsh|fish`, or use `--no-shell-integration`. See
 [INSTALL.md](INSTALL.md) for prerequisites, package commands, component/path
 effects, transaction behavior, and first-run verification.
-See [DISTRIBUTION.md](DISTRIBUTION.md) for the v1.4 theme, plugin, suite, and
-Arch-package ownership and lifecycle contract.
+Use [DISTRIBUTION_GUIDE.md](DISTRIBUTION_GUIDE.md) to choose between “just the
+look,” a complete release, a development checkout, and managed Arch packaging.
+See [DISTRIBUTION.md](DISTRIBUTION.md) for their normative ownership contract.
 
 ## Configuration
 
@@ -114,6 +117,8 @@ Arch package ownership and explicit per-user activation are covered in
 [ARCH_PACKAGING.md](ARCH_PACKAGING.md).
 Supported channel transitions, conflicts, and CI evidence are covered in
 [CROSS_CHANNEL.md](CROSS_CHANNEL.md).
+The synchronized release, theme-gallery, packaging, and privacy review workflow
+for contributors is in [MAINTAINING.md](MAINTAINING.md).
 
 The browser always follows `omarchy launch browser`; no browser executable is
 hard-coded. Cava is an independent `evangelion.cava` bar plugin and hides when

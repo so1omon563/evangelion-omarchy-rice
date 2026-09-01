@@ -21,7 +21,8 @@ def main():
 
     for guide in ("INSTALL.md", "CONFIGURATION.md", "TROUBLESHOOTING.md", "UPGRADING.md",
                   "HOTKEYS.md", "RESPONSIVE.md", "TESTING.md", "ASSETS_LICENSE.md",
-                  "BETA_TESTING.md", "RELEASE_NOTES.md", "CONTEXT.md"):
+                  "BETA_TESTING.md", "RELEASE_NOTES.md", "CONTEXT.md",
+                  "DISTRIBUTION_GUIDE.md", "MAINTAINING.md"):
         assert f"]({guide})" in readme, f"README does not link {guide}"
 
     for target in re.findall(r"\]\(([^)]+)\)", readme):
@@ -49,6 +50,20 @@ def main():
         assert phrase.lower() in upgrade.lower(), f"upgrade/recovery topic missing: {phrase}"
     for stale in ("responsive-layout work remains", "Bash integration currently provided"):
         assert stale not in readme, f"stale public claim remains: {stale}"
+
+    distribution_guide = text("DISTRIBUTION_GUIDE.md")
+    maintaining = text("MAINTAINING.md")
+    release_notes = text("RELEASE_NOTES.md")
+    for phrase in ("Just the look", "Complete MAGI desktop", "Managed Arch package",
+                   "suite-internal", "not a published runtime", "Switching channels",
+                   "prerequisites", "rollback", "removal", "Support covers"):
+        assert phrase.lower() in distribution_guide.lower(), f"distribution guidance missing: {phrase}"
+    for phrase in ("Synchronize a release candidate", "Theme gallery review",
+                   "privacy-reviewed", "Final release checklist", "wait for the exact candidate CI",
+                   "suite-internal", "no runtime artifact"):
+        assert phrase.lower() in maintaining.lower(), f"maintainer guidance missing: {phrase}"
+    for phrase in ("v1.4.0", "DISTRIBUTION_GUIDE.md", "MAINTAINING.md", "machine-readable"):
+        assert phrase in release_notes, f"v1.4 release notes missing: {phrase}"
 
     gate = __import__("json").loads(text("release/v1.2.0.json"))
     community = gate["community_testing"]
