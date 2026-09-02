@@ -20,6 +20,12 @@
     "action": "omarchy-shell magi-settings toggle",
     "description": "Preview, apply, and undo suite settings from one control surface"
   },
+  "magi.workspace-names": {
+    "icon": "󰘔",
+    "label": "Workspace Identities",
+    "action": "omarchy-shell workspace-names toggle",
+    "description": "Edit full workspace names and collision-safe compact bar labels"
+  },
   "magi.background": {
     "icon": "󰸉",
     "label": "Visual Environment",

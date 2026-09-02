@@ -1,0 +1,10 @@
+{
+  "schema_version": 1,
+  "workspaces": [
+    {"id": 1, "name": "MAGI-01 · MELCHIOR", "short": "MEL", "channel": "MAGI-01 · LOGIC CHANNEL", "accent": "#9CF23A"},
+    {"id": 2, "name": "MAGI-02 · BALTHASAR", "short": "BAL", "channel": "MAGI-02 · HUMAN FACTOR", "accent": "#F6B73C"},
+    {"id": 3, "name": "MAGI-03 · CASPER", "short": "CAS", "channel": "MAGI-03 · STRATEGIC LINK", "accent": "#B76CFF"},
+    {"id": 4, "name": "ENTRY PLUG · DEVELOPMENT", "short": "ENT", "channel": "EVA INTERFACE · BUILD CHANNEL", "accent": "#FF4055"},
+    {"id": 5, "name": "TERMINAL · COMMAND", "short": "TRM", "channel": "NERV OPERATIONS · CONTROL CHANNEL", "accent": "#42C8FF"}
+  ]
+}

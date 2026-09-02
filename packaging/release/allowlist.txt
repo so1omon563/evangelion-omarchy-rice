@@ -28,6 +28,7 @@ RESPONSIVE.md
 TESTING.md
 TROUBLESHOOTING.md
 UPGRADING.md
+WORKSPACES.md
 VERSION
 check-dependencies.sh
 dependencies.tsv

@@ -1,0 +1,111 @@
+#!/usr/bin/env python3
+"""Versioned, privacy-safe workspace identity editor and label engine."""
+import argparse, hashlib, json, os, re, shutil, subprocess, tempfile, time
+from pathlib import Path
+
+ROOT=Path(__file__).resolve().parents[1]; HOME=Path(os.environ.get("EVA_WORKSPACES_HOME",Path.home()))
+DATA=Path(os.environ.get("EVA_WORKSPACES_DATA",ROOT if (ROOT/"omarchy").is_dir() else HOME/".local/share/evangelion-rice"))
+DEFAULT=Path(os.environ.get("EVA_WORKSPACES_DEFAULT",DATA/"omarchy/workspaces.json" if (DATA/"omarchy/workspaces.json").is_file() else DATA/"workspaces.json"))
+CONFIG=Path(os.environ.get("EVA_WORKSPACES_CONFIG",HOME/".config/omarchy/workspaces.json")); SKIP=os.environ.get("EVA_WORKSPACES_SKIP_ACTIVATE")=="1"
+WORD=re.compile(r"[A-Za-z0-9]+"); ACCENT=re.compile(r"#[0-9A-Fa-f]{6}")
+
+def load(path):
+    try:return json.loads(path.read_text())
+    except (OSError,json.JSONDecodeError):return None
+def atomic(path,value):
+    path.parent.mkdir(parents=True,exist_ok=True); fd,name=tempfile.mkstemp(prefix=".workspaces.",dir=path.parent)
+    try:
+        with os.fdopen(fd,"w") as stream:json.dump(value,stream,indent=2,ensure_ascii=False);stream.write("\n")
+        os.chmod(name,(path.stat().st_mode&0o777) if path.exists() else 0o644);os.replace(name,path)
+    finally:
+        try:os.unlink(name)
+        except FileNotFoundError:pass
+def clean(value,field,limit):
+    if value is None:raise SystemExit(f"{field} is required")
+    value=str(value)
+    if any(ord(c)<32 for c in value):raise SystemExit(f"{field} must be 1-{limit} printable characters")
+    value=" ".join(value.split())
+    if not value or len(value)>limit:raise SystemExit(f"{field} must be 1-{limit} printable characters")
+    return value
+def validate(value):
+    if not isinstance(value,dict) or value.get("schema_version")!=1 or not isinstance(value.get("workspaces"),list):raise SystemExit("Unsupported workspace schema")
+    rows=[]; ids=set()
+    for raw in value["workspaces"]:
+        if not isinstance(raw,dict) or not isinstance(raw.get("id"),int) or raw["id"]<1 or raw["id"]>10 or raw["id"] in ids:raise SystemExit("Workspace IDs must be unique integers from 1 to 10")
+        ids.add(raw["id"]); short=clean(raw.get("short",abbreviation(raw.get("name",""))),"short",8).upper()
+        if not re.fullmatch(r"[A-Z0-9-]+",short):raise SystemExit("short must contain only letters, digits, or dashes")
+        accent=str(raw.get("accent","#F6D447")).upper()
+        if not ACCENT.fullmatch(accent):raise SystemExit("accent must be #RRGGBB")
+        rows.append({"id":raw["id"],"name":clean(raw.get("name"),"name",48),"short":short,"channel":clean(raw.get("channel","UNCLASSIFIED OPERATIONS CHANNEL"),"channel",64),"accent":accent})
+    if not rows:raise SystemExit("At least one workspace is required")
+    return {"schema_version":1,"workspaces":sorted(rows,key=lambda row:row["id"])}
+def config():return validate(load(CONFIG) or load(DEFAULT))
+def abbreviation(name):
+    words=[x.upper() for x in WORD.findall(str(name)) if not x.isdigit() and x.upper() not in {"MAGI","WORKSPACE"}]
+    if not words:return "AUX"
+    return ("".join(x[0] for x in words) if len(words)>1 else words[0][:3])[:6]
+def resolved_shorts(rows):
+    result={}; used=set()
+    for row in rows:
+        base=row["short"][:6]; candidate=base; index=1
+        while candidate in used:
+            index+=1; suffix=str(index); candidate=base[:max(1,6-len(suffix))]+suffix
+        used.add(candidate);result[row["id"]]=candidate
+    return result
+def projected(width):
+    value=config(); shorts=resolved_shorts(value["workspaces"]); tier="minimal" if width<1200 else "compact" if width<2000 else "full"; rows=[]
+    for row in value["workspaces"]:
+        identity=shorts[row["id"]]; label=str(row["id"] if row["id"]<10 else 0) if tier=="minimal" else f'{row["id"]:02d}·{identity}' if tier=="compact" else f'{row["id"]:02d}·{row["name"].split("·")[-1].strip()[:12]}'
+        rows.append({**row,"resolved_short":identity,"label":label,"tier":tier})
+    return {"schema_version":1,"width":width,"tier":tier,"workspaces":rows}
+def monitor_width(screen,fallback):
+    if not screen:return fallback
+    try:
+        result=subprocess.run(["hyprctl","monitors","-j"],text=True,capture_output=True,timeout=3,check=False)
+        values=json.loads(result.stdout) if result.returncode==0 else []
+        match=next((row for row in values if row.get("name")==screen),None)
+        return max(320,int(match.get("width",fallback))) if match else fallback
+    except (OSError,subprocess.SubprocessError,json.JSONDecodeError,ValueError):return fallback
+def activate():
+    if SKIP:return
+    subprocess.run(["omarchy-shell","workspace-names","reload"],stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL,check=False)
+    subprocess.run(["omarchy-shell","workspace-osd","reload"],stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL,check=False)
+def save(value):atomic(CONFIG,validate(value));activate()
+def set_name(args):
+    value=config(); row=next((x for x in value["workspaces"] if x["id"]==args.id),None)
+    if row is None:row={"id":args.id,"name":f"WORKSPACE-{args.id:02d} · AUXILIARY","short":"AUX","channel":"UNCLASSIFIED OPERATIONS CHANNEL","accent":"#F6D447"};value["workspaces"].append(row)
+    row["name"]=args.name
+    if args.short is not None:row["short"]=args.short
+    if args.channel is not None:row["channel"]=args.channel
+    if args.accent is not None:row["accent"]=args.accent
+    save(value);return next(x for x in projected(1920)["workspaces"] if x["id"]==args.id)
+def export_to(path):
+    target=Path(path).expanduser()
+    if target.exists() and (not target.is_file() or target.is_symlink()):raise SystemExit("Export target must be a regular file")
+    atomic(target,config());return {"schema_version":1,"status":"exported","path":str(target),"private_fields":[]}
+def import_plan(path):
+    target=validate(load(Path(path).expanduser())); before=config(); value={"schema_version":1,"source":str(Path(path).expanduser()),"before":before,"after":target,"changed":before!=target,"redacted_fields":[]}
+    value["plan_id"]=hashlib.sha256(json.dumps(value,sort_keys=True,separators=(",",":"),ensure_ascii=False).encode()).hexdigest()[:16];return value
+def import_file(path,confirmation):
+    plan=import_plan(path)
+    if confirmation!=plan["plan_id"]:raise SystemExit("Confirmation mismatch; preview import again")
+    snapshot="workspace-import-"+time.strftime("%Y%m%d-%H%M%S")+f"-{os.getpid()}"; capture=subprocess.run(["magi-snapshot","create",snapshot,"--note","Before workspace identity import","--components","settings"],capture_output=True,text=True,check=False)
+    if capture.returncode:raise SystemExit("Unable to capture workspace import rollback point")
+    save(plan["after"]);return {"schema_version":1,"status":"imported","snapshot":snapshot,"changed":plan["changed"]}
+def reset():
+    save(validate(load(DEFAULT)));return {"schema_version":1,"status":"reset"}
+def main():
+    parser=argparse.ArgumentParser(); sub=parser.add_subparsers(dest="command",required=True)
+    status=sub.add_parser("status");status.add_argument("--json",action="store_true");status.add_argument("--width",type=int,default=1920);status.add_argument("--screen")
+    edit=sub.add_parser("set");edit.add_argument("id",type=int);edit.add_argument("name");edit.add_argument("--short");edit.add_argument("--channel");edit.add_argument("--accent")
+    sub.add_parser("reset"); exp=sub.add_parser("export");exp.add_argument("path")
+    imp=sub.add_parser("import");imp.add_argument("path");imp.add_argument("--confirm")
+    args=parser.parse_args()
+    if args.command=="status":value=projected(monitor_width(args.screen,max(320,args.width)))
+    elif args.command=="set":value=set_name(args)
+    elif args.command=="reset":value=reset()
+    elif args.command=="export":value=export_to(args.path)
+    elif args.command=="import":
+        value=import_file(args.path,args.confirm) if args.confirm else import_plan(args.path)
+    print(json.dumps(value,indent=None if getattr(args,"json",False) else 2,ensure_ascii=False));return 0
+if __name__=="__main__":raise SystemExit(main())

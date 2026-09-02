@@ -1,5 +1,7 @@
 import QtQuick
 import QtQuick.Layouts
+import Quickshell
+import Quickshell.Io
 import Quickshell.Hyprland
 import qs.Commons
 import qs.Ui
@@ -9,31 +11,36 @@ BarWidget {
   id: root
   moduleName: "omarchy.workspaces"
 
-  readonly property var magiLabels: ({
-    1: "01·MEL",
-    2: "02·BAL",
-    3: "03·CAS",
-    4: "04·ENT",
-    5: "05·TRM"
-  })
+  property var workspaceModel: []
+  property real displayWidth: 1920
+  readonly property bool compactBar: !root.vertical && root.displayWidth < 2000
+  readonly property bool minimalBar: !root.vertical && root.displayWidth < 1200
 
-  readonly property var magiNames: ({
-    1: "MAGI-01 · MELCHIOR",
-    2: "MAGI-02 · BALTHASAR",
-    3: "MAGI-03 · CASPER",
-    4: "WORKSPACE-04 · ENTRY",
-    5: "WORKSPACE-05 · TERMINAL"
-  })
-
-  readonly property var magiAccents: ({
-    1: "#9CF23A", // MELCHIOR — MAGI green
-    2: "#F6B73C", // BALTHASAR — warning amber
-    3: "#B76CFF", // CASPER — EVA violet
-    4: "#FF4055", // ENTRY — synchronization red
-    5: "#42C8FF"  // TERMINAL — telemetry cyan
-  })
-  readonly property bool compactBar: !root.vertical && root.bar && root.bar.width < 1600
-  readonly property bool minimalBar: !root.vertical && root.bar && root.bar.width < 1200
+  function identity(id) {
+    for (var i = 0; i < root.workspaceModel.length; i++) if (root.workspaceModel[i].id === id) return root.workspaceModel[i]
+    return ({id:id, name:"WORKSPACE-"+String(id).padStart(2,"0"), label:String(id), accent:root.bar ? root.bar.urgent : Color.urgent})
+  }
+  function refreshNames() {
+    if (nameProbe.running) { nameRefresh.restart(); return }
+    var screen=root.QsWindow.window&&root.QsWindow.window.screen?root.QsWindow.window.screen.name:""
+    nameProbe.command=["magi-workspaces","status","--json","--width",String(root.displayWidth),"--screen",screen]
+    nameProbe.running=true
+  }
+  function loadNames(text) {
+    try {
+      var rows=JSON.parse(String(text)).workspaces||[],used=({}),resolved=[]
+      for(var i=0;i<rows.length;i++){
+        var row=rows[i],base=String(row.short||"AUX").toUpperCase().slice(0,6),candidate=base,index=1
+        while(used[candidate]){index++;var suffix=String(index);candidate=base.slice(0,Math.max(1,6-suffix.length))+suffix}
+        used[candidate]=true;var copy=Object.assign({},row);copy.resolved_short=candidate;resolved.push(copy)
+      }
+      root.workspaceModel=resolved
+    } catch(error) {}
+  }
+  Component.onCompleted: Qt.callLater(root.refreshNames)
+  FileView { path: Quickshell.env("HOME")+"/.config/omarchy/workspaces.json"; watchChanges:true; printErrors:false; onLoaded:root.loadNames(text()); onFileChanged:root.loadNames(text()) }
+  Timer { id:nameRefresh; interval:80; repeat:false; onTriggered:root.refreshNames() }
+  Process { id:nameProbe; stdout:StdioCollector { onStreamFinished:{ try { var value=JSON.parse(String(text));root.displayWidth=value.width||1920;root.workspaceModel=value.workspaces||[] } catch(error){} } } }
 
   function workspaceById(id) {
     var values = Hyprland.workspaces.values
@@ -56,14 +63,15 @@ BarWidget {
   function labelFor(id, focused) {
     if (root.vertical) return id === 10 ? "0" : String(id)
     if (root.minimalBar) return id === 10 ? "0" : String(id)
-    var label = root.magiLabels[id] || String(id).padStart(2, "0")
-    return label
+    var item=root.identity(id)
+    if(root.compactBar)return String(id).padStart(2,"0")+"·"+(item.resolved_short||String(id))
+    return String(id).padStart(2,"0")+"·"+String(item.name||id).split("·").pop().trim().slice(0,12)
   }
 
   function widthFor(id) {
     if (root.vertical) return root.barSize
     if (root.minimalBar) return 30
-    if (id >= 1 && id <= 5) return root.compactBar ? 48 : 70
+    if (id >= 1 && id <= 5) return root.compactBar ? 48 : Math.min(130, Math.max(70, 26 + root.identity(id).label.length * 7))
     return 34
   }
 
@@ -91,10 +99,11 @@ BarWidget {
         readonly property var workspace: root.workspaceById(modelData)
         readonly property bool occupied: workspace !== null && workspace.toplevels.values.length > 0
         readonly property bool focused: Hyprland.focusedWorkspace !== null && Hyprland.focusedWorkspace.id === modelData
-        readonly property color workspaceAccent: root.magiAccents[modelData] || (root.bar ? root.bar.urgent : Color.urgent)
+        readonly property var identity: root.identity(modelData)
+        readonly property color workspaceAccent: identity.accent || (root.bar ? root.bar.urgent : Color.urgent)
         bar: root.bar
         text: root.labelFor(modelData, focused)
-        tooltipText: root.magiNames[modelData] || "WORKSPACE-" + String(modelData).padStart(2, "0")
+        tooltipText: identity.name || "WORKSPACE-" + String(modelData).padStart(2, "0")
         active: focused
         activeColor: workspaceAccent
         opacity: occupied || focused ? 1 : 0.42

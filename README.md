@@ -23,6 +23,8 @@ and overlays, terminal profiles, safety telemetry, sounds, and operator tools.
 The [MAGI control center](SETTINGS.md) provides one keyboard-first surface for
 the suite's affinity, motion, profile, widget, weather, media, privacy, sound,
 and display settings, with preview and one-step undo.
+[Workspace identities](WORKSPACES.md) are user-editable, remain full-length in
+the OSD, and collapse into collision-safe labels against the live bar width.
 
 ![Evangelion Omarchy desktop](media/desktop-hero.png)
 

@@ -18,6 +18,7 @@ Item {
   property int showCount: 0
   property string heading: "MAGI // AUXILIARY"
   property string channel: "UNCLASSIFIED OPERATIONS CHANNEL"
+  property var workspaceModel: []
   readonly property var targetScreen: {
     var focused = Hyprland.focusedMonitor
     var screens = Quickshell.screens || []
@@ -26,15 +27,8 @@ Item {
   }
 
   function workspaceCopy(id) {
-    var entries = {
-      1: ["MELCHIOR // ANALYSIS", "MAGI-01 · LOGIC CHANNEL"],
-      2: ["BALTHASAR // OPERATIONS", "MAGI-02 · HUMAN FACTOR"],
-      3: ["CASPER // COMMUNICATIONS", "MAGI-03 · STRATEGIC LINK"],
-      4: ["ENTRY PLUG // DEVELOPMENT", "EVA INTERFACE · BUILD CHANNEL"],
-      5: ["TERMINAL // COMMAND", "NERV OPERATIONS · CONTROL CHANNEL"]
-    }
-    return entries[id] || ["WORKSPACE " + String(id).padStart(2, "0") + " // AUXILIARY",
-                           "UNCLASSIFIED OPERATIONS CHANNEL"]
+    for (var i=0;i<root.workspaceModel.length;i++) if(root.workspaceModel[i].id===id) return [root.workspaceModel[i].name,root.workspaceModel[i].channel]
+    return ["WORKSPACE " + String(id).padStart(2, "0") + " // AUXILIARY", "UNCLASSIFIED OPERATIONS CHANNEL"]
   }
 
   function showWorkspace(id, countTransition) {
@@ -63,6 +57,7 @@ Item {
 
   function refreshPreferences() {
     if (!preferenceProbe.running) preferenceProbe.running = true
+    if (!nameProbe.running) nameProbe.running = true
   }
 
   Connections {
@@ -76,6 +71,7 @@ Item {
     printErrors: false
     onFileChanged: root.refreshPreferences()
   }
+  FileView { path:Quickshell.env("HOME")+"/.config/omarchy/workspaces.json"; watchChanges:true; printErrors:false; onFileChanged:root.refreshPreferences() }
 
   Process {
     id: preferenceProbe
@@ -91,6 +87,7 @@ Item {
       }
     }
   }
+  Process { id:nameProbe; running:true; command:["magi-workspaces","status","--json","--width","1920"]; stdout:StdioCollector { onStreamFinished:{ try { root.workspaceModel=JSON.parse(String(text)).workspaces||[] } catch(error){} } } }
 
   Timer {
     id: retireTimer

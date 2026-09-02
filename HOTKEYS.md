@@ -26,7 +26,8 @@ Omarchy's complete live keybinding reference.
 Inside the control center, use Up/Down (or J/K) to navigate, Left/Right (or
 H/L) to choose a value, Enter to preview, `A` to apply the exact preview, `U`
 to undo the last applied change, `R` to refresh capabilities, and Escape to
-close. No control-center change is applied without a preview and confirmation.
+close. Press `W` to open the workspace identity editor. No control-center
+change is applied without a preview and confirmation.
 
 ## Developer performance overlay
 
@@ -679,6 +680,11 @@ magi-workspace-osd status     # Print enabled or disabled
 
 The overlay honors `{"reduced_motion": true}` in the Evangelion screensaver
 configuration described above.
+
+Workspace names, compact labels, and OSD channels can be edited through
+`MAGI Control Center → W` or `MAGI Command Interface → Workspace Identities`.
+See [WORKSPACES.md](WORKSPACES.md) for responsive tiers and portable
+preview-first import/export.
 
 ```bash
 omarchy menu keybindings --print  # Print the complete current binding list

@@ -294,6 +294,13 @@ reserve/critical battery cues are synchronous in every mode. Nominal widgets
 do not loop or animate, labels retain their existing bounded/elided geometry,
 and Cava remains independently optional with its established process limits.
 
+Workspace identities are stored in `~/.config/omarchy/workspaces.json` using
+schema version 1. The graphical editor is available from the MAGI menu or by
+pressing `W` inside the control center. Full names remain in tooltips and the
+workspace OSD, while the bar selects full, compact, or numeric labels from its
+live width. Collision handling, safe import/export, field limits, and the CLI
+contract are documented in [WORKSPACES.md](WORKSPACES.md).
+
 Hyprland consumes the effective mode at reload. Full retains the v1.1 window
 pop, border/fade, directional workspace slide, special-workspace travel, and
 blur. Reduced keeps only short fades and border feedback. Off disables

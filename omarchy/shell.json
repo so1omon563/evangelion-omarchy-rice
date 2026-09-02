@@ -57,6 +57,7 @@
     ,{ "id": "evangelion.demo" }
     ,{ "id": "evangelion.localization" }
     ,{ "id": "evangelion.settings" }
+    ,{ "id": "evangelion.workspace-names" }
   ],
   "disabledPlugins": [
     "omarchy.lock",

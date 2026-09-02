@@ -51,6 +51,7 @@ Item {
   Process { id: previewProc; stdout: StdioCollector { onStreamFinished: { try { root.pending = JSON.parse(String(text)); root.notice = "" } catch (error) { root.notice = i18n.tr("settings.error") } } } }
   Process { id: applyProc; stdout: StdioCollector { onStreamFinished: { try { JSON.parse(String(text)); root.pending = null; root.notice = i18n.tr("settings.applied"); root.refresh() } catch (error) { root.notice = i18n.tr("settings.error") } } } }
   Process { id: undoProc; command: ["magi-settings", "undo"]; stdout: StdioCollector { onStreamFinished: { root.pending = null; root.notice = i18n.tr("settings.undone"); root.refresh() } } }
+  Process { id: workspaceEditor; command: ["omarchy-shell", "workspace-names", "open"] }
 
   IpcHandler { target: "magi-settings"
     function toggle(): string { root.opened ? root.hide() : root.show(); return root.opened ? "open" : "closed" }
@@ -87,6 +88,7 @@ Item {
           else if (event.key === Qt.Key_A && root.pending) root.applyPending()
           else if (event.key === Qt.Key_U) { if (!undoProc.running) undoProc.running = true }
           else if (event.key === Qt.Key_R) root.refresh()
+          else if (event.key === Qt.Key_W) { root.hide(); workspaceEditor.running = true }
           else return
           event.accepted = true
         }
@@ -145,7 +147,7 @@ Item {
               }
             }
           }
-          Text { width: parent.width; horizontalAlignment: Text.AlignHCenter; text: i18n.tr("settings.keys").toUpperCase(); color: "#8f8299"; font.family: "JetBrainsMono Nerd Font"; font.pixelSize: 9; font.letterSpacing: .5 }
+          Text { width: parent.width; horizontalAlignment: Text.AlignHCenter; text: i18n.tr("settings.keys").toUpperCase()+"  ·  W "+i18n.tr("settings.workspaces").toUpperCase(); color: "#8f8299"; font.family: "JetBrainsMono Nerd Font"; font.pixelSize: 9; font.letterSpacing: .5 }
         }
       }
     }
