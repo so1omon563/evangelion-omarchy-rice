@@ -23,6 +23,7 @@
       {"root":"config","path":"omarchy/rice-health.json"},
       {"root":"config","path":"omarchy/thermal-alerts.json"}
       ,{"root":"config","path":"omarchy/workspaces.json"}
+      ,{"root":"config","path":"omarchy/visual.json"}
     ]
   }
 }

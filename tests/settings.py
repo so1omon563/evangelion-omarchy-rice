@@ -18,7 +18,7 @@ case "$1" in
 esac
 exit 0
 '''
-    for name in ("magi-affinity","magi-motion","magi-operating-profile","magi-ambient","magi-sound","magi-snapshot","omarchy-shell","playerctl"):
+    for name in ("magi-affinity","magi-motion","magi-operating-profile","magi-ambient","magi-sound","magi-snapshot","magi-visual","omarchy-shell","playerctl"):
         path=commands/name; path.write_text(command); path.chmod(0o755)
     env={**os.environ,"PATH":str(commands)+":"+os.environ["PATH"],"EVA_SETTINGS_HOME":str(home),"EVA_SETTINGS_DATA":str(ROOT),"EVA_SETTINGS_SCHEMA":str(ROOT/"omarchy/settings-schema.json"),"EVA_SETTINGS_SHELL":str(shell),"EVA_SETTINGS_CONFIG":str(config),"EVA_SETTINGS_STATE":str(home/"state"),"EVA_SETTINGS_SKIP_ACTIVATE":"1"}
     def call(*args,ok=True):
@@ -26,7 +26,7 @@ exit 0
         if ok: assert result.returncode==0,result.stderr
         return result
     status_value=json.loads(call("status").stdout)
-    assert len(status_value["settings"])==9 and len(status_value["categories"])==9
+    assert len(status_value["settings"])==18 and len(status_value["categories"])==10
     privacy=next(x for x in status_value["settings"] if x["id"]=="privacy.indicator")
     assert privacy["read_only"] and privacy["value"]=="always-on"
     before=shell.read_bytes(); plan=json.loads(call("preview","display.bar-position","bottom").stdout)

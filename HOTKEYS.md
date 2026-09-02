@@ -686,6 +686,11 @@ Workspace names, compact labels, and OSD channels can be edited through
 See [WORKSPACES.md](WORKSPACES.md) for responsive tiers and portable
 preview-first import/export.
 
+Visual customization uses the existing `Super + Ctrl + Alt + S` Control Center
+binding and its Preview (`Enter`), Apply (`A`), and Undo (`U`) workflow. No new
+global shortcut is introduced; select any row in the Visual category. See
+[VISUAL_CUSTOMIZATION.md](VISUAL_CUSTOMIZATION.md).
+
 ```bash
 omarchy menu keybindings --print  # Print the complete current binding list
 omarchy-menu summon magi          # Open the MAGI interface

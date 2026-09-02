@@ -1,0 +1,74 @@
+#!/usr/bin/env python3
+"""Bounded, user-owned visual token controller for Evangelion Rice."""
+import argparse, json, os, subprocess, tempfile
+from pathlib import Path
+
+ROOT=Path(__file__).resolve().parents[1]
+HOME=Path(os.environ.get("EVA_VISUAL_HOME",Path.home()))
+DEFAULT=Path(os.environ.get("EVA_VISUAL_DEFAULT",ROOT/"omarchy/visual.json"))
+CONFIG=Path(os.environ.get("EVA_VISUAL_CONFIG",HOME/".config/omarchy/visual.json"))
+SKIP=os.environ.get("EVA_VISUAL_SKIP_ACTIVATE")=="1"
+VALUES={
+ "density":["compact","balanced","comfortable"],
+ "accent_strength":["subtle","balanced","vivid"],
+ "typography":["compact","standard","large"],
+ "panel_treatment":["opaque","glass","minimal"],
+ "blur":["off","subtle","balanced"],
+ "opacity":["opaque","solid","soft"],
+ "gaps":["tight","balanced","open"],
+ "borders":["minimal","standard","strong"],
+ "animation_intensity":["calm","balanced","expressive"],
+}
+
+def load(path):
+ try:return json.loads(path.read_text())
+ except (OSError,json.JSONDecodeError):return None
+def validate(value):
+ if not isinstance(value,dict) or value.get("schema_version")!=1:raise SystemExit("Visual configuration is invalid")
+ for key,allowed in VALUES.items():
+  if value.get(key) not in allowed:raise SystemExit(f"Invalid visual token: {key}")
+ return value
+def current():return validate(load(CONFIG) or load(DEFAULT))
+def atomic(value):
+ CONFIG.parent.mkdir(parents=True,exist_ok=True);fd,name=tempfile.mkstemp(prefix=".visual.",dir=CONFIG.parent)
+ try:
+  with os.fdopen(fd,"w") as stream:json.dump(value,stream,indent=2);stream.write("\n")
+  os.chmod(name,(CONFIG.stat().st_mode&0o777) if CONFIG.exists() else 0o644);os.replace(name,CONFIG)
+ finally:
+  try:os.unlink(name)
+  except FileNotFoundError:pass
+def resolved(cfg):
+ density={"compact":.88,"balanced":1.0,"comfortable":1.14}[cfg["density"]]
+ font={"compact":.92,"standard":1.0,"large":1.16}[cfg["typography"]]
+ accent={"subtle":.55,"balanced":.78,"vivid":1.0}[cfg["accent_strength"]]
+ panel={"opaque":1.0,"glass":.94,"minimal":.86}[cfg["panel_treatment"]]
+ opacity={"opaque":1.0,"solid":.96,"soft":.90}[cfg["opacity"]]
+ gaps={"tight":[2,4],"balanced":[3,7],"open":[6,12]}[cfg["gaps"]]
+ borders={"minimal":1,"standard":2,"strong":3}[cfg["borders"]]
+ blur={"off":[False,0,0],"subtle":[True,3,1],"balanced":[True,6,2]}[cfg["blur"]]
+ animation={"calm":.72,"balanced":1.0,"expressive":1.28}[cfg["animation_intensity"]]
+ return {"spacing_scale":density,"font_scale":font,"accent_alpha":accent,"panel_alpha":panel,
+  "window_opacity":opacity,"gaps_in":gaps[0],"gaps_out":gaps[1],"border_size":borders,
+  "blur_enabled":blur[0],"blur_size":blur[1],"blur_passes":blur[2],"animation_scale":animation}
+def capability(key):
+ compositor=key in {"blur","opacity","gaps","borders","animation_intensity"}
+ available=not compositor or bool(os.environ.get("HYPRLAND_INSTANCE_SIGNATURE")) or SKIP
+ return {"status":"available" if available else "degraded","reason":"" if available else "Hyprland is unavailable; token is saved and will apply next session"}
+def activate():
+ if SKIP:return
+ subprocess.run(["hyprctl","reload"],stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL,check=False)
+ subprocess.run(["omarchy-shell","shell","rescanPlugins"],stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL,check=False)
+def main():
+ p=argparse.ArgumentParser();s=p.add_subparsers(dest="command",required=True)
+ q=s.add_parser("status");q.add_argument("--json",action="store_true")
+ a=s.add_parser("set");a.add_argument("key",choices=VALUES);a.add_argument("value")
+ s.add_parser("reset")
+ args=p.parse_args();cfg=current()
+ if args.command=="set":
+  if args.value not in VALUES[args.key]:raise SystemExit("Value is outside the visual token bounds")
+  cfg[args.key]=args.value;atomic(cfg);activate()
+ elif args.command=="reset":cfg=validate(load(DEFAULT));atomic(cfg);activate()
+ result={"schema_version":1,"tokens":cfg,"resolved":resolved(cfg),"capabilities":{key:capability(key) for key in VALUES}}
+ print(json.dumps(result,separators=(",",":")) if getattr(args,"json",False) or args.command!="status" else "\n".join(f"{k}={v}" for k,v in cfg.items() if k!="schema_version"))
+ return 0
+if __name__=="__main__":raise SystemExit(main())

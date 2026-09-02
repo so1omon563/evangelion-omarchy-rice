@@ -1,5 +1,14 @@
 # Configuration reference
 
+## Visual customization
+
+Use the Visual category in the MAGI Control Center to adjust bounded density,
+accent strength, typography, panel treatment, compositor blur, window opacity,
+gaps, borders, and animation intensity. Settings are stored in the preserved
+`~/.config/omarchy/visual.json`; unsupported compositor effects degrade safely
+and apply when Hyprland is next available. Full usage, preview/undo behavior,
+and precedence are in [VISUAL_CUSTOMIZATION.md](VISUAL_CUSTOMIZATION.md).
+
 ## Core user configuration
 
 The installer creates and then preserves `~/.config/omarchy/evangelion.json`:

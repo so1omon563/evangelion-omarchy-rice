@@ -22,7 +22,9 @@ seven wallpapers, EVA affinity palettes, MAGI shell plugins, responsive menus
 and overlays, terminal profiles, safety telemetry, sounds, and operator tools.
 The [MAGI control center](SETTINGS.md) provides one keyboard-first surface for
 the suite's affinity, motion, profile, widget, weather, media, privacy, sound,
-and display settings, with preview and one-step undo.
+display, and bounded visual settings, with preview and one-step undo. See
+[Safe visual customization](VISUAL_CUSTOMIZATION.md) for its accessibility and
+fallback contract.
 [Workspace identities](WORKSPACES.md) are user-editable, remain full-length in
 the OSD, and collapse into collision-safe labels against the live bar width.
 
@@ -170,6 +172,8 @@ Suite integrity diagnosis and narrowly allowlisted reversible remediation are
 documented in [RICE_HEALTH.md](RICE_HEALTH.md).
 Private named configuration snapshots, selective diff/restore, retention, and
 transaction rollback are documented in [SNAPSHOTS.md](SNAPSHOTS.md).
+The density, typography, panel, and compositor token model is documented in
+[VISUAL_CUSTOMIZATION.md](VISUAL_CUSTOMIZATION.md).
 
 ## Upgrade, rollback, and removal
 

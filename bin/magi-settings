@@ -7,6 +7,7 @@ ROOT=Path(__file__).resolve().parents[1]; HOME=Path(os.environ.get("EVA_SETTINGS
 DATA=Path(os.environ.get("EVA_SETTINGS_DATA",ROOT if (ROOT/"omarchy").is_dir() else HOME/".local/share/evangelion-rice"))
 SCHEMA=Path(os.environ.get("EVA_SETTINGS_SCHEMA",DATA/"omarchy/settings-schema.json" if (DATA/"omarchy/settings-schema.json").is_file() else DATA/"settings-schema.json"))
 CONFIG=Path(os.environ.get("EVA_SETTINGS_CONFIG",HOME/".config/omarchy/evangelion.json")); SHELL=Path(os.environ.get("EVA_SETTINGS_SHELL",HOME/".config/omarchy/shell.json"))
+VISUAL=Path(os.environ.get("EVA_SETTINGS_VISUAL",HOME/".config/omarchy/visual.json")); VISUAL_DEFAULT=DATA/"omarchy/visual.json" if (DATA/"omarchy/visual.json").is_file() else DATA/"visual.json"
 STATE=Path(os.environ.get("EVA_SETTINGS_STATE",HOME/".local/state/evangelion-rice/settings")); SKIP=os.environ.get("EVA_SETTINGS_SKIP_ACTIVATE")=="1"
 
 def load(path,default=None):
@@ -43,6 +44,8 @@ def widget_enabled(widget):
     shell=load(SHELL,{}) or {}; layout=shell.get("bar",{}).get("layout",{})
     return any(row.get("id")==widget for rows in layout.values() if isinstance(rows,list) for row in rows if isinstance(row,dict))
 def current(key):
+    if key.startswith("visual."):
+        cfg=load(VISUAL) or load(VISUAL_DEFAULT,{}) or {};return cfg.get(key.split(".",1)[1])
     if key=="affinity.mode":
         mode=command_value(["magi-affinity","status"],"mode=")
         return "auto" if mode=="auto" else command_value(["magi-affinity","status"],"active=")
@@ -73,6 +76,10 @@ def preview(key,value):
     result={"schema_version":1,"setting":key,"category":row["category"],"label":row["label"],"before":current(key),"after":value,"snapshot_component":row["snapshot"],"effects":effects(key,value),"requires_confirmation":True}
     result["plan_id"]=hashlib.sha256(json.dumps(result,sort_keys=True,separators=(",",":")).encode()).hexdigest()[:16];return result
 def effects(key,value):
+    if key.startswith("visual."):
+        token=key.split(".",1)[1]
+        surfaces="Hyprland and MAGI shell" if token in {"blur","opacity","gaps","borders","animation_intensity"} else "MAGI shell surfaces"
+        return [f"Set bounded {token.replace('_',' ')} token to {value}",f"Refresh {surfaces}","Preserve Reduced/Off motion safety overrides"]
     if key in {"widgets.cava","media.widget"}:return [f"Update owned shell layout: {value}","Hot-reload shell layout"]
     if key=="display.bar-position":return [f"Move the primary bar to {value}","Hot-reload shell layout"]
     return [f"Set {key} to {value}","Refresh participating MAGI surfaces"]
@@ -89,7 +96,8 @@ def shell_setting(key,value):
             left=layout.setdefault("left",[]); anchor="evangelion.media" if widget=="evangelion.cava" else "evangelion.workspaces"; index=next((i+1 for i,x in enumerate(left) if isinstance(x,dict) and x.get("id")==anchor),len(left));left.insert(index,{"id":widget})
     atomic(SHELL,shell)
 def execute(key,value):
-    if key=="affinity.mode":args=["magi-affinity","auto"] if value=="auto" else ["magi-affinity","set",value]
+    if key.startswith("visual."):args=["magi-visual","set",key.split(".",1)[1],value]
+    elif key=="affinity.mode":args=["magi-affinity","auto"] if value=="auto" else ["magi-affinity","set",value]
     elif key=="motion.mode":args=["magi-motion","set",value]
     elif key=="profile.mode":args=["magi-operating-profile",value]
     elif key in {"widgets.cava","media.widget","display.bar-position"}:shell_setting(key,value);return
@@ -118,7 +126,10 @@ def rollback_snapshot(name,component):
 def undo():
     record=load(STATE/"last.json")
     if not isinstance(record,dict):raise SystemExit("No control-center change to undo")
-    rollback_snapshot(record["snapshot"],record["component"]);(STATE/"last.json").unlink(missing_ok=True)
+    rollback_snapshot(record["snapshot"],record["component"])
+    if str(record.get("setting","")).startswith("visual.") and not SKIP:
+        run(["magi-visual","set",record["setting"].split(".",1)[1],record["before"]])
+    (STATE/"last.json").unlink(missing_ok=True)
     return {"schema_version":1,"status":"undone","setting":record["setting"],"restored":record["before"]}
 def main():
     parser=argparse.ArgumentParser();sub=parser.add_subparsers(dest="command",required=True)

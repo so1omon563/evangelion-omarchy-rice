@@ -4,12 +4,18 @@ Press `Super + Ctrl + Alt + S`, or choose **MAGI Control Center** from the MAGI
 menu, to open the unified settings surface. This chord is intentionally outside
 Omarchy's stock bindings; `Super + K` remains the authoritative live reference.
 
-The control center covers nine categories: EVA affinity, motion, operating
+The control center covers ten categories: EVA affinity, motion, operating
 profile, widgets, ambient weather, media, privacy, sound, and display. Its
 choices come from `settings-schema.json`, not duplicated UI logic. It reports a
 missing dependency as unavailable and leaves the existing configuration intact.
 The privacy indicator is visibly locked on because capture safety cannot be
 disabled here.
+
+The Visual category exposes bounded density, accent strength, typography,
+panel treatment, blur, opacity, gaps, borders, and animation intensity. These
+values are preserved in `~/.config/omarchy/visual.json`; see
+[VISUAL_CUSTOMIZATION.md](VISUAL_CUSTOMIZATION.md). Reduced and Off motion
+continue to override visual blur and travel requests.
 
 ## Keyboard workflow
 

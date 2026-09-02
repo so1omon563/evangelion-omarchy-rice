@@ -29,6 +29,7 @@ TESTING.md
 TROUBLESHOOTING.md
 UPGRADING.md
 WORKSPACES.md
+VISUAL_CUSTOMIZATION.md
 VERSION
 check-dependencies.sh
 dependencies.tsv

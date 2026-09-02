@@ -15,13 +15,25 @@ Item {
   property string notice: ""
   readonly property var targetScreen: (Quickshell.screens || []).length ? Quickshell.screens[0] : null
   readonly property var active: settings.length ? settings[Math.max(0, Math.min(selected, settings.length - 1))] : null
+  function visualValue(id, fallback) { for (var i=0;i<settings.length;i++) if(settings[i].id==="visual."+id)return settings[i].value||fallback; return fallback }
+  readonly property real densityScale: visualValue("density","balanced")==="compact"?.88:(visualValue("density","balanced")==="comfortable"?1.12:1)
+  readonly property real fontScale: visualValue("typography","standard")==="compact"?.92:(visualValue("typography","standard")==="large"?1.14:1)
+  readonly property real panelAlpha: visualValue("panel_treatment","glass")==="opaque"?1:(visualValue("panel_treatment","glass")==="minimal"?.86:.94)
+  readonly property real accentAlpha: visualValue("accent_strength","balanced")==="subtle"?.55:(visualValue("accent_strength","balanced")==="vivid"?1:.78)
+  readonly property int rowHeight: 44
   Motion.MotionState { id: motion }
   Localization.I18n { id: i18n }
 
   function refresh() { if (!statusProc.running) statusProc.running = true }
   function show() { opened = true; pending = null; notice = ""; refresh(); keyCatcher.forceActiveFocus() }
   function hide() { opened = false; pending = null }
-  function move(amount) { if (!settings.length) return; selected = (selected + amount + settings.length) % settings.length; syncChoice(); pending = null }
+  function revealSelection() {
+    if (!settings.length) return
+    var top=selected*(rowHeight+5), bottom=top+rowHeight
+    if(top<listFlick.contentY)listFlick.contentY=top
+    else if(bottom>listFlick.contentY+listFlick.height)listFlick.contentY=Math.min(listFlick.contentHeight-listFlick.height,bottom-listFlick.height)
+  }
+  function move(amount) { if (!settings.length) return; selected = (selected + amount + settings.length) % settings.length; syncChoice(); pending = null; Qt.callLater(revealSelection) }
   function syncChoice() {
     if (!active) return
     var index = active.values.indexOf(active.value)
@@ -65,12 +77,12 @@ Item {
     anchors { top: true; left: true; right: true; bottom: true }
     WlrLayershell.namespace: "magi-settings"; WlrLayershell.layer: WlrLayer.Overlay
     WlrLayershell.keyboardFocus: WlrKeyboardFocus.Exclusive; exclusionMode: ExclusionMode.Ignore
-    Rectangle { anchors.fill: parent; color: "#d9070610" }
+    Rectangle { anchors.fill: parent; color: Qt.rgba(.027,.024,.063,.85) }
     MouseArea { anchors.fill: parent; onClicked: root.hide() }
 
     Rectangle {
-      width: Math.min(parent.width - 80, 1080); height: Math.min(parent.height - 80, 720)
-      anchors.centerIn: parent; color: "#f20a0810"; border.width: 2; border.color: "#f6d447"; radius: 4
+      width: Math.min(parent.width - 80, 1080 * root.densityScale); height: Math.min(parent.height - 80, 720 * root.densityScale)
+      anchors.centerIn: parent; color: Qt.rgba(.039,.031,.063,root.panelAlpha); border.width: 2; border.color: Qt.rgba(.965,.831,.278,root.accentAlpha); radius: 4
       opacity: motion.off || root.opened ? 1 : 0
       Behavior on opacity { enabled: !motion.off; NumberAnimation { duration: motion.standardMs; easing.type: Easing.OutCubic } }
       MouseArea { anchors.fill: parent; onClicked: {} }
@@ -106,25 +118,27 @@ Item {
           Rectangle { width: parent.width; height: 1; color: "#6e5720" }
           Row {
             width: parent.width; height: parent.height - 150; spacing: 18
-            Column {
-              width: parent.width * .53; spacing: 5
+            Flickable {
+              id:listFlick; width:parent.width*.53; height:parent.height; clip:true; boundsBehavior:Flickable.StopAtBounds
+              contentWidth:width; contentHeight:listColumn.height
+              Column { id:listColumn; width:listFlick.width; spacing:5
               Repeater {
                 model: root.settings
                 delegate: Rectangle {
                   required property var modelData; required property int index
-                  width: parent.width; height: 48; color: index === root.selected ? "#3af6d447" : "#8a100d16"
+                  width: parent.width; height: root.rowHeight; color: index === root.selected ? "#3af6d447" : "#8a100d16"
                   border.width: index === root.selected ? 1 : 0; border.color: "#f6d447"
                   Row { anchors.fill: parent; anchors.margins: 10; spacing: 10
                     Text { width: 26; text: String(index + 1).padStart(2, "0"); color: index === root.selected ? "#f6d447" : "#70667a"; font.family: "JetBrainsMono Nerd Font"; font.pixelSize: 10 }
                     Column { width: parent.width - 150; spacing: 2
-                      Text { width: parent.width; elide: Text.ElideRight; text: String(modelData.label).toUpperCase(); color: index === root.selected ? "#fff6dc" : "#c4bacb"; font.family: "JetBrainsMono Nerd Font"; font.pixelSize: 12; font.bold: true }
+                      Text { width: parent.width; elide: Text.ElideRight; text: String(modelData.label).toUpperCase(); color: index === root.selected ? "#fff6dc" : "#c4bacb"; font.family: "JetBrainsMono Nerd Font"; font.pixelSize: 12*root.fontScale; font.bold: true }
                       Text { text: String(modelData.category).toUpperCase(); color: "#82768d"; font.family: "JetBrainsMono Nerd Font"; font.pixelSize: 8; font.letterSpacing: 1 }
                     }
                     Text { width: 94; horizontalAlignment: Text.AlignRight; elide: Text.ElideLeft; text: modelData.read_only ? "LOCKED" : String(modelData.value || "—").toUpperCase(); color: modelData.capability.status === "available" ? "#62d8ff" : "#f05a68"; font.family: "JetBrainsMono Nerd Font"; font.pixelSize: 10; font.bold: true }
                   }
-                  MouseArea { anchors.fill: parent; onClicked: { root.selected = index; root.syncChoice(); root.pending = null } }
+                  MouseArea { anchors.fill: parent; onClicked: { root.selected = index; root.syncChoice(); root.pending = null; Qt.callLater(root.revealSelection) } }
                 }
-              }
+              }}
             }
             Rectangle {
               width: parent.width * .47 - 18; height: parent.height; color: "#b308070d"; border.width: 1; border.color: "#7450a6"

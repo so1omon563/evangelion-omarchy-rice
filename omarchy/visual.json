@@ -1,0 +1,12 @@
+{
+  "schema_version": 1,
+  "density": "balanced",
+  "accent_strength": "balanced",
+  "typography": "standard",
+  "panel_treatment": "glass",
+  "blur": "balanced",
+  "opacity": "solid",
+  "gaps": "balanced",
+  "borders": "standard",
+  "animation_intensity": "balanced"
+}

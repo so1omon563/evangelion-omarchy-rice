@@ -9,6 +9,15 @@
     {"id":"media.widget","category":"Media","label":"Media control widget","values":["enabled","disabled"],"command":"playerctl","snapshot":"layouts"},
     {"id":"privacy.indicator","category":"Privacy","label":"Capture safety indicator","values":["always-on"],"command":"magi-privacy","snapshot":"layouts","read_only":true,"reason":"Safety state cannot be hidden"},
     {"id":"sound.enabled","category":"Sound","label":"Evangelion sound cues","values":["enabled","disabled"],"command":"magi-sound","snapshot":"settings"},
-    {"id":"display.bar-position","category":"Display","label":"Primary bar position","values":["top","bottom"],"command":"omarchy-shell","snapshot":"layouts"}
+    {"id":"display.bar-position","category":"Display","label":"Primary bar position","values":["top","bottom"],"command":"omarchy-shell","snapshot":"layouts"},
+    {"id":"visual.density","category":"Visual","label":"Interface density","values":["compact","balanced","comfortable"],"command":"magi-visual","snapshot":"settings"},
+    {"id":"visual.accent_strength","category":"Visual","label":"Accent strength","values":["subtle","balanced","vivid"],"command":"magi-visual","snapshot":"settings"},
+    {"id":"visual.typography","category":"Visual","label":"Typography scale","values":["compact","standard","large"],"command":"magi-visual","snapshot":"settings"},
+    {"id":"visual.panel_treatment","category":"Visual","label":"Panel treatment","values":["opaque","glass","minimal"],"command":"magi-visual","snapshot":"settings"},
+    {"id":"visual.blur","category":"Visual","label":"Compositor blur","values":["off","subtle","balanced"],"command":"magi-visual","snapshot":"settings"},
+    {"id":"visual.opacity","category":"Visual","label":"Window opacity","values":["opaque","solid","soft"],"command":"magi-visual","snapshot":"settings"},
+    {"id":"visual.gaps","category":"Visual","label":"Window gaps","values":["tight","balanced","open"],"command":"magi-visual","snapshot":"settings"},
+    {"id":"visual.borders","category":"Visual","label":"Window borders","values":["minimal","standard","strong"],"command":"magi-visual","snapshot":"settings"},
+    {"id":"visual.animation_intensity","category":"Visual","label":"Animation intensity","values":["calm","balanced","expressive"],"command":"magi-visual","snapshot":"settings"}
   ]
 }
