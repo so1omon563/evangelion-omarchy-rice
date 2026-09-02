@@ -15,7 +15,7 @@ directories = {path.name for path in plugin_root.iterdir() if path.is_dir()}
 assert audit["schema_version"] == 1
 assert audit["baseline"] == "v1.5-development"
 assert audit["standalone_support_claimed"] is False
-assert len(rows) == len(by_id) == len(directories) == 34
+assert len(rows) == len(by_id) == len(directories) == 35
 assert set(by_id) == directories
 assert audit["recommended_candidates"] == ["evangelion.cava", "evangelion.media"]
 allowed = {"standalone", "optionally-integrated", "suite-only", "compatibility-only"}

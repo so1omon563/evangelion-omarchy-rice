@@ -50,6 +50,7 @@ run_install --apply --preset full --yes >/dev/null
 [[ -f $test_root/home/.config/fastfetch/config.jsonc && -f $test_root/home/.config/nvim/lua/plugins/eva-terminal-profile.lua ]] || fail "full preset omitted extras"
 [[ -f $test_root/home/.config/omarchy/evangelion.json ]] || fail "full preset omitted portable user configuration"
 [[ -f $test_root/home/.config/omarchy/motion.json && -f $test_root/home/.config/omarchy/plugins/evangelion.motion/manifest.json ]] || fail "full preset omitted motion foundation"
+[[ -f $test_root/home/.local/share/evangelion-rice/settings-schema.json && -f $test_root/home/.config/omarchy/plugins/evangelion.settings/manifest.json ]] || fail "full preset omitted MAGI control center"
 [[ -f $test_root/home/.config/omarchy/performance.json && -f $test_root/home/.config/omarchy/plugins/evangelion.performance/manifest.json ]] || fail "full preset omitted opt-in performance overlay"
 jq -e '.enabled == false and .sample_interval_ms >= 1000' "$test_root/home/.config/omarchy/performance.json" >/dev/null || fail "performance overlay is not disabled and bounded by default"
 [[ -x $test_root/home/.local/bin/magi-context ]] || fail "full preset omitted MAGI context controller"

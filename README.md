@@ -20,6 +20,9 @@
 An unofficial *Neon Genesis Evangelion* desktop environment for Omarchy:
 seven wallpapers, EVA affinity palettes, MAGI shell plugins, responsive menus
 and overlays, terminal profiles, safety telemetry, sounds, and operator tools.
+The [MAGI control center](SETTINGS.md) provides one keyboard-first surface for
+the suite's affinity, motion, profile, widget, weather, media, privacy, sound,
+and display settings, with preview and one-step undo.
 
 ![Evangelion Omarchy desktop](media/desktop-hero.png)
 

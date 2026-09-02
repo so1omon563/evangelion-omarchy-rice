@@ -56,6 +56,7 @@
     { "id": "evangelion.performance" }
     ,{ "id": "evangelion.demo" }
     ,{ "id": "evangelion.localization" }
+    ,{ "id": "evangelion.settings" }
   ],
   "disabledPlugins": [
     "omarchy.lock",

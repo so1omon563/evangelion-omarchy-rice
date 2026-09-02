@@ -1,0 +1,130 @@
+#!/usr/bin/env python3
+"""Schema-backed preview/apply/undo engine for the MAGI control center."""
+import argparse, hashlib, json, os, shutil, subprocess, tempfile, time
+from pathlib import Path
+
+ROOT=Path(__file__).resolve().parents[1]; HOME=Path(os.environ.get("EVA_SETTINGS_HOME",Path.home()))
+DATA=Path(os.environ.get("EVA_SETTINGS_DATA",ROOT if (ROOT/"omarchy").is_dir() else HOME/".local/share/evangelion-rice"))
+SCHEMA=Path(os.environ.get("EVA_SETTINGS_SCHEMA",DATA/"omarchy/settings-schema.json" if (DATA/"omarchy/settings-schema.json").is_file() else DATA/"settings-schema.json"))
+CONFIG=Path(os.environ.get("EVA_SETTINGS_CONFIG",HOME/".config/omarchy/evangelion.json")); SHELL=Path(os.environ.get("EVA_SETTINGS_SHELL",HOME/".config/omarchy/shell.json"))
+STATE=Path(os.environ.get("EVA_SETTINGS_STATE",HOME/".local/state/evangelion-rice/settings")); SKIP=os.environ.get("EVA_SETTINGS_SKIP_ACTIVATE")=="1"
+
+def load(path,default=None):
+    try:return json.loads(path.read_text())
+    except (OSError,json.JSONDecodeError):return default
+def run(args,timeout=8):
+    try:return subprocess.run(args,text=True,capture_output=True,timeout=timeout,check=False)
+    except (OSError,subprocess.SubprocessError):return None
+def atomic(path,value,mode=None):
+    path.parent.mkdir(parents=True,exist_ok=True); fd,name=tempfile.mkstemp(prefix=".settings.",dir=path.parent)
+    try:
+        with os.fdopen(fd,"w") as stream:json.dump(value,stream,indent=2);stream.write("\n")
+        existing_mode=(path.stat().st_mode & 0o777) if path.exists() else 0o644
+        os.chmod(name,existing_mode if mode is None else mode);os.replace(name,path)
+    finally:
+        try:os.unlink(name)
+        except FileNotFoundError:pass
+def definitions():
+    schema=load(SCHEMA)
+    if not isinstance(schema,dict) or schema.get("schema_version")!=1 or not isinstance(schema.get("settings"),list):raise SystemExit("Settings schema unavailable or invalid")
+    return schema["settings"]
+def definition(key):
+    match=next((row for row in definitions() if row.get("id")==key),None)
+    if not match:raise SystemExit("Unknown setting")
+    return match
+def command_value(args,prefix=""):
+    value=run(args)
+    if not value or value.returncode:return None
+    text=value.stdout.strip()
+    if prefix:
+        return next((line[len(prefix):] for line in text.splitlines() if line.startswith(prefix)),None)
+    return text
+def widget_enabled(widget):
+    shell=load(SHELL,{}) or {}; layout=shell.get("bar",{}).get("layout",{})
+    return any(row.get("id")==widget for rows in layout.values() if isinstance(rows,list) for row in rows if isinstance(row,dict))
+def current(key):
+    if key=="affinity.mode":
+        mode=command_value(["magi-affinity","status"],"mode=")
+        return "auto" if mode=="auto" else command_value(["magi-affinity","status"],"active=")
+    if key=="motion.mode": return command_value(["magi-motion","status"])
+    if key=="profile.mode": return command_value(["magi-operating-profile","status"],"mode=")
+    if key=="widgets.cava": return "enabled" if widget_enabled("evangelion.cava") else "disabled"
+    if key=="weather.ambient":
+        cfg=load(CONFIG,{}) or {}; return "enabled" if cfg.get("ambient",{}).get("enabled",True) else "disabled"
+    if key=="media.widget": return "enabled" if widget_enabled("evangelion.media") else "disabled"
+    if key=="privacy.indicator": return "always-on"
+    if key=="sound.enabled": return command_value(["magi-sound","status"])
+    if key=="display.bar-position": return (load(SHELL,{}) or {}).get("bar",{}).get("position","top")
+    return None
+def capability(row):
+    available=shutil.which(row["command"]) is not None
+    if row["id"] in {"widgets.cava","media.widget","display.bar-position"}:available=isinstance(load(SHELL),dict)
+    if row["id"]=="media.widget" and shutil.which("playerctl") is None:return {"status":"unavailable","reason":"playerctl is not installed"}
+    return {"status":"available" if available else "unavailable","reason":"" if available else row["command"]+" is unavailable"}
+def status():
+    rows=[]
+    for row in definitions():rows.append({**row,"value":current(row["id"]),"capability":capability(row)})
+    return {"schema_version":1,"settings":rows,"categories":list(dict.fromkeys(row["category"] for row in rows)),"undo_available":STATE.joinpath("last.json").is_file()}
+def preview(key,value):
+    row=definition(key); cap=capability(row)
+    if row.get("read_only"):raise SystemExit(row.get("reason","Setting is read-only"))
+    if cap["status"]!="available":raise SystemExit(cap["reason"])
+    if value not in row["values"]:raise SystemExit("Value is outside the settings schema")
+    result={"schema_version":1,"setting":key,"category":row["category"],"label":row["label"],"before":current(key),"after":value,"snapshot_component":row["snapshot"],"effects":effects(key,value),"requires_confirmation":True}
+    result["plan_id"]=hashlib.sha256(json.dumps(result,sort_keys=True,separators=(",",":")).encode()).hexdigest()[:16];return result
+def effects(key,value):
+    if key in {"widgets.cava","media.widget"}:return [f"Update owned shell layout: {value}","Hot-reload shell layout"]
+    if key=="display.bar-position":return [f"Move the primary bar to {value}","Hot-reload shell layout"]
+    return [f"Set {key} to {value}","Refresh participating MAGI surfaces"]
+def shell_setting(key,value):
+    shell=load(SHELL)
+    if not isinstance(shell,dict):raise SystemExit("Shell configuration is invalid")
+    layout=shell.setdefault("bar",{}).setdefault("layout",{})
+    if key=="display.bar-position":shell["bar"]["position"]=value
+    else:
+        widget="evangelion.cava" if key=="widgets.cava" else "evangelion.media"
+        for section in layout:
+            if isinstance(layout[section],list):layout[section]=[x for x in layout[section] if not isinstance(x,dict) or x.get("id")!=widget]
+        if value=="enabled":
+            left=layout.setdefault("left",[]); anchor="evangelion.media" if widget=="evangelion.cava" else "evangelion.workspaces"; index=next((i+1 for i,x in enumerate(left) if isinstance(x,dict) and x.get("id")==anchor),len(left));left.insert(index,{"id":widget})
+    atomic(SHELL,shell)
+def execute(key,value):
+    if key=="affinity.mode":args=["magi-affinity","auto"] if value=="auto" else ["magi-affinity","set",value]
+    elif key=="motion.mode":args=["magi-motion","set",value]
+    elif key=="profile.mode":args=["magi-operating-profile",value]
+    elif key in {"widgets.cava","media.widget","display.bar-position"}:shell_setting(key,value);return
+    elif key=="weather.ambient":args=["magi-ambient","enable" if value=="enabled" else "disable"]
+    elif key=="sound.enabled":args=["magi-sound","enable" if value=="enabled" else "disable"]
+    else:raise SystemExit("Setting has no executor")
+    result=run(args)
+    if not result or result.returncode:raise SystemExit("Setting command failed")
+def apply(key,value,confirmation):
+    plan=preview(key,value)
+    if confirmation!=plan["plan_id"]:raise SystemExit("Confirmation mismatch; preview again and use the current plan_id")
+    name="control-center-"+time.strftime("%Y%m%d-%H%M%S")+f"-{os.getpid()}"; command=["magi-snapshot","create",name,"--note","Automatic control-center undo point","--components",plan["snapshot_component"]]
+    captured=run(command,15)
+    if not captured or captured.returncode:raise SystemExit("Unable to capture pre-apply snapshot")
+    try:execute(key,value)
+    except BaseException:
+        rollback_snapshot(name,plan["snapshot_component"]);raise
+    record={"schema_version":1,"snapshot":name,"component":plan["snapshot_component"],"setting":key,"before":plan["before"],"after":value,"applied_at":int(time.time())};atomic(STATE/"last.json",record,0o600)
+    if not SKIP:run(["omarchy-shell","shell","rescanPlugins"])
+    return {"schema_version":1,"status":"applied",**record,"undo_available":True}
+def rollback_snapshot(name,component):
+    shown=run(["magi-snapshot","diff",name,"--components",component],10)
+    if not shown or shown.returncode:raise SystemExit("Undo snapshot unavailable")
+    plan=json.loads(shown.stdout);restored=run(["magi-snapshot","restore",name,"--components",component,"--confirm",plan["plan_id"]],20)
+    if not restored or restored.returncode:raise SystemExit("Snapshot restore failed")
+def undo():
+    record=load(STATE/"last.json")
+    if not isinstance(record,dict):raise SystemExit("No control-center change to undo")
+    rollback_snapshot(record["snapshot"],record["component"]);(STATE/"last.json").unlink(missing_ok=True)
+    return {"schema_version":1,"status":"undone","setting":record["setting"],"restored":record["before"]}
+def main():
+    parser=argparse.ArgumentParser();sub=parser.add_subparsers(dest="command",required=True)
+    sub.add_parser("status")
+    p=sub.add_parser("preview");p.add_argument("setting");p.add_argument("value")
+    a=sub.add_parser("apply");a.add_argument("setting");a.add_argument("value");a.add_argument("--confirm",required=True)
+    sub.add_parser("undo")
+    args=parser.parse_args();value=status() if args.command=="status" else preview(args.setting,args.value) if args.command=="preview" else apply(args.setting,args.value,args.confirm) if args.command=="apply" else undo();print(json.dumps(value,separators=(",",":")));return 0
+if __name__=="__main__":raise SystemExit(main())

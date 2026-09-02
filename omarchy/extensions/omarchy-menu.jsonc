@@ -14,6 +14,12 @@
     "action": "omarchy-menu summon apps",
     "description": "Search and launch installed applications"
   },
+  "magi.settings": {
+    "icon": "󰒓",
+    "label": "MAGI Control Center",
+    "action": "omarchy-shell magi-settings toggle",
+    "description": "Preview, apply, and undo suite settings from one control surface"
+  },
   "magi.background": {
     "icon": "󰸉",
     "label": "Visual Environment",

@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "settings": [
+    {"id":"affinity.mode","category":"Affinity","label":"EVA affinity authority","values":["auto","neutral","unit-00-prototype","unit-00-refit","unit-01","unit-02"],"command":"magi-affinity","snapshot":"affinity"},
+    {"id":"motion.mode","category":"Motion","label":"Interface motion","values":["full","reduced","off"],"command":"magi-motion","snapshot":"settings"},
+    {"id":"profile.mode","category":"Operating Profile","label":"Dock and mobile authority","values":["auto","docked","mobile"],"command":"magi-operating-profile","snapshot":"profiles"},
+    {"id":"widgets.cava","category":"Widgets","label":"Cava spectrum widget","values":["enabled","disabled"],"command":"omarchy-shell","snapshot":"layouts"},
+    {"id":"weather.ambient","category":"Weather","label":"Ambient weather context","values":["enabled","disabled"],"command":"magi-ambient","snapshot":"settings"},
+    {"id":"media.widget","category":"Media","label":"Media control widget","values":["enabled","disabled"],"command":"playerctl","snapshot":"layouts"},
+    {"id":"privacy.indicator","category":"Privacy","label":"Capture safety indicator","values":["always-on"],"command":"magi-privacy","snapshot":"layouts","read_only":true,"reason":"Safety state cannot be hidden"},
+    {"id":"sound.enabled","category":"Sound","label":"Evangelion sound cues","values":["enabled","disabled"],"command":"magi-sound","snapshot":"settings"},
+    {"id":"display.bar-position","category":"Display","label":"Primary bar position","values":["top","bottom"],"command":"omarchy-shell","snapshot":"layouts"}
+  ]
+}

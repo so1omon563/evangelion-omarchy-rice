@@ -1,0 +1,11 @@
+{
+  "schemaVersion": 1,
+  "id": "evangelion.settings",
+  "name": "MAGI Control Center",
+  "version": "1.0.0",
+  "author": "Evangelion Rice",
+  "description": "Keyboard-first, schema-backed control center with preview, apply, and undo.",
+  "kinds": ["service"],
+  "keepLoaded": true,
+  "entryPoints": {"service": "Service.qml"}
+}

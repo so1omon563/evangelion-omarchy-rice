@@ -58,6 +58,7 @@ python3 "$root/tests/localization.py" >/dev/null && pass "localization and resil
 python3 "$root/tests/performance-budgets.py" >/dev/null && pass "enforced shell performance budgets" || fail "enforced shell performance budgets"
 python3 "$root/tests/rice-health.py" >/dev/null && pass "read-only rice health and reversible remediation" || fail "read-only rice health and reversible remediation"
 python3 "$root/tests/snapshots.py" >/dev/null && pass "private named selective configuration snapshots" || fail "private named selective configuration snapshots"
+python3 "$root/tests/settings.py" >/dev/null && pass "schema-backed MAGI control center" || fail "schema-backed MAGI control center"
 if [[ ${EVANGELION_RELEASE_ARTIFACT_NESTED:-0} != 1 ]]; then
   python3 "$root/tests/release-artifact.py" >/dev/null && pass "reproducible complete-suite release artifact" || fail "reproducible complete-suite release artifact"
   python3 "$root/tests/arch-package.py" >/dev/null && pass "Arch package and explicit user lifecycle" || fail "Arch package and explicit user lifecycle"

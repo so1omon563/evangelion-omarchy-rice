@@ -19,8 +19,14 @@ Omarchy's complete live keybinding reference.
 | `Super + Alt + C` | Open the MAGI world and mission clock |
 | `Super + Ctrl + Alt + G` | Open the MAGI context inspector |
 | `Super + Ctrl + Alt + F` | Toggle the opt-in MAGI developer performance overlay |
+| `Super + Ctrl + Alt + S` | Open the unified MAGI control center |
 | `Super + Alt + R` | Toggle the stock-only static recovery mode |
 | `Super + K` | Show every active Omarchy keybinding |
+
+Inside the control center, use Up/Down (or J/K) to navigate, Left/Right (or
+H/L) to choose a value, Enter to preview, `A` to apply the exact preview, `U`
+to undo the last applied change, `R` to refresh capabilities, and Escape to
+close. No control-center change is applied without a preview and confirmation.
 
 ## Developer performance overlay
 
