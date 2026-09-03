@@ -180,6 +180,11 @@ portable source lookup, vendor-icon policy, and documented stock fallback.
 `suite-update.py` exercises the Stable default, explicit Preview/Development
 risk acceptance, tag/signature evidence, offline and stale resolution behavior,
 exact preview IDs, transactional apply, and exact undo in an isolated home.
+`onboarding.py` verifies skip/reopen, portable redaction, schema and path
+rejection, conflict-only preview, confirmation binding, failure rollback, and
+exact import undo without activating a desktop session.
+`onboarding.py` covers skip/reopen, privacy redaction, schema rejection,
+conflict preview, confirmation binding, transactional import, and rollback.
 `clean-user.sh` simulates a fresh, logged-in Omarchy user with isolated config,
 data, state, and command-event paths. It never writes to the invoking user's
 home or communicates with the live Hyprland session.

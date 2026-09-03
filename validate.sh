@@ -64,6 +64,7 @@ python3 "$root/tests/scenes.py" >/dev/null && pass "atomic affinity scene coordi
 python3 "$root/tests/media-controls.py" >/dev/null && pass "coordinated Playerctl media and Cava" || fail "coordinated Playerctl media and Cava"
 python3 "$root/tests/accessibility.py" >/dev/null && pass "accessibility and inclusive interaction matrix" || fail "accessibility and inclusive interaction matrix"
 python3 "$root/tests/suite-update.py" >/dev/null && pass "guided transactional suite updates and release channels" || fail "guided transactional suite updates and release channels"
+python3 "$root/tests/onboarding.py" >/dev/null && pass "first-run onboarding and sanitized configuration transfer" || fail "first-run onboarding and sanitized configuration transfer"
 python3 "$root/tests/workspace-names.py" >/dev/null && pass "editable responsive workspace identities" || fail "editable responsive workspace identities"
 if [[ ${EVANGELION_RELEASE_ARTIFACT_NESTED:-0} != 1 ]]; then
   python3 "$root/tests/release-artifact.py" >/dev/null && pass "reproducible complete-suite release artifact" || fail "reproducible complete-suite release artifact"

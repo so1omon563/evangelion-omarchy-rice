@@ -1,0 +1,104 @@
+#!/usr/bin/env python3
+"""First-run onboarding and privacy-sanitized configuration transfer."""
+import argparse,hashlib,json,os,re,shutil,subprocess,tempfile,time
+from pathlib import Path
+ROOT=Path(__file__).resolve().parents[1]; CONFIG=Path(os.environ.get("XDG_CONFIG_HOME",Path.home()/".config"))/"omarchy"; STATE=Path(os.environ.get("XDG_STATE_HOME",Path.home()/".local/state"))/"evangelion-rice/onboarding"; STATUS=STATE/"status.json"; PLAN=STATE/"import-plan.json"
+FILES={"core":"evangelion.json","visual":"visual.json","media":"media.json","workspaces":"workspaces.json","scenes":"scenes.json","updates":"evangelion-update.json"}; SECRET=re.compile(r"password|secret|token|api.?key|credential|cookie|private.?key",re.I)
+ALLOWED={key:set(read) for key,read in {"core":["terminal","editor","shell","shell_integration","project_dir","motion","context","ambient","deployment","presentation"],"visual":["schema_version","density","accent_strength","typography","panel_treatment","blur","opacity","gaps","borders","animation_intensity"],"media":["schema_version","artwork","cava","volume_step_percent"],"workspaces":["schema_version","workspaces"],"scenes":["schema_version","scenes"],"updates":["selected_channel"]}.items()}
+def atomic(path,value):
+ path.parent.mkdir(parents=True,exist_ok=True);fd,tmp=tempfile.mkstemp(prefix="."+path.name+".",dir=path.parent)
+ try:
+  with os.fdopen(fd,"w") as f:json.dump(value,f,indent=2,sort_keys=True);f.write("\n");f.flush();os.fsync(f.fileno())
+  os.chmod(tmp,0o600);os.replace(tmp,path)
+ finally:
+  try:os.unlink(tmp)
+  except FileNotFoundError:pass
+def read(path,default=None):
+ try:return json.loads(path.read_text())
+ except (OSError,json.JSONDecodeError):return default
+def secrets(value):
+ if isinstance(value,dict):return any(SECRET.search(str(k)) or secrets(v) for k,v in value.items())
+ if isinstance(value,list):return any(secrets(v) for v in value)
+ return False
+def paths(value):
+ if isinstance(value,dict):return any(paths(v) for v in value.values())
+ if isinstance(value,list):return any(paths(v) for v in value)
+ return isinstance(value,str) and (value.startswith(("/","~/","file://","ssh://")) or re.match(r"^[A-Za-z]:\\",value))
+def sanitized():
+ out={}
+ for key,name in FILES.items():
+  value=read(CONFIG/name,read(ROOT/"omarchy"/("update.json" if key=="updates" else name),{}))
+  if key=="core":
+   value=dict(value);value["project_dir"]="";value["editor"]=[]
+   value["ambient"]={**value.get("ambient",{}),"location":None};value["deployment"]={**value.get("deployment",{}),"browser_url":"about:blank"}
+  if key=="updates":value={"selected_channel":value.get("selected_channel","stable")}
+  if secrets(value):raise SystemExit("Export refused secret-like configuration keys")
+  out[key]=value
+ return out
+def export(args):
+ payload={"schema":"evangelion-portable-config","schema_version":1,"suite_version":(ROOT/"VERSION").read_text().strip(),"privacy":{"paths":False,"devices":False,"secrets":False,"location":False},"components":sanitized()};atomic(args.output,payload);print(json.dumps({"status":"exported","output":str(args.output),"components":list(payload["components"]),"privacy":payload["privacy"]},indent=2))
+def validate_bundle(path):
+ if path.stat().st_size>1024*1024:raise SystemExit("Import exceeds 1 MiB limit")
+ value=read(path)
+ if not isinstance(value,dict) or value.get("schema")!="evangelion-portable-config" or value.get("schema_version")!=1:raise SystemExit("Unsupported portable configuration schema")
+ parts=value.get("components");unknown=set(parts or {})-set(FILES)
+ if not isinstance(parts,dict) or unknown:raise SystemExit("Unknown or malformed import components")
+ if secrets(parts):raise SystemExit("Import refused secret-like keys")
+ serialized=json.dumps(parts)
+ if paths(parts):raise SystemExit("Import refused host-specific path")
+ if parts.get("updates",{}).get("selected_channel","stable") not in ("stable","preview","development"):raise SystemExit("Invalid release channel")
+ for key,item in parts.items():
+  if not isinstance(item,dict):raise SystemExit("Every import component must be an object")
+  if set(item)-ALLOWED[key]:raise SystemExit("Unknown keys in import component "+key)
+ core=parts.get("core",{})
+ if core.get("project_dir","")!="" or core.get("editor",[])!=[] or core.get("ambient",{}).get("location") is not None or core.get("deployment",{}).get("browser_url","about:blank")!="about:blank":raise SystemExit("Import contains non-portable core settings")
+ if set(parts.get("updates",{}))!={"selected_channel"}:raise SystemExit("Update import may contain only selected_channel")
+ return value
+def preview(args):
+ value=validate_bundle(args.input);rows=[]
+ for key,item in value["components"].items():
+  target=CONFIG/FILES[key];before=read(target);rows.append({"component":key,"target":FILES[key],"status":"unchanged" if before==item else "conflict" if target.exists() else "create"})
+ basis={"input":str(args.input.resolve()),"sha256":hashlib.sha256(args.input.read_bytes()).hexdigest(),"changes":rows};basis["plan_id"]=hashlib.sha256(json.dumps(basis,sort_keys=True).encode()).hexdigest()[:16];basis["read_only"]=True;atomic(PLAN,basis);print(json.dumps(basis,indent=2));return basis
+def apply(args):
+ plan=read(PLAN,{})
+ if args.confirm!=plan.get("plan_id") or hashlib.sha256(args.input.read_bytes()).hexdigest()!=plan.get("sha256"):raise SystemExit("Import confirmation mismatch; preview again")
+ value=validate_bundle(args.input);tx=STATE/"transactions"/(time.strftime("%Y%m%d-%H%M%S")+f"-{os.getpid()}");(tx/"before").mkdir(parents=True);manifest=[]
+ try:
+  for key,item in value["components"].items():
+   target=CONFIG/FILES[key];row={"target":FILES[key],"exists":target.exists()}
+   if target.exists():shutil.copy2(target,tx/"before"/FILES[key]);row["sha256"]=hashlib.sha256(target.read_bytes()).hexdigest()
+   manifest.append(row)
+  atomic(tx/"manifest.json",{"schema_version":1,"status":"prepared","files":manifest})
+  for key,item in value["components"].items():atomic(CONFIG/FILES[key],item)
+  if os.environ.get("EVANGELION_FORCE_ONBOARDING_FAILURE")=="1":raise RuntimeError("forced onboarding import failure")
+  for key,item in value["components"].items():
+   if read(CONFIG/FILES[key])!=item:raise RuntimeError("post-write validation failed")
+  atomic(tx/"manifest.json",{"schema_version":1,"status":"applied","files":manifest});print(json.dumps({"status":"imported","transaction":tx.name,"components":list(value["components"])},indent=2))
+ except BaseException:
+  restore(tx);raise
+def restore(tx):
+ manifest=read(tx/"manifest.json",{"files":[]})
+ for row in manifest["files"]:
+  target=CONFIG/row["target"]
+  if row["exists"]:shutil.copy2(tx/"before"/row["target"],target)
+  else:target.unlink(missing_ok=True)
+ manifest["status"]="rolled-back";atomic(tx/"manifest.json",manifest)
+def rollback(args):
+ if not re.fullmatch(r"[0-9]{8}-[0-9]{6}-[0-9]+",args.transaction):raise SystemExit("Invalid import transaction")
+ restore(STATE/"transactions"/args.transaction);print("IMPORT ROLLED BACK // "+args.transaction)
+def mark(value):atomic(STATUS,{"state":value,"updated_at":int(time.time())});print("ONBOARDING // "+value.upper())
+def guide(args):
+ print("MAGI FIRST-RUN // no changes occur without confirmation");subprocess.run([str(ROOT/"preflight.py"),"--source-only"]);print("Privacy: location, device IDs, paths, secrets, editor commands, and browser targets are not exported.")
+ preset=input("Preset [minimal/default/full] (default): ").strip() or "default"
+ if preset not in ("minimal","default","full"):raise SystemExit("Invalid preset")
+ subprocess.run([str(ROOT/"install.sh"),"--dry-run","--preset",preset],check=True)
+ if input("Type APPLY to activate this exact preset, or Enter to skip: ").strip()!="APPLY":return mark("skipped")
+ subprocess.run([str(ROOT/"install.sh"),"--apply","--preset",preset],check=True);mark("complete")
+def status(args):print(json.dumps(read(STATUS,{"state":"new"}),indent=2))
+p=argparse.ArgumentParser();s=p.add_subparsers(dest="cmd",required=True)
+for n,f in (("status",status),("guide",guide)):q=s.add_parser(n);q.set_defaults(func=f)
+for n,v in (("skip","skipped"),("reopen","new")):q=s.add_parser(n);q.set_defaults(func=lambda a,x=v:mark(x))
+q=s.add_parser("export");q.add_argument("output",type=Path);q.set_defaults(func=export)
+q=s.add_parser("import");q.add_argument("input",type=Path);q.add_argument("--confirm");q.set_defaults(func=lambda a:apply(a) if a.confirm else preview(a))
+q=s.add_parser("rollback");q.add_argument("transaction");q.set_defaults(func=rollback)
+a=p.parse_args();a.func(a)

@@ -22,7 +22,7 @@ def main():
     for guide in ("INSTALL.md", "CONFIGURATION.md", "TROUBLESHOOTING.md", "UPGRADING.md",
                   "HOTKEYS.md", "RESPONSIVE.md", "TESTING.md", "ASSETS_LICENSE.md",
                   "BETA_TESTING.md", "RELEASE_NOTES.md", "CONTEXT.md", "DEMO.md", "LOCALIZATION.md", "PERFORMANCE.md",
-                  "RICE_HEALTH.md", "SNAPSHOTS.md", "SETTINGS.md", "WORKSPACES.md", "VISUAL_CUSTOMIZATION.md", "SCENES.md", "MEDIA_CONTROLS.md", "ACCESSIBILITY.md", "SUITE_UPDATES.md", "DISTRIBUTION_GUIDE.md", "MAINTAINING.md"):
+                  "RICE_HEALTH.md", "SNAPSHOTS.md", "SETTINGS.md", "WORKSPACES.md", "VISUAL_CUSTOMIZATION.md", "SCENES.md", "MEDIA_CONTROLS.md", "ACCESSIBILITY.md", "SUITE_UPDATES.md", "ONBOARDING.md", "DISTRIBUTION_GUIDE.md", "MAINTAINING.md"):
         assert f"]({guide})" in readme, f"README does not link {guide}"
 
     for target in re.findall(r"\]\(([^)]+)\)", readme):
