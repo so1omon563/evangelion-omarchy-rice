@@ -40,7 +40,7 @@ Item {
       width:Math.min(parent.width-80,1120);height:Math.min(parent.height-80,700);anchors.centerIn:parent;color:"#f20a0810";border.width:2;border.color:"#9cf23a";radius:4
       opacity:motion.off||root.opened?1:0;Behavior on opacity{enabled:!motion.off;NumberAnimation{duration:motion.standardMs;easing.type:Easing.OutCubic}}
       MouseArea{anchors.fill:parent;onClicked:{}}
-      Item{id:keys;anchors.fill:parent;focus:true;Keys.priority:Keys.BeforeItem;Keys.onPressed:function(event){
+      Item{id:keys;anchors.fill:parent;focus:true;Accessible.role:Accessible.Dialog;Accessible.name:i18n.tr("scenes.title")+(root.active?". Selected "+root.active.label:"");Accessible.description:i18n.tr("scenes.keys");Keys.priority:Keys.BeforeItem;Keys.onPressed:function(event){
         if(event.key===Qt.Key_Escape)root.hide();else if(event.key===Qt.Key_Up||event.key===Qt.Key_K)root.move(-1);else if(event.key===Qt.Key_Down||event.key===Qt.Key_J)root.move(1);else if(event.key===Qt.Key_Return||event.key===Qt.Key_Enter||event.key===Qt.Key_Space)root.preview();else if(event.key===Qt.Key_A&&root.pending)root.applyPending();else if(event.key===Qt.Key_U&&!undoProc.running)undoProc.running=true;else if(event.key===Qt.Key_T&&!autoProc.running)autoProc.running=true;else if(event.key===Qt.Key_R)root.refresh();else return;event.accepted=true}}
       Column{anchors.fill:parent;anchors.margins:28;spacing:16
         Row{width:parent.width;height:54
@@ -51,7 +51,7 @@ Item {
         Row{width:parent.width;height:parent.height-150;spacing:18
           Column{width:parent.width*.42;spacing:7
             Repeater{model:root.scenes;delegate:Rectangle{required property var modelData;required property int index;width:parent.width;height:66;color:index===root.selected?"#309cf23a":"#8a100d16";border.width:index===root.selected?1:0;border.color:"#9cf23a"
-              Row{anchors.fill:parent;anchors.margins:12;spacing:10;Text{width:30;text:String(index+1).padStart(2,"0");color:index===root.selected?"#9cf23a":"#70667a";font.family:"JetBrainsMono Nerd Font";font.pixelSize:10}Column{width:parent.width-42;spacing:3;Text{width:parent.width;elide:Text.ElideRight;text:String(modelData.label).toUpperCase();color:index===root.selected?"#fff6dc":"#c4bacb";font.family:"JetBrainsMono Nerd Font";font.pixelSize:13;font.bold:true}Text{text:String(modelData.affinity).toUpperCase()+" · "+String(modelData.terminal).toUpperCase();color:"#62d8ff";font.family:"JetBrainsMono Nerd Font";font.pixelSize:9}}}
+              Row{anchors.fill:parent;anchors.margins:12;spacing:10;Text{width:30;text:String(index+1).padStart(2,"0");color:index===root.selected?"#9cf23a":"#8f8299";font.family:"JetBrainsMono Nerd Font";font.pixelSize:10}Column{width:parent.width-42;spacing:3;Text{width:parent.width;elide:Text.ElideRight;text:String(modelData.label).toUpperCase();color:index===root.selected?"#fff6dc":"#c4bacb";font.family:"JetBrainsMono Nerd Font";font.pixelSize:13;font.bold:true}Text{text:String(modelData.affinity).toUpperCase()+" · "+String(modelData.terminal).toUpperCase();color:"#62d8ff";font.family:"JetBrainsMono Nerd Font";font.pixelSize:9}}}
               MouseArea{anchors.fill:parent;onClicked:{root.selected=index;root.pending=null}}
             }}
           }

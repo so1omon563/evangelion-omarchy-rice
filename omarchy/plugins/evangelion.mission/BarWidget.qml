@@ -8,6 +8,10 @@ import "../evangelion.motion" as Motion
 BarWidget {
   id: root
   moduleName: "evangelion.mission"
+  property string accessibleName: "Mission timer, " + status.label + ", " + status.display
+  Accessible.role: Accessible.Button
+  Accessible.name: accessibleName
+  Accessible.description: "Open timer controls and cycle status"
   property bool popupOpen: false
   property var status: ({ phase: "sortie", label: "SORTIE", display: "00:00", cycle: 0, running: false, paused: false, remaining: 0, total: 0, config: ({ cycles: 4, work_minutes: 25, break_minutes: 5, long_break_minutes: 15, sound: true }) })
   readonly property bool active: status.phase === "work" || status.phase === "recovery"

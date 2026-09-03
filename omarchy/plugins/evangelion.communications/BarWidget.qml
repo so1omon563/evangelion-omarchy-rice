@@ -8,6 +8,10 @@ import "../evangelion.motion" as Motion
 BarWidget {
   id: root
   moduleName: "evangelion.communications"
+  property string accessibleName: "Communications, " + String(status.link || "unknown")
+  Accessible.role: Accessible.Button
+  Accessible.name: accessibleName
+  Accessible.description: "Open network, VPN, Bluetooth, and Tailscale status"
   property bool popupOpen: false
   property var status: ({ link: "unknown", connectivity: "unknown", connection: "", type: "unknown", interface: "", gateway: "", ssid: "", signal: -1, vpn: "", bluetooth: "unavailable", bluetoothDevices: 0, tailscale: "unavailable", tailscalePeers: 0, tailscaleName: "" })
 

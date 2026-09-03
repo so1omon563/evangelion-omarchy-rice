@@ -19,6 +19,7 @@ PopupWindow {
   property bool open: false
   property bool centerOnBar: false
   property string triggerMode: "click"
+  property string accessibleName: owner && owner.accessibleName ? owner.accessibleName : "MAGI information panel"
 
   MotionState { id: motion }
 
@@ -82,6 +83,8 @@ PopupWindow {
     onCleared: root.close()
   }
 
+  Shortcut { sequence: "Escape"; enabled: root.open; onActivated: root.close() }
+
   anchor {
     id: popupAnchor
     window: anchorItem ? anchorItem.QsWindow.window : null
@@ -120,6 +123,9 @@ PopupWindow {
 
   BorderSurface {
     id: card
+    Accessible.role: Accessible.Dialog
+    Accessible.name: root.accessibleName
+    Accessible.description: "Press Escape to close this panel"
     anchors.fill: parent
     color: Color.popups.background
     borderSpec: root.borderSpec

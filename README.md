@@ -31,6 +31,8 @@ the OSD, and collapse into collision-safe labels against the live bar width.
 identity, and opt-in ambient, motion, or sound behavior as one reversible plan.
 [MAGI media controls](MEDIA_CONTROLS.md) coordinate multiple MPRIS sources,
 privacy-safe artwork, player detail, and Cava without destabilizing bar geometry.
+[Accessibility standards](ACCESSIBILITY.md) define contrast, scaling, keyboard,
+assistive semantics, motion, timeout, flashing, and documented platform limits.
 
 ![Evangelion Omarchy desktop](media/desktop-hero.png)
 
@@ -182,6 +184,8 @@ Atomic affinity-scene authority, audio interlock, and rollback are documented
 in [SCENES.md](SCENES.md).
 Multi-player arbitration, artwork privacy, keyboard control, and Cava behavior
 are documented in [MEDIA_CONTROLS.md](MEDIA_CONTROLS.md).
+The inclusive-interaction standard and automated audit matrix are documented in
+[ACCESSIBILITY.md](ACCESSIBILITY.md).
 
 ## Upgrade, rollback, and removal
 

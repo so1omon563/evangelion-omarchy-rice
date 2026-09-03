@@ -9,6 +9,10 @@ import "../evangelion.localization" as Localization
 BarWidget {
   id: root
   moduleName: "evangelion.context"
+  property string accessibleName: "MAGI context, " + statusTitle()
+  Accessible.role: Accessible.Button
+  Accessible.name: accessibleName
+  Accessible.description: "Open contextual status, evidence, and recommendations"
   property bool popupOpen: false
   Localization.I18n { id:i18n }
   property var context: ({
@@ -128,7 +132,7 @@ BarWidget {
             Text { width:parent.width*.48; text:String(modelData.key).replace(/_/g," ").toUpperCase(); color:Qt.darker(root.bar.foreground,1.35); font.family:root.bar.fontFamily; font.pixelSize:Style.font.caption }
             Text { width:parent.width*.52; text:String(modelData.value).toUpperCase(); elide:Text.ElideRight; color:root.bar.foreground; font.family:root.bar.fontFamily; font.pixelSize:Style.font.caption; font.bold:true }
           } }
-          Text { visible:root.factRows().length===0; text:i18n.tr("context.no_facts").toUpperCase(); color:Color.muted; font.family:root.bar.fontFamily; font.pixelSize:Style.font.caption }
+          Text { visible:root.factRows().length===0; text:i18n.tr("context.no_facts").toUpperCase(); color:Qt.darker(root.bar.foreground,1.35); font.family:root.bar.fontFamily; font.pixelSize:Style.font.caption }
 
           Rectangle { width:parent.width; height:1; color:Color.muted; opacity:.35 }
           Text { text:i18n.tr("context.signals").toUpperCase(); color:Color.accent; font.family:root.bar.fontFamily; font.pixelSize:Style.font.caption; font.bold:true }
@@ -142,7 +146,7 @@ BarWidget {
 
           Rectangle { width:parent.width; height:1; color:Color.muted; opacity:.35 }
           Text { text:i18n.tr("context.recommended",{count:root.safeRecommendations().length}).toUpperCase(); color:Color.accent; font.family:root.bar.fontFamily; font.pixelSize:Style.font.caption; font.bold:true }
-          Text { visible:root.safeRecommendations().length===0; text:i18n.tr("context.no_action").toUpperCase(); color:Color.muted; font.family:root.bar.fontFamily; font.pixelSize:Style.font.caption }
+          Text { visible:root.safeRecommendations().length===0; text:i18n.tr("context.no_action").toUpperCase(); color:Qt.darker(root.bar.foreground,1.35); font.family:root.bar.fontFamily; font.pixelSize:Style.font.caption }
           Repeater { model:root.safeRecommendations(); delegate:BorderSurface {
             required property var modelData; width:contentColumn.width; height:Style.space(42); activeFocusOnTab:true
             color:Style.normalFillFor(root.bar.foreground,Color.accent); borderSpec:Border.controlSpec(activeFocus?"focus":"normal",root.bar.foreground,Color.accent)

@@ -67,6 +67,7 @@ BarWidget {
 
   Canvas {
     id: spectrum
+    Accessible.ignored: true
     anchors.fill: parent
     anchors.margins: Style.space(3)
     antialiasing: true

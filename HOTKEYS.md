@@ -699,6 +699,11 @@ keys are Up/Down to select, Enter to preview, `A` to apply, `U` to undo, `T` to
 restore Auto authority, `R` to refresh, and Escape to close. See
 [SCENES.md](SCENES.md).
 
+Shared MAGI popups accept Escape even when they do not define additional local
+keys. Complete keyboard routes, pointer-equivalent CLI commands, contrast and
+motion guarantees, and platform accessibility exceptions are documented in
+[ACCESSIBILITY.md](ACCESSIBILITY.md).
+
 ```bash
 omarchy menu keybindings --print  # Print the complete current binding list
 omarchy-menu summon magi          # Open the MAGI interface

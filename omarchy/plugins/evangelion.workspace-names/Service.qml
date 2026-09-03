@@ -36,7 +36,7 @@ Item {
       width:Math.min(parent.width-80,920);height:Math.min(parent.height-80,610);anchors.centerIn:parent;color:"#f20a0810";border.width:2;border.color:"#62d8ff";radius:4
       opacity:motion.off||root.opened?1:0;Behavior on opacity{enabled:!motion.off;NumberAnimation{duration:motion.standardMs;easing.type:Easing.OutCubic}}
       MouseArea{anchors.fill:parent;onClicked:{}}
-      Item{id:keyCatcher;anchors.fill:parent;focus:true;Keys.priority:Keys.BeforeItem
+      Item{id:keyCatcher;anchors.fill:parent;focus:true;Accessible.role:Accessible.Dialog;Accessible.name:i18n.tr("workspaces.title")+(root.current?". Workspace "+root.current.id+", "+nameInput.text:"");Accessible.description:i18n.tr("workspaces.keys");Keys.priority:Keys.BeforeItem
         Keys.onPressed:function(event){
           if(event.key===Qt.Key_Escape)root.hide()
           else if(event.key===Qt.Key_Up&&!(event.modifiers&Qt.ControlModifier))root.choose(-1)
@@ -60,7 +60,7 @@ Item {
               Repeater{model:root.workspaces;delegate:Rectangle{required property var modelData;required property int index;width:parent.width;height:54;color:index===root.selected?"#3262d8ff":"#8a100d16";border.width:index===root.selected?1:0;border.color:"#62d8ff"
                 Column{anchors.fill:parent;anchors.margins:9;spacing:3
                   Text{text:String(modelData.id).padStart(2,"0")+" // "+String(modelData.resolved_short);color:index===root.selected?"#fff6dc":"#b8adbf";font.family:"JetBrainsMono Nerd Font";font.pixelSize:11;font.bold:true}
-                  Text{width:parent.width;elide:Text.ElideRight;text:String(modelData.name);color:"#82768d";font.family:"JetBrainsMono Nerd Font";font.pixelSize:8}
+                  Text{width:parent.width;elide:Text.ElideRight;text:String(modelData.name);color:"#8E809A";font.family:"JetBrainsMono Nerd Font";font.pixelSize:8}
                 }
                 MouseArea{anchors.fill:parent;onClicked:{root.selected=index;root.loadFields();keyCatcher.forceActiveFocus()}}
               }}
@@ -69,13 +69,13 @@ Item {
               Column{anchors.fill:parent;anchors.margins:22;spacing:12
                 Text{text:i18n.tr("workspaces.full_name").toUpperCase();color:"#f6d447";font.family:"JetBrainsMono Nerd Font";font.pixelSize:9;font.bold:true}
                 Rectangle{width:parent.width;height:48;color:"#70181320";border.width:nameInput.activeFocus?2:1;border.color:nameInput.activeFocus?"#62d8ff":"#46354f"
-                  TextInput{id:nameInput;anchors.fill:parent;anchors.margins:12;color:"#fff6dc";selectionColor:"#7450a6";font.family:"JetBrainsMono Nerd Font";font.pixelSize:13;maximumLength:48;activeFocusOnTab:true;verticalAlignment:TextInput.AlignVCenter}}
+                  TextInput{id:nameInput;anchors.fill:parent;anchors.margins:12;color:"#fff6dc";selectionColor:"#7450a6";font.family:"JetBrainsMono Nerd Font";font.pixelSize:13;maximumLength:48;activeFocusOnTab:true;Accessible.role:Accessible.EditableText;Accessible.name:i18n.tr("workspaces.full_name");Accessible.description:"Full workspace name, maximum 48 characters";verticalAlignment:TextInput.AlignVCenter}}
                 Text{text:i18n.tr("workspaces.short").toUpperCase();color:"#f6d447";font.family:"JetBrainsMono Nerd Font";font.pixelSize:9;font.bold:true}
                 Rectangle{width:parent.width;height:48;color:"#70181320";border.width:shortInput.activeFocus?2:1;border.color:shortInput.activeFocus?"#62d8ff":"#46354f"
-                  TextInput{id:shortInput;anchors.fill:parent;anchors.margins:12;color:"#62d8ff";selectionColor:"#7450a6";font.capitalization:Font.AllUppercase;font.family:"JetBrainsMono Nerd Font";font.pixelSize:13;maximumLength:8;activeFocusOnTab:true;verticalAlignment:TextInput.AlignVCenter}}
+                  TextInput{id:shortInput;anchors.fill:parent;anchors.margins:12;color:"#62d8ff";selectionColor:"#7450a6";font.capitalization:Font.AllUppercase;font.family:"JetBrainsMono Nerd Font";font.pixelSize:13;maximumLength:8;activeFocusOnTab:true;Accessible.role:Accessible.EditableText;Accessible.name:i18n.tr("workspaces.short");Accessible.description:"Compact workspace label, maximum 8 characters";verticalAlignment:TextInput.AlignVCenter}}
                 Text{text:i18n.tr("workspaces.channel").toUpperCase();color:"#f6d447";font.family:"JetBrainsMono Nerd Font";font.pixelSize:9;font.bold:true}
                 Rectangle{width:parent.width;height:48;color:"#70181320";border.width:channelInput.activeFocus?2:1;border.color:channelInput.activeFocus?"#62d8ff":"#46354f"
-                  TextInput{id:channelInput;anchors.fill:parent;anchors.margins:12;color:"#fff6dc";selectionColor:"#7450a6";font.family:"JetBrainsMono Nerd Font";font.pixelSize:12;maximumLength:64;activeFocusOnTab:true;verticalAlignment:TextInput.AlignVCenter}}
+                  TextInput{id:channelInput;anchors.fill:parent;anchors.margins:12;color:"#fff6dc";selectionColor:"#7450a6";font.family:"JetBrainsMono Nerd Font";font.pixelSize:12;maximumLength:64;activeFocusOnTab:true;Accessible.role:Accessible.EditableText;Accessible.name:i18n.tr("workspaces.channel");Accessible.description:"Workspace channel description, maximum 64 characters";verticalAlignment:TextInput.AlignVCenter}}
                 Rectangle{width:parent.width;height:74;color:"#50100d16";border.width:1;border.color:"#6e5720"
                   Column{anchors.fill:parent;anchors.margins:11;spacing:7
                     Text{text:i18n.tr("workspaces.preview").toUpperCase();color:"#8f8299";font.family:"JetBrainsMono Nerd Font";font.pixelSize:8}

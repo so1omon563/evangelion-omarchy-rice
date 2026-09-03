@@ -221,6 +221,9 @@ Item {
 
       TextInput {
         id: passwordInput
+        Accessible.role: Accessible.EditableText
+        Accessible.name: "Session password"
+        Accessible.description: "Enter the session password and press Enter to unlock"
         anchors.fill: parent
         anchors.topMargin: inputField.borderTop
         // Reserve the fingerprint icon's width on both sides so the centered

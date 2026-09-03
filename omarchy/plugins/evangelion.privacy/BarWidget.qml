@@ -8,6 +8,10 @@ import "../evangelion.motion" as Motion
 BarWidget {
   id: root
   moduleName: "evangelion.privacy"
+  property string accessibleName: "Privacy activity, " + (status.active ? status.summary : "all channels clear")
+  Accessible.role: Accessible.Button
+  Accessible.name: accessibleName
+  Accessible.description: "Open active capture channels and safe response controls"
   property bool popupOpen: false
   property var status: ({ active: false, active_count: 0, summary: "CLEAR", states: ({}), suppressed: false, recording: ({ path: "", seconds: 0 }) })
 

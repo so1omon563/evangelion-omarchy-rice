@@ -1,5 +1,6 @@
 # Exact files or directory prefixes included in complete-suite release archives.
 ASSETS_LICENSE.md
+ACCESSIBILITY.md
 AUDIT.md
 BAR_ICONS.md
 BETA_TESTING.md

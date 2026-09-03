@@ -167,6 +167,11 @@ and wallpaper-aware presentation placement without launching applications.
 `bar-motion.py` checks shared fixed-geometry cues across every required widget,
 immediate safety-critical paths, still nominal state, no label/layout animation,
 independent Cava gating, affinity-without-width, and responsive bounds.
+
+`accessibility.py` enforces theme-token contrast, supported-scale geometry,
+keyboard workflow markers, Qt Accessibility roles and names, password privacy,
+actionable-panel timeout policy, bounded flashing, and Full/Reduced/Off motion.
+Its machine-readable report is written to `test-results/accessibility.json`.
 `bar-icons.py` verifies the upstream adapter inventory, native behavior
 delegation, shared normal/hover/active/attention/error palette, fixed geometry,
 portable source lookup, vendor-icon policy, and documented stock fallback.

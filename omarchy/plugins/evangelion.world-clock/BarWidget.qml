@@ -7,6 +7,10 @@ import "../evangelion.motion" as Motion
 
 BarWidget {
   id:root; moduleName:"evangelion.world-clock"; property bool popupOpen:false
+  property string accessibleName:"World clock, UTC "+status.utc
+  Accessible.role:Accessible.Button
+  Accessible.name:accessibleName
+  Accessible.description:"Open world times, uptime, and mission elapsed controls"
   property var status:({utc:"--:--",zones:[],uptime_display:"--",met:({running:false,elapsed:0,display:"00:00:00"})})
   function refresh(){if(!probe.running)probe.running=true} function togglePopup(){popupOpen=!popupOpen;if(popupOpen)refresh()} function close(){popupOpen=false}
   function action(name){root.bar.run("magi-clock "+name);actionRefresh.restart()}

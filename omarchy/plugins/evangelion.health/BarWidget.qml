@@ -9,6 +9,10 @@ import "../evangelion.localization" as Localization
 BarWidget {
   id: root
   moduleName: "evangelion.health"
+  property string accessibleName: "System health, " + status.summary
+  Accessible.role: Accessible.Button
+  Accessible.name: accessibleName
+  Accessible.description: "Open health findings and safe remediation options"
   property bool popupOpen: false
   property var status: ({ level:"nominal", issues:0, summary:"NOMINAL", items:[] })
   property var riceStatus: ({ status:"unavailable", failures:0, findings:[], fixes:[] })

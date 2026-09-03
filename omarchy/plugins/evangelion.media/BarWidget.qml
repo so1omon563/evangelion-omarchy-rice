@@ -8,6 +8,10 @@ import "../evangelion.motion" as Motion
 BarWidget {
   id: root
   moduleName: "evangelion.media"
+  property string accessibleName: hasMedia ? "Media controls, " + title + (artist ? " by " + artist : "") : "Media controls unavailable"
+  Accessible.role: Accessible.Button
+  Accessible.name: accessibleName
+  Accessible.description: "Open playback controls and choose an audio source"
 
   readonly property var media: bar?.shell?.firstPartyServiceFor("omarchy.media")
   readonly property var player: media ? media.activePlayer : null
@@ -173,6 +177,7 @@ BarWidget {
           borderSpec: Border.controlSpec("normal", root.bar.foreground, Color.accent)
 
           Image {
+            Accessible.ignored: true
             anchors.fill: parent
             anchors.margins: Style.space(2)
             source: root.artworkSource(root.player ? root.player.trackArtUrl : "")
