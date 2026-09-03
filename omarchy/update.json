@@ -1,0 +1,6 @@
+{
+  "schema_version": 1,
+  "selected_channel": "stable",
+  "remote": "https://github.com/so1omon563/evangelion-omarchy-rice.git",
+  "stale_after_seconds": 86400
+}

@@ -1,0 +1,228 @@
+#!/usr/bin/env python3
+"""Guided, evidence-bearing, transactional Evangelion Rice updates."""
+import argparse
+import hashlib
+import json
+import os
+import re
+import shutil
+import subprocess
+import sys
+import tempfile
+import time
+from pathlib import Path
+
+CHANNELS = ("stable", "preview", "development")
+CONFIG = Path(os.environ.get("XDG_CONFIG_HOME", Path.home()/".config"))/"omarchy/evangelion-update.json"
+STATE = Path(os.environ.get("XDG_STATE_HOME", Path.home()/".local/state"))/"evangelion-rice/suite-update"
+CACHE = STATE/"resolution.json"; ACTIVE = STATE/"active.json"; HISTORY = STATE/"history.jsonl"
+NOTIFIED = STATE/"notified.json"
+ROOT = Path(__file__).resolve().parents[1]
+DEFAULT = {"schema_version":1,"selected_channel":"stable","remote":"https://github.com/so1omon563/evangelion-omarchy-rice.git","stale_after_seconds":86400}
+SEMVER = re.compile(r"^v(\d+)\.(\d+)\.(\d+)(?:-([0-9A-Za-z.-]+))?$")
+
+def atomic(path, value):
+    path.parent.mkdir(parents=True, exist_ok=True); fd, name = tempfile.mkstemp(prefix="."+path.name+".", dir=path.parent)
+    try:
+        with os.fdopen(fd,"w") as stream: json.dump(value,stream,indent=2,sort_keys=True); stream.write("\n"); stream.flush(); os.fsync(stream.fileno())
+        os.chmod(name,0o600); os.replace(name,path)
+    finally:
+        try: os.unlink(name)
+        except FileNotFoundError: pass
+
+def load(path, fallback):
+    try: value=json.loads(path.read_text())
+    except (OSError,json.JSONDecodeError): return dict(fallback)
+    return value if isinstance(value,dict) else dict(fallback)
+
+def config():
+    value={**DEFAULT,**load(CONFIG,{})}; channel=value.get("selected_channel")
+    if channel not in CHANNELS: raise SystemExit(f"Invalid selected channel: {channel}")
+    return value
+
+def version_key(tag):
+    match=SEMVER.fullmatch(tag)
+    if not match:return None
+    major,minor,patch=map(int,match.group(1,2,3)); pre=match.group(4)
+    # Finals sort above their prereleases at the same numeric version.
+    identifiers=tuple((0,int(part)) if part.isdigit() else (1,part.lower()) for part in (pre or "").split("."))
+    return major,minor,patch,1 if pre is None else 0,identifiers
+
+def read_index(cfg):
+    fixture=os.environ.get("EVANGELION_UPDATE_INDEX")
+    if fixture:return json.loads(Path(fixture).read_text()),"fixture"
+    if not (cfg["remote"].startswith("https://") or re.fullmatch(r"git@[-A-Za-z0-9._]+:[-A-Za-z0-9._/]+(?:\.git)?",cfg["remote"])):
+        raise RuntimeError("remote must use HTTPS or conventional git@host:path SSH syntax")
+    command=["git","ls-remote","--tags","--heads",cfg["remote"]]
+    result=subprocess.run(command,text=True,capture_output=True,timeout=30)
+    if result.returncode:raise RuntimeError((result.stderr or "remote unavailable").strip())
+    refs={}
+    for line in result.stdout.splitlines():
+        sha,ref=line.split(None,1);refs[ref]=sha
+    return {"refs":refs},"network"
+
+def resolve(channel, cfg, index):
+    if "channels" in index:
+        result=dict(index["channels"].get(channel) or {})
+        if not result:raise RuntimeError(f"{channel} channel is unavailable")
+        result.setdefault("channel",channel);return result
+    refs=index.get("refs",{}); tags=[]
+    for ref,sha in refs.items():
+        if not ref.startswith("refs/tags/") or ref.endswith("^{}"):continue
+        tag=ref.removeprefix("refs/tags/"); key=version_key(tag)
+        if key:tags.append((key,tag,refs.get(ref+"^{}",sha)))
+    if channel=="development":
+        sha=refs.get("refs/heads/main")
+        if not sha:raise RuntimeError("development branch main is unavailable")
+        return {"channel":channel,"version":"development","ref":"main","commit":sha,"evidence":{"kind":"branch","signature":"not-applicable","release_gate":False}}
+    candidates=[row for row in tags if (row[0][3]==1)==(channel=="stable")]
+    if not candidates:raise RuntimeError(f"{channel} channel has no eligible tags")
+    _,tag,sha=max(candidates)
+    return {"channel":channel,"version":tag.removeprefix("v"),"ref":tag,"commit":sha,"evidence":{"kind":"tag","signature":"unchecked","release_gate":False}}
+
+def cache_resolution(value,cfg,source):
+    if not re.fullmatch(r"[0-9a-f]{40,64}",str(value.get("commit",""))):raise RuntimeError("channel returned an invalid commit identifier")
+    if not re.fullmatch(r"[-0-9A-Za-z._]+",str(value.get("ref",""))):raise RuntimeError("channel returned an unsafe ref")
+    value={**value,"schema_version":1,"checked_at":int(time.time()),"source":source,"stale":False,"selected_channel":cfg["selected_channel"]}
+    atomic(CACHE,value);return value
+
+def current_version():
+    for path in (Path.home()/".local/share/evangelion-rice/.suite-version",ROOT/"VERSION"):
+        try:return path.read_text().strip()
+        except OSError:pass
+    return "unknown"
+
+def check(args):
+    cfg=config(); channel=cfg["selected_channel"]
+    try:
+        index,source=read_index(cfg);value=cache_resolution(resolve(channel,cfg,index),cfg,source)
+    except Exception as error:
+        value=load(CACHE,{})
+        if not value or value.get("channel")!=channel:raise SystemExit(f"UPDATE CHECK OFFLINE // no cached resolution for {channel} // {error}")
+        value["stale"]=int(time.time())-int(value.get("checked_at",0))>int(cfg["stale_after_seconds"]);value["offline_reason"]=str(error);value["source"]="cache"
+    value["installed_version"]=current_version();value["update_available"]=value.get("version")!=value["installed_version"]
+    if value["update_available"] and not args.json and value.get("source")!="cache":
+        notified=load(NOTIFIED,{})
+        if notified.get("commit")!=value["commit"] or notified.get("channel")!=channel:
+            subprocess.run(["omarchy-notification-send","--app-name","MAGI Suite Update","-g","󰚰","-u","normal","-t","10000","RICE UPDATE AVAILABLE",f'{value["channel"]} // {value["version"]} // {value["commit"][:12]}'],stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL)
+            atomic(NOTIFIED,{"channel":channel,"commit":value["commit"],"notified_at":int(time.time())})
+    emit(value,args.json)
+
+def ensure_resolution():
+    cfg=config(); value=load(CACHE,{})
+    if value.get("channel")!=cfg["selected_channel"]:raise SystemExit("No resolution for the selected channel; run magi-suite-update check")
+    age=int(time.time())-int(value.get("checked_at",0)); value["stale"]=age>int(cfg["stale_after_seconds"])
+    if value["stale"]:raise SystemExit("Resolution is stale; reconnect and run magi-suite-update check")
+    return cfg,value
+
+def stage(cfg,resolution):
+    target=STATE/"staged"/resolution["commit"]
+    if not (target/"install.sh").is_file():
+        source=os.environ.get("EVANGELION_UPDATE_SOURCE")
+        temporary=target.with_name(target.name+".partial");shutil.rmtree(temporary,ignore_errors=True);temporary.parent.mkdir(parents=True,exist_ok=True)
+        if source:shutil.copytree(source,temporary)
+        else:
+            result=subprocess.run(["git","clone","--quiet","--no-checkout",cfg["remote"],str(temporary)],text=True,capture_output=True)
+            if result.returncode:raise SystemExit("Unable to stage update: "+result.stderr.strip())
+            result=subprocess.run(["git","-C",str(temporary),"checkout","--quiet","--detach",resolution["commit"]],text=True,capture_output=True)
+            if result.returncode:raise SystemExit("Unable to check out resolved commit: "+result.stderr.strip())
+        if not (temporary/"install.sh").is_file():raise SystemExit("Staged source is not an Evangelion Rice suite")
+        shutil.rmtree(target,ignore_errors=True);os.replace(temporary,target)
+    if (target/".git").exists():
+        actual=subprocess.check_output(["git","-C",str(target),"rev-parse","HEAD"],text=True).strip()
+        if actual!=resolution["commit"]:raise SystemExit("Resolved commit verification failed")
+        if resolution["evidence"].get("kind")=="tag":
+            verify=subprocess.run(["git","-C",str(target),"tag","-v",resolution["ref"]],text=True,capture_output=True)
+            resolution["evidence"]["signature"]="verified" if verify.returncode==0 else "unsigned-or-untrusted"
+            resolution["evidence"]["tag_object"]="annotated" if subprocess.run(["git","-C",str(target),"cat-file","-e",resolution["ref"]+"^{tag}"],capture_output=True).returncode==0 else "lightweight"
+    release=target/"release"/("v"+resolution["version"]+".json")
+    if release.is_file():
+        gate=json.loads(release.read_text());resolution["evidence"]["release_gate"]=gate.get("final_release_allowed") is True
+        resolution["evidence"]["candidate_commit"]=gate.get("candidate_commit")
+    atomic(CACHE,resolution);return target
+
+def preview(args):
+    cfg,resolution=ensure_resolution();target=stage(cfg,resolution)
+    command=[str(target/"install.sh"),"--dry-run","--preset",args.preset]
+    env={**os.environ,"EVANGELION_SKIP_ACTIVATE":"1"}; result=subprocess.run(command,text=True,capture_output=True,env=env)
+    if result.returncode:raise SystemExit(result.stderr or result.stdout)
+    migration="none"
+    if (target/"bin/magi-migrate").is_file():
+        probe=subprocess.run([str(target/"bin/magi-migrate"),"preview","--json"],text=True,capture_output=True,env={**env,"EVANGELION_MIGRATION_ROOT":str(target)})
+        migration="available" if probe.returncode==0 else "not-applicable"
+    plan_id=hashlib.sha256((resolution["commit"]+"\0"+args.preset+"\0"+result.stdout).encode()).hexdigest()[:16]
+    installed=current_version();target_key=version_key("v"+resolution["version"]);installed_key=version_key("v"+installed)
+    direction="downgrade" if target_key and installed_key and target_key<installed_key else "upgrade" if resolution["version"]!=installed else "reinstall"
+    value={"schema_version":1,"plan_id":plan_id,"channel":resolution["channel"],"version":resolution["version"],"commit":resolution["commit"],"evidence":resolution["evidence"],"installed_version":installed,"direction":direction,"preset":args.preset,"migration":migration,"exact_plan":result.stdout,"staged_root":str(target),"created_at":int(time.time())}
+    atomic(ACTIVE,value);emit(value,args.json)
+
+def apply(args):
+    plan=load(ACTIVE,{})
+    if not plan or args.plan!=plan.get("plan_id"):raise SystemExit("Exact preview ID required; run magi-suite-update preview")
+    if int(time.time())-int(plan.get("created_at",0))>3600:raise SystemExit("Preview expired; create a new exact preview")
+    if not args.yes:raise SystemExit("Apply requires --yes after reviewing the exact preview")
+    if plan.get("direction")=="downgrade" and not args.allow_downgrade:raise SystemExit("Downgrade requires --allow-downgrade after reviewing migration and compatibility risks")
+    target=Path(plan["staged_root"]); command=[str(target/"install.sh"),"--apply","--preset",plan["preset"],"--yes"]
+    result=subprocess.run(command,text=True,capture_output=True)
+    sys.stdout.write(result.stdout);sys.stderr.write(result.stderr)
+    if result.returncode:raise SystemExit(result.returncode)
+    match=re.search(r"rollback snapshot: (.+)$",result.stdout,re.M)
+    if not match:raise SystemExit("Update applied but rollback evidence was not returned")
+    record={**plan,"status":"applied","applied_at":int(time.time()),"rollback_snapshot":match.group(1).strip()}
+    atomic(ACTIVE,record);HISTORY.parent.mkdir(parents=True,exist_ok=True)
+    with HISTORY.open("a") as stream:stream.write(json.dumps(record,sort_keys=True)+"\n")
+    print("SUITE UPDATE COMPLETE // undo: magi-suite-update undo")
+
+def undo(args):
+    record=load(ACTIVE,{})
+    if record.get("status")!="applied":raise SystemExit("No applied suite update is available to undo")
+    if not args.yes:raise SystemExit("Undo requires --yes")
+    root=Path(record["staged_root"]);result=subprocess.run([str(root/"rollback.sh"),record["rollback_snapshot"]],text=True,capture_output=True)
+    sys.stdout.write(result.stdout);sys.stderr.write(result.stderr)
+    if result.returncode:raise SystemExit(result.returncode)
+    record["status"]="undone";record["undone_at"]=int(time.time());atomic(ACTIVE,record)
+
+def set_channel(args):
+    cfg=config()
+    if args.name is None:return print(cfg["selected_channel"])
+    if args.name not in CHANNELS:raise SystemExit("Channel must be stable, preview, or development")
+    if args.name!="stable" and not args.accept_risk:raise SystemExit(f"{args.name.title()} is not a stable release channel; rerun with --accept-risk")
+    old=cfg["selected_channel"];cfg["selected_channel"]=args.name;atomic(CONFIG,cfg)
+    print(f"CHANNEL CHANGED // {old} -> {args.name} // no update was applied")
+
+def status(args):
+    value={"config":config(),"resolution":load(CACHE,{}),"transaction":load(ACTIVE,{})}
+    if args.json:return emit(value,True)
+    print("CHANNEL              "+value["config"]["selected_channel"])
+    resolution=value["resolution"];transaction=value["transaction"]
+    print("RESOLUTION           "+(f'{resolution.get("version","?")} // {resolution.get("commit","?")[:12]} // {resolution.get("source","unknown")}' if resolution else "none"))
+    print("TRANSACTION          "+(f'{transaction.get("status","previewed")} // {transaction.get("plan_id","?")}' if transaction else "none"))
+
+def guide(args):
+    cfg=config();print(f'SELECTED CHANNEL     {cfg["selected_channel"]}')
+    if cfg["selected_channel"]!="stable":print("WARNING              pre-release/development channel; instability and migration risk accepted")
+    check(argparse.Namespace(json=False));print("\nEXACT CHANGE PREVIEW")
+    preview(argparse.Namespace(json=False,preset=args.preset));plan=load(ACTIVE,{})
+    warning="DOWNGRADE" if plan.get("direction")=="downgrade" else "APPLY"
+    if input(f'\nType {warning} to apply plan {plan["plan_id"]}, or press Enter to cancel: ').strip()!=warning:
+        print("UPDATE CANCELLED // no files changed");return
+    apply(argparse.Namespace(plan=plan["plan_id"],yes=True,allow_downgrade=warning=="DOWNGRADE"))
+
+def emit(value,as_json):
+    if as_json:print(json.dumps(value,indent=2,sort_keys=True));return
+    for key in ("channel","version","commit","installed_version","update_available","stale","plan_id","direction","migration"):
+        if key in value:print(f"{key.replace('_',' ').upper():20} {value[key]}")
+    if value.get("evidence"):print("EVIDENCE             "+json.dumps(value["evidence"],sort_keys=True))
+    if value.get("offline_reason"):print("OFFLINE              "+value["offline_reason"])
+    if value.get("exact_plan"):print("\n"+value["exact_plan"].rstrip())
+
+parser=argparse.ArgumentParser(description=__doc__);sub=parser.add_subparsers(dest="command",required=True)
+channel=sub.add_parser("channel");channel.add_argument("name",nargs="?");channel.add_argument("--accept-risk",action="store_true");channel.set_defaults(func=set_channel)
+for name,func in (("check",check),("status",status)):
+    item=sub.add_parser(name);item.add_argument("--json",action="store_true");item.set_defaults(func=func)
+item=sub.add_parser("preview");item.add_argument("--preset",choices=("minimal","default","full"),default="default");item.add_argument("--json",action="store_true");item.set_defaults(func=preview)
+item=sub.add_parser("apply");item.add_argument("--plan",required=True);item.add_argument("--yes",action="store_true");item.set_defaults(func=apply)
+item.add_argument("--allow-downgrade",action="store_true")
+item=sub.add_parser("undo");item.add_argument("--yes",action="store_true");item.set_defaults(func=undo)
+item=sub.add_parser("guide");item.add_argument("--preset",choices=("minimal","default","full"),default="default");item.set_defaults(func=guide)
+args=parser.parse_args();args.func(args)

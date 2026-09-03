@@ -120,6 +120,7 @@ add_file tools "$root/omarchy/performance-inventory.json" "$HOME/.local/share/ev
 add_file tools "$root/omarchy/rice-health.json" "$HOME/.local/share/evangelion-rice/rice-health.json" 644
 add_file tools "$root/omarchy/snapshot-manifest.json" "$HOME/.local/share/evangelion-rice/snapshot-manifest.json" 644
 add_file tools "$root/omarchy/settings-schema.json" "$HOME/.local/share/evangelion-rice/settings-schema.json" 644
+add_file shell "$root/omarchy/update.json" "$HOME/.config/omarchy/evangelion-update.json" 644 preserve
 add_tree theme "$root/theme" "$HOME/.config/omarchy/themes/evangelion" 644
 add_tree shell "$root/omarchy/plugins" "$HOME/.config/omarchy/plugins" 644
 if [[ ${selected[shell]:-0} == 1 ]]; then

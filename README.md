@@ -189,6 +189,11 @@ The inclusive-interaction standard and automated audit matrix are documented in
 
 ## Upgrade, rollback, and removal
 
+For Stable, Preview, and Development suite updates with immutable evidence,
+exact change preview, validation, and one-command undo, use the
+[guided suite updater](SUITE_UPDATES.md). This is separate from operating-system
+updates wrapped by `magi-update`.
+
 If custom shell or Hyprland configuration cannot load, `magi-recovery enter`
 activates a stock-only static layout after taking an exact local snapshot.
 Use `Super + Alt + R` when the compositor is responsive, or run it from a TTY;

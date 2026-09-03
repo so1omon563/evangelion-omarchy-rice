@@ -177,6 +177,9 @@ delegation, shared normal/hover/active/attention/error palette, fixed geometry,
 portable source lookup, vendor-icon policy, and documented stock fallback.
 
 `installer.sh` exercises individual transaction mechanics in a temporary home.
+`suite-update.py` exercises the Stable default, explicit Preview/Development
+risk acceptance, tag/signature evidence, offline and stale resolution behavior,
+exact preview IDs, transactional apply, and exact undo in an isolated home.
 `clean-user.sh` simulates a fresh, logged-in Omarchy user with isolated config,
 data, state, and command-event paths. It never writes to the invoking user's
 home or communicates with the live Hyprland session.

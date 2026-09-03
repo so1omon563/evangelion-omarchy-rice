@@ -34,6 +34,7 @@ UPGRADING.md
 WORKSPACES.md
 VISUAL_CUSTOMIZATION.md
 VERSION
+SUITE_UPDATES.md
 check-dependencies.sh
 dependencies.tsv
 distribution.json

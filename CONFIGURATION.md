@@ -1,5 +1,12 @@
 # Configuration reference
 
+## Suite release channel
+
+`~/.config/omarchy/evangelion-update.json` stores the explicitly selected rice
+release channel and is preserved across installations. Stable is the default;
+Preview and Development require explicit risk acceptance. Use
+`magi-suite-update channel` and see [SUITE_UPDATES.md](SUITE_UPDATES.md).
+
 ## Visual customization
 
 Use the Visual category in the MAGI Control Center to adjust bounded density,

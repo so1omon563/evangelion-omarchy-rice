@@ -807,6 +807,11 @@ Optional settings live in `~/.config/omarchy/magi-downloads.json`:
 
 ## MAGI update operations
 
+Rice suite updates are separate from system updates. Open `MAGI Command
+Interface → MAGI Suite Updates`, or use `magi-suite-update check`,
+`magi-suite-update preview`, and the displayed exact-plan apply command. See
+[`SUITE_UPDATES.md`](SUITE_UPDATES.md) for channel and rollback semantics.
+
 Run `magi-update run` or use `MAGI Command Interface → MAGI System Update`.
 The installed `omarchy update` remains authoritative while a compact overlay
 reports preparation, snapshot, framework, keys, packages, migrations, hooks,
