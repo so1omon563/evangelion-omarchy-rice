@@ -22,6 +22,7 @@
       {"root":"config","path":"omarchy/performance.json"},
       {"root":"config","path":"omarchy/rice-health.json"},
       {"root":"config","path":"omarchy/thermal-alerts.json"}
+      ,{"root":"config","path":"omarchy/media.json"}
       ,{"root":"config","path":"omarchy/workspaces.json"}
       ,{"root":"config","path":"omarchy/visual.json"}
       ,{"root":"config","path":"omarchy/scenes.json"}

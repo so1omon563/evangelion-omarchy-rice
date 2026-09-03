@@ -17,6 +17,14 @@ the preceding coordinated state, and `magi-scene auto` to follow wallpaper
 affinity again. Optional audio remains interlocked and all shipped scenes keep
 the existing sound, ambient, and motion settings. See [SCENES.md](SCENES.md).
 
+## Media and Cava
+
+Preserved media preferences live in `~/.config/omarchy/media.json`. Remote
+artwork is disabled and no suite artwork cache is created by default. Cava runs
+only while the selected MPRIS source is playing, retains fixed group geometry
+while paused, and can be changed to `always` or `off`. See
+[MEDIA_CONTROLS.md](MEDIA_CONTROLS.md).
+
 ## Core user configuration
 
 The installer creates and then preserves `~/.config/omarchy/evangelion.json`:

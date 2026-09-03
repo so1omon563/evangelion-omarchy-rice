@@ -1,0 +1,12 @@
+{
+  "schema_version": 1,
+  "artwork": {
+    "allow_remote": false,
+    "cache": "none"
+  },
+  "cava": {
+    "mode": "playing",
+    "paused_behavior": "standby"
+  },
+  "volume_step_percent": 5
+}

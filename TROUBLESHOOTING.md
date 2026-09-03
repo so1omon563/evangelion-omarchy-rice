@@ -149,13 +149,18 @@ Offline mode intentionally shows a cached reading or unavailable state.
 ```bash
 playerctl -l
 magi-media status
+magi-media status --json
+magi-media source-next
 command -v cava
 eva-capabilities has cava
 cava -p ~/.config/omarchy/plugins/evangelion.cava/cava.conf
 ```
 
-The media widget hides without an active MPRIS player. The Cava widget hides
-when Cava is absent and needs an active PipeWire source/monitor to animate.
+The media group hides without an MPRIS source carrying metadata. Cava hides
+when unavailable, runs only during playback by default, and shows a stable
+standby rail while paused. Check `~/.config/omarchy/media.json` if remote art is
+intentionally enabled or Cava is set to `always`/`off`. The suite never caches
+album artwork. See [MEDIA_CONTROLS.md](MEDIA_CONTROLS.md).
 
 ## Battery and temperature sensors
 

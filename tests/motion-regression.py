@@ -123,7 +123,7 @@ def activity_contracts():
     notification = source("evangelion.notifications")
     assert "running: motion.full && root.opened && root.rotatingPhrases" in power
     assert "motion.full && root.charging && !root.fullyCharged && root.opened" in power
-    assert "running: root.cavaAvailable" in cava
+    assert "running: root.shouldRun" in cava
     assert "readonly property bool ticking: cardSlot.lifetime > 0 && !card.hovered" in notification
     return {"inventoried": len(findings), "duplicate_timer_signatures": 0,
             "hidden_surface_guards": True, "findings": findings}

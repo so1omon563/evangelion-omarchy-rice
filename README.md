@@ -29,6 +29,8 @@ fallback contract.
 the OSD, and collapse into collision-safe labels against the live bar width.
 [MAGI affinity scenes](SCENES.md) coordinate wallpaper, palette, terminal
 identity, and opt-in ambient, motion, or sound behavior as one reversible plan.
+[MAGI media controls](MEDIA_CONTROLS.md) coordinate multiple MPRIS sources,
+privacy-safe artwork, player detail, and Cava without destabilizing bar geometry.
 
 ![Evangelion Omarchy desktop](media/desktop-hero.png)
 
@@ -178,6 +180,8 @@ The density, typography, panel, and compositor token model is documented in
 [VISUAL_CUSTOMIZATION.md](VISUAL_CUSTOMIZATION.md).
 Atomic affinity-scene authority, audio interlock, and rollback are documented
 in [SCENES.md](SCENES.md).
+Multi-player arbitration, artwork privacy, keyboard control, and Cava behavior
+are documented in [MEDIA_CONTROLS.md](MEDIA_CONTROLS.md).
 
 ## Upgrade, rollback, and removal
 

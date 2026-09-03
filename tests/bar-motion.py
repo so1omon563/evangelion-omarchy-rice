@@ -30,7 +30,7 @@ checks={
  "health_immediate":'level === "critical" || root.status.level === "warning"' in widgets['health'],
  "communications_offline_immediate":'critical: root.status.link === "offline"' in widgets['communications'],
  "battery_immediate":'critical: root.reservePower || root.internalPower' in widgets['power'],
- "cava_optional":'active: root.cavaAvailable' in widgets['cava'] and 'running: root.cavaAvailable' in widgets['cava'],
+ "cava_optional":'active: root.shouldRun' in widgets['cava'] and 'running: root.shouldRun' in widgets['cava'],
  "affinity_has_no_width":'cueWidth: 2' in widgets['workspace'] and 'cueColor: Color.accent' in widgets['workspace'],
  "no_layout_animation":all(not re.search(r'Behavior on (?:implicitWidth|implicitHeight|text)',s) for s in widgets.values()),
  "bounded_labels":'ElideRight' in widgets['media'] and 'root.bar.width >= 1600' in widgets['mission'] and 'root.bar.width >= 1600' in widgets['communications'],

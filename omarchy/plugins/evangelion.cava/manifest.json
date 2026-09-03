@@ -2,9 +2,9 @@
   "schemaVersion": 1,
   "id": "evangelion.cava",
   "name": "MAGI Synchronization Spectrum",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "author": "Evangelion Rice",
-  "description": "Evangelion-native Cava spectrum independent of external themes.",
+  "description": "Evangelion-native Cava spectrum coordinated with active MPRIS playback.",
   "kinds": ["bar-widget"],
   "entryPoints": { "barWidget": "BarWidget.qml" },
   "barWidget": {

@@ -54,6 +54,7 @@ run_install --apply --preset full --yes >/dev/null
 [[ -f $test_root/home/.config/omarchy/workspaces.json && -f $test_root/home/.config/omarchy/plugins/evangelion.workspace-names/manifest.json ]] || fail "full preset omitted editable workspace identities"
 [[ -f $test_root/home/.config/omarchy/visual.json && -x $test_root/home/.local/bin/magi-visual ]] || fail "full preset omitted bounded visual customization"
 [[ -f $test_root/home/.config/omarchy/scenes.json && -x $test_root/home/.local/bin/magi-scene && -f $test_root/home/.config/omarchy/plugins/evangelion.scene-editor/manifest.json ]] || fail "full preset omitted affinity scenes"
+[[ -f $test_root/home/.config/omarchy/media.json && -x $test_root/home/.local/bin/magi-media ]] || fail "full preset omitted coordinated media preferences"
 [[ -f $test_root/home/.config/omarchy/performance.json && -f $test_root/home/.config/omarchy/plugins/evangelion.performance/manifest.json ]] || fail "full preset omitted opt-in performance overlay"
 jq -e '.enabled == false and .sample_interval_ms >= 1000' "$test_root/home/.config/omarchy/performance.json" >/dev/null || fail "performance overlay is not disabled and bounded by default"
 [[ -x $test_root/home/.local/bin/magi-context ]] || fail "full preset omitted MAGI context controller"

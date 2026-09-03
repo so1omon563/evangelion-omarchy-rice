@@ -2,9 +2,9 @@
   "schemaVersion": 1,
   "id": "evangelion.media",
   "name": "MAGI Media",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "author": "Evangelion Rice",
-  "description": "Compact MAGI now-playing status and multi-source controls.",
+  "description": "Keyboard-first MAGI now-playing status, privacy-safe artwork, and multi-source controls.",
   "kinds": ["bar-widget"],
   "entryPoints": { "barWidget": "BarWidget.qml" },
   "barWidget": {

@@ -3,55 +3,90 @@
 set -u
 
 action=${1:-status}
+shift || true
+
+shell_call() {
+  command -v omarchy-shell >/dev/null 2>&1 || return 1
+  omarchy-shell -q media "$@" 2>/dev/null
+}
 
 mapfile -t players < <(playerctl -l 2>/dev/null | awk '!seen[$0]++')
 
 select_player() {
   local player state
-
-  for player in "${players[@]}"; do
-    [[ $player == playerctld ]] && {
-      printf '%s\n' "$player"
-      return
-    }
-  done
-
   for player in "${players[@]}"; do
     state=$(playerctl --player="$player" status 2>/dev/null || true)
-    [[ $state == Playing ]] && {
-      printf '%s\n' "$player"
-      return
-    }
+    [[ $state == Playing && $player != playerctld ]] && { printf '%s\n' "$player"; return; }
   done
-
+  for player in "${players[@]}"; do
+    [[ $player == playerctld ]] && { printf '%s\n' "$player"; return; }
+  done
   ((${#players[@]})) && printf '%s\n' "${players[0]}"
 }
 
 player=$(select_player)
 
-if [[ -z $player ]]; then
-  [[ $action == status ]] && echo "NOW PLAYING // NO ACTIVE SOURCE"
-  exit 0
-fi
+fallback_action() {
+  [[ -n $player ]] || return 1
+  playerctl --player="$player" "$@" >/dev/null 2>&1
+}
 
 case "$action" in
   play-pause|toggle)
-    playerctl --player="$player" play-pause >/dev/null 2>&1 || true
+    shell_call playPause >/dev/null || fallback_action play-pause || true
     ;;
-  next|previous|stop|play|pause)
-    playerctl --player="$player" "$action" >/dev/null 2>&1 || true
+  next|previous|play|pause)
+    shell_call "$action" >/dev/null || fallback_action "$action" || true
+    ;;
+  stop)
+    fallback_action stop || true
+    ;;
+  source-next)
+    shell_call sourceNext >/dev/null || true
+    ;;
+  source-previous)
+    shell_call sourcePrevious >/dev/null || true
+    ;;
+  source-switch)
+    shell_call sourceSwitch >/dev/null || true
+    ;;
+  volume-up|volume-down)
+    [[ -n $player ]] || exit 0
+    step=${EVA_MEDIA_VOLUME_STEP:-0.05}
+    suffix=+
+    [[ $action == volume-down ]] && suffix=-
+    playerctl --player="$player" volume "$step$suffix" >/dev/null 2>&1 || true
+    ;;
+  list)
+    if ((${#players[@]})); then printf '%s\n' "${players[@]}"; else echo "NO ACTIVE SOURCE"; fi
     ;;
   status)
-    metadata=$(playerctl --player="$player" metadata --format '{{title}}|||{{artist}}' 2>/dev/null || true)
-    title=${metadata%%|||*}
-    artist=${metadata#*|||}
-    state=$(playerctl --player="$player" status 2>/dev/null || echo Stopped)
-    [[ -z $title ]] && title="NO TRACK METADATA"
-    [[ -n $artist ]] && title="$title  ·  $artist"
-    printf 'NOW PLAYING // %s // %s\n' "${state^^}" "$title"
+    json=$(shell_call status || true)
+    if [[ ${1:-} == --json ]]; then
+      if [[ $json == \{* ]]; then printf '%s\n' "$json"; exit 0; fi
+      if [[ -z $player ]]; then printf '%s\n' '{"hasPlayer":false,"hasMedia":false,"playing":false}'; exit 0; fi
+      title=$(playerctl --player="$player" metadata title 2>/dev/null || true)
+      artist=$(playerctl --player="$player" metadata artist 2>/dev/null || true)
+      album=$(playerctl --player="$player" metadata album 2>/dev/null || true)
+      state=$(playerctl --player="$player" status 2>/dev/null || echo Stopped)
+      volume=$(playerctl --player="$player" volume 2>/dev/null || true)
+      jq -cn --arg player "$player" --arg title "$title" --arg artist "$artist" --arg album "$album" --arg state "$state" --arg volume "$volume" \
+        '{hasPlayer:true,hasMedia:(($title|length)>0 or ($artist|length)>0),playing:($state=="Playing"),player:$player,title:$title,artist:$artist,album:$album,volume:(if $volume=="" then null else ($volume|tonumber) end)}'
+      exit 0
+    fi
+    if [[ $json == \{* ]] && command -v jq >/dev/null 2>&1; then
+      jq -r 'if .hasPlayer then "NOW PLAYING // " + (if .playing then "PLAYING" else "PAUSED" end) + " // " + (.title // "NO TRACK METADATA") + (if (.artist // "") != "" then "  ·  " + .artist else "" end) else "NOW PLAYING // NO ACTIVE SOURCE" end' <<<"$json"
+    elif [[ -n $player ]]; then
+      metadata=$(playerctl --player="$player" metadata --format '{{title}}|||{{artist}}' 2>/dev/null || true)
+      title=${metadata%%|||*}; artist=${metadata#*|||}; state=$(playerctl --player="$player" status 2>/dev/null || echo Stopped)
+      [[ -z $title ]] && title="NO TRACK METADATA"; [[ -n $artist ]] && title="$title  ·  $artist"
+      printf 'NOW PLAYING // %s // %s\n' "${state^^}" "$title"
+    else
+      echo "NOW PLAYING // NO ACTIVE SOURCE"
+    fi
     ;;
   *)
-    echo "Usage: magi-media [play-pause|next|previous|stop|play|pause|status]" >&2
+    echo "Usage: magi-media [status [--json]|list|play-pause|next|previous|stop|play|pause|source-next|source-previous|source-switch|volume-up|volume-down]" >&2
     exit 2
     ;;
 esac

@@ -265,8 +265,10 @@ Standard hardware media keys continue to work when exposed by the device. MAGI a
 When media is available, a compact `AUDIO //` readout appears beside the
 workspace labels. Left-click opens artwork, transport controls, and source
 selection; middle-click toggles playback; right-click advances; scrolling
-moves between tracks. The widget disappears entirely when no source has track
-metadata.
+moves between tracks. Inside the panel, Up/Down changes source, Space toggles
+playback, Left/Right changes track, `+`/`-` changes player volume, and Escape
+closes. The widget disappears entirely when no source has track metadata. See
+[MEDIA_CONTROLS.md](MEDIA_CONTROLS.md) for source and artwork policy.
 
 ## Launchers
 
@@ -710,6 +712,8 @@ magi-bar-refresh                  # Reapply the active palette without a shell r
 magi-bar-refresh status           # Report the last refresh result as JSON
 magi-media status                 # Print the active player and track
 magi-media play-pause             # Toggle playback through playerctl
+magi-media source-next            # Select the next MPRIS source
+magi-media source-switch          # Transfer playback to the next source
 magi-control-reference --print    # Print this guide in the current terminal
 ```
 
