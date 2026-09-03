@@ -133,6 +133,7 @@ add_file shell "$root/omarchy/extensions/omarchy-menu.jsonc" "$HOME/.config/omar
 add_file shell "$root/omarchy/evangelion.json" "$HOME/.config/omarchy/evangelion.json" 644 preserve
 add_file shell "$root/omarchy/performance.json" "$HOME/.config/omarchy/performance.json" 644 preserve
 for file in command-telemetry.json magi-clock.json magi-terminal-context.json motion.json operating-profiles.json shell.json thermal-alerts.json; do add_file shell "$root/omarchy/$file" "$HOME/.config/omarchy/$file" 644; done
+add_file shell "$root/omarchy/topologies.json" "$HOME/.config/omarchy/topologies.json" 644 preserve
 add_file shell "$root/omarchy/media.json" "$HOME/.config/omarchy/media.json" 644 preserve
 add_file shell "$root/omarchy/workspaces.json" "$HOME/.config/omarchy/workspaces.json" 644 preserve
 add_file shell "$root/omarchy/visual.json" "$HOME/.config/omarchy/visual.json" 644 preserve
@@ -232,7 +233,7 @@ fi
 if [[ ${EVANGELION_SKIP_ACTIVATE:-0} != 1 ]]; then
   [[ ${selected[shell]:-0} == 1 ]] && omarchy-shell -q shell rescanPlugins
   [[ ${selected[hypr]:-0} == 1 ]] && hyprctl reload >/dev/null
-  if [[ ${selected[services]:-0} == 1 ]]; then systemctl --user daemon-reload; systemctl --user enable --now magi-affinity.path magi-start-page.service >/dev/null; fi
+  if [[ ${selected[services]:-0} == 1 ]]; then systemctl --user daemon-reload; systemctl --user enable --now magi-affinity.path magi-start-page.service magi-topology.service >/dev/null; fi
 fi
 if [[ -f $root/RELEASE-PROVENANCE.json ]]; then
   "$root/scripts/build-release" verify-root "$root"

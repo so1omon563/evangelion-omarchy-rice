@@ -52,6 +52,7 @@ run_install --apply --preset full --yes >/dev/null
 [[ -f $test_root/home/.config/omarchy/motion.json && -f $test_root/home/.config/omarchy/plugins/evangelion.motion/manifest.json ]] || fail "full preset omitted motion foundation"
 [[ -f $test_root/home/.local/share/evangelion-rice/settings-schema.json && -f $test_root/home/.config/omarchy/plugins/evangelion.settings/manifest.json ]] || fail "full preset omitted MAGI control center"
 [[ -f $test_root/home/.config/omarchy/workspaces.json && -f $test_root/home/.config/omarchy/plugins/evangelion.workspace-names/manifest.json ]] || fail "full preset omitted editable workspace identities"
+[[ -f $test_root/home/.config/omarchy/topologies.json && -f $test_root/home/.config/systemd/user/magi-topology.service && -x $test_root/home/.local/bin/magi-topology ]] || fail "full preset omitted monitor topology restoration"
 [[ -f $test_root/home/.config/omarchy/visual.json && -x $test_root/home/.local/bin/magi-visual ]] || fail "full preset omitted bounded visual customization"
 [[ -f $test_root/home/.config/omarchy/scenes.json && -x $test_root/home/.local/bin/magi-scene && -f $test_root/home/.config/omarchy/plugins/evangelion.scene-editor/manifest.json ]] || fail "full preset omitted affinity scenes"
 [[ -f $test_root/home/.config/omarchy/media.json && -x $test_root/home/.local/bin/magi-media ]] || fail "full preset omitted coordinated media preferences"

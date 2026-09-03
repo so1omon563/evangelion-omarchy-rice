@@ -1,5 +1,10 @@
 # Clean-user test procedure
 
+`tests/topologies.py` exercises privacy-safe topology classification and
+identity, saved layouts, read-only previews, stale-plan rejection,
+transactional apply/undo, window preservation, unknown-display fallback, and
+explicit automation controls with a fully mocked Hyprland IPC boundary.
+
 The portable installer has two complementary test layers:
 
 ```bash

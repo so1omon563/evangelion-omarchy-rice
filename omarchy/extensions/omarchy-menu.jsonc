@@ -26,6 +26,35 @@
     "action": "omarchy-shell workspace-names toggle",
     "description": "Edit full workspace names and collision-safe compact bar labels"
   },
+  "magi.topology": {
+    "icon": "󰍹",
+    "label": "Display Topologies",
+    "title": "MAGI // DISPLAY TOPOLOGY",
+    "description": "Inspect, enable, and safely undo saved monitor arrangements"
+  },
+  "magi.topology.status": {
+    "icon": "󰋼",
+    "label": "Topology Status",
+    "action": "omarchy-launch-terminal -- bash -lc 'magi-topology status | jq; echo; read -rp \"Press Enter to close...\"'"
+  },
+  "magi.topology.enable": {
+    "icon": "󰐊",
+    "label": "Enable Hot-Plug Restore",
+    "action": "magi-topology enable",
+    "checked": "magi-topology status | jq -e '.enabled == true' >/dev/null"
+  },
+  "magi.topology.disable": {
+    "icon": "󰅖",
+    "label": "Disable Hot-Plug Restore",
+    "action": "magi-topology disable",
+    "checked": "magi-topology status | jq -e '.enabled == false' >/dev/null"
+  },
+  "magi.topology.undo": {
+    "icon": "󰕌",
+    "label": "Undo Last Topology Apply",
+    "action": "magi-topology undo",
+    "description": "Restore the previous monitor, workspace, window, bar, and presentation arrangement"
+  },
   "magi.scenes": {
     "icon": "󰏘",
     "label": "Affinity Scenes",

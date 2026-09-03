@@ -1,0 +1,13 @@
+[Unit]
+Description=MAGI monitor topology restoration
+PartOf=graphical-session.target
+After=graphical-session.target
+
+[Service]
+Type=simple
+ExecStart=%h/.local/bin/magi-topology watch
+Restart=on-failure
+RestartSec=2
+
+[Install]
+WantedBy=graphical-session.target

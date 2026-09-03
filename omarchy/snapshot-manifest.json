@@ -4,7 +4,8 @@
   "components": {
     "layouts": [
       {"root":"config","path":"omarchy/shell.json"},
-      {"root":"config","path":"hypr/hyprland.lua"}
+      {"root":"config","path":"hypr/hyprland.lua"},
+      {"root":"config","path":"omarchy/topologies.json"}
     ],
     "profiles": [
       {"root":"config","path":"omarchy/operating-profiles.json"},

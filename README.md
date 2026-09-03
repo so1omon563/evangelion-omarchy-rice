@@ -1,5 +1,8 @@
 # Evangelion Omarchy Rice
 
+Monitor and dock layouts can be saved, previewed, restored, and safely undone;
+see [Monitor topology profiles](TOPOLOGIES.md).
+
 [![MAGI Integrity Check](https://github.com/so1omon563/evangelion-omarchy-rice/actions/workflows/validate.yml/badge.svg)](https://github.com/so1omon563/evangelion-omarchy-rice/actions/workflows/validate.yml)
 
 > **v1.4.0:** the distribution release adds a standalone gallery-ready

@@ -1,0 +1,151 @@
+#!/usr/bin/env python3
+"""Private, transactional monitor-topology profiles for Hyprland."""
+import hashlib,json,os,re,select,socket,subprocess,sys,tempfile,time
+from pathlib import Path
+
+HOME=Path(os.environ.get("HOME",".")); CONFIG=Path(os.environ.get("EVA_TOPOLOGY_CONFIG",HOME/".config/omarchy/topologies.json")); STATE=Path(os.environ.get("EVA_TOPOLOGY_STATE",HOME/".local/state/evangelion-rice/topology")); HYPR=os.environ.get("EVA_TOPOLOGY_HYPRCTL","hyprctl"); SHELL=Path(os.environ.get("EVA_TOPOLOGY_SHELL",HOME/".config/omarchy/shell.json")); CORE=Path(os.environ.get("EVA_TOPOLOGY_CORE",HOME/".config/omarchy/evangelion.json"))
+DEFAULT={"schema_version":1,"enabled":False,"debounce_ms":1500,"profiles":{}}
+NAME=re.compile(r"^[A-Za-z0-9][A-Za-z0-9._ -]{0,47}$")
+OUTPUT=re.compile(r"^[A-Za-z0-9_.:-]{1,64}$")
+
+def atomic(path,data,mode=0o600):
+ path.parent.mkdir(parents=True,exist_ok=True); fd,tmp=tempfile.mkstemp(dir=path.parent,prefix=".topology-")
+ try:
+  with os.fdopen(fd,"w") as f: json.dump(data,f,indent=2,sort_keys=True);f.write("\n");f.flush();os.fsync(f.fileno())
+  os.chmod(tmp,mode);os.replace(tmp,path)
+ finally:
+  if os.path.exists(tmp):os.unlink(tmp)
+def load():
+ try:d=json.loads(CONFIG.read_text())
+ except FileNotFoundError:return DEFAULT.copy()
+ if not isinstance(d,dict) or d.get("schema_version")!=1 or not isinstance(d.get("profiles"),dict):raise SystemExit("Invalid topology configuration schema")
+ if not isinstance(d.get("enabled",False),bool) or not isinstance(d.get("debounce_ms",1500),int) or not 250<=d.get("debounce_ms",1500)<=10000:raise SystemExit("Invalid topology configuration values")
+ for name,p in d["profiles"].items():
+  if not NAME.fullmatch(name) or not isinstance(p,dict) or not re.fullmatch(r"[0-9a-f]{16}",str(p.get("fingerprint",""))):raise SystemExit("Invalid topology profile identity")
+  if not isinstance(p.get("monitors"),list) or not 1<=len(p["monitors"])<=16:raise SystemExit("Invalid topology monitor list")
+  for m in p["monitors"]:
+   if not isinstance(m,dict) or not OUTPUT.fullmatch(str(m.get("name",""))):raise SystemExit("Invalid topology output")
+   for key,low,high in (("width",320,16384),("height",200,16384),("x",-32768,32768),("y",-32768,32768),("scale",.25,8),("refreshRate",1,1000),("transform",0,7)):
+    if not isinstance(m.get(key),int|float) or not low<=m[key]<=high:raise SystemExit(f"Invalid topology monitor {key}")
+  for w in p.get("workspaces",[]):
+   if not isinstance(w,dict) or not isinstance(w.get("workspace"),int) or not 1<=w["workspace"]<=999 or not OUTPUT.fullmatch(str(w.get("monitor",""))):raise SystemExit("Invalid topology workspace mapping")
+ return d
+def run(*args,check=True):return subprocess.run([HYPR,*args],text=True,capture_output=True,check=check)
+def query(kind):
+ try:v=json.loads(run(kind,"-j").stdout)
+ except Exception:return []
+ return v if isinstance(v,list) else []
+def json_file(path):
+ try:
+  value=json.loads(path.read_text());return value if isinstance(value,dict) else {}
+ except (FileNotFoundError,json.JSONDecodeError):return {}
+def surfaces():
+ shell=json_file(SHELL);core=json_file(CORE);bar=(shell.get("bar") or {}).get("position");workspace=(core.get("presentation") or {}).get("workspace")
+ return {"bar_position":bar if bar in ("top","bottom","left","right") else None,"presentation_workspace":workspace if isinstance(workspace,int) and workspace>0 else None}
+def set_surfaces(values):
+ if values.get("bar_position"):
+  data=json_file(SHELL);data.setdefault("bar",{})["position"]=values["bar_position"];atomic(SHELL,data,0o644)
+ if values.get("presentation_workspace"):
+  data=json_file(CORE);data.setdefault("presentation",{})["workspace"]=values["presentation_workspace"];atomic(CORE,data,0o644)
+def internal(name):return bool(re.match(r"^(eDP|LVDS|DSI)-",name or ""))
+def clean_monitor(m):
+ keys=("name","description","width","height","refreshRate","x","y","scale","transform")
+ return {k:m.get(k) for k in keys if k in m}
+def fingerprint(monitors):
+ # Local identity deliberately excludes serials, paths, EDIDs, and device IDs.
+ rows=[{"connector":m.get("name",""),"model":m.get("description",""),"internal":internal(m.get("name")),"width":m.get("width",0),"height":m.get("height",0)} for m in monitors]
+ raw=json.dumps(sorted(rows,key=lambda x:x["connector"]),sort_keys=True,separators=(",",":"))
+ return hashlib.sha256(raw.encode()).hexdigest()[:16]
+def classify(ms):
+ if not ms:return "unknown"
+ ext=[m for m in ms if not internal(m.get("name",""))]
+ if len(ms)==1 and not ext:return "laptop"
+ if len(ms)==1 and ext:
+  m=ext[0]; ratio=(m.get("width",0)/max(1,m.get("height",1)))
+  return "ultrawide" if ratio>=2.2 else "projector"
+ if len(ext)>=2:return "multi-monitor"
+ if ext:return "dock"
+ return "unknown"
+def capture():
+ ms=query("monitors"); cs=query("clients")
+ work=[]
+ for c in cs:
+  wid=(c.get("workspace") or {}).get("id"); mon=c.get("monitor"); addr=c.get("address")
+  if isinstance(wid,int) and wid>0 and isinstance(mon,int) and addr:work.append({"address":addr,"workspace":wid,"monitor":mon})
+ focused=next((m.get("activeWorkspace",{}).get("id") for m in ms if m.get("focused")),None)
+ return {"fingerprint":fingerprint(ms),"kind":classify(ms),"monitors":[clean_monitor(m) for m in ms],"windows":work,"focused_workspace":focused,"surfaces":surfaces()}
+def profile_for(cfg,fp):return next(((n,p) for n,p in cfg["profiles"].items() if p.get("fingerprint")==fp),None)
+def plan(name=None):
+ cfg=load(); cur=capture(); match=(name,cfg["profiles"].get(name)) if name else profile_for(cfg,cur["fingerprint"])
+ if not match or not match[1]:return {"action":"safe-fallback","reason":"unknown-topology","current":cur,"mutations":[]}
+ name,p=match; muts=[]
+ if p.get("fingerprint")!=cur["fingerprint"]:return {"action":"safe-fallback","reason":"topology-mismatch","current":{k:v for k,v in cur.items() if k!="windows"},"mutations":[]}
+ for m in p.get("monitors",[]):muts.append({"type":"monitor","output":m.get("name"),"mode":f'{m.get("width")}x{m.get("height")}@{m.get("refreshRate",60)}',"position":f'{m.get("x",0)}x{m.get("y",0)}',"scale":m.get("scale",1),"transform":m.get("transform",0)})
+ muts += [{"type":"workspace","workspace":w["workspace"],"monitor":w["monitor"]} for w in p.get("workspaces",[])]
+ if p.get("surfaces"):muts.append({"type":"surfaces",**p["surfaces"]})
+ public_current={k:v for k,v in cur.items() if k!="windows"}
+ body={"action":"apply","profile":name,"fingerprint":p.get("fingerprint"),"current":public_current,"mutations":muts,"focused_workspace":p.get("focused_workspace")}
+ body["plan_id"]=hashlib.sha256(json.dumps(body,sort_keys=True,separators=(",",":" )).encode()).hexdigest()[:12];return body
+def apply_plan(name,confirm):
+ p=plan(name)
+ if p.get("action")!="apply":raise SystemExit("Unknown topology; safe fallback makes no changes")
+ if confirm!=p["plan_id"]:raise SystemExit(f'Confirmation mismatch; preview again and pass --confirm {p["plan_id"]}')
+ STATE.mkdir(parents=True,exist_ok=True); snap=capture(); atomic(STATE/"last-transaction.json",snap)
+ try:
+  for m in p["mutations"]:
+   if m["type"]=="monitor":run("eval",f'hl.monitor({{ output = "{m["output"]}", mode = "{m["mode"]}", position = "{m["position"]}", scale = {m["scale"]}, transform = {m["transform"]} }})')
+  # Move workspaces, never close or relaunch applications.
+  for m in p["mutations"]:
+   if m["type"]=="workspace":run("dispatch","moveworkspacetomonitor",f'{m["workspace"]} {m["monitor"]}',check=False)
+  set_surfaces(next((m for m in p["mutations"] if m["type"]=="surfaces"),{}))
+  if isinstance(p.get("focused_workspace"),int):run("dispatch",f'workspace',str(p["focused_workspace"]),check=False)
+ except Exception:
+  restore(snap);raise
+ atomic(STATE/"active.json",{"profile":name,"fingerprint":p["fingerprint"],"applied_at":int(time.time())});print(f"Applied topology {name}; undo with: magi-topology undo")
+def restore(s):
+ for m in s.get("monitors",[]):run("eval",f'hl.monitor({{ output = "{m.get("name")}", mode = "{m.get("width")}x{m.get("height")}@{m.get("refreshRate",60)}", position = "{m.get("x",0)}x{m.get("y",0)}", scale = {m.get("scale",1)}, transform = {m.get("transform",0)} }})',check=False)
+ for w in s.get("windows",[]):run("eval",f'hl.dsp.window.move({{ workspace = "{w["workspace"]}", follow = false, window = "address:{w["address"]}" }})',check=False)
+ set_surfaces(s.get("surfaces",{}))
+ if isinstance(s.get("focused_workspace"),int):run("dispatch","workspace",str(s["focused_workspace"]),check=False)
+def save(name):
+ if not NAME.fullmatch(name):raise SystemExit("Profile name must be 1-48 safe characters")
+ cfg=load(); cap=capture(); ids={m.get("id"):m.get("name") for m in query("monitors")}; seen=set(); work=[]
+ for w in cap.pop("windows"):
+  key=(w["workspace"],ids.get(w["monitor"]))
+  if key[1] and key not in seen:seen.add(key);work.append({"workspace":key[0],"monitor":key[1]})
+ cap["workspaces"]=work;cfg["profiles"][name]=cap;atomic(CONFIG,cfg);print(f"Saved {name} ({cap['kind']} · {cap['fingerprint']})")
+def set_enabled(value):
+ cfg=load();cfg["enabled"]=value;atomic(CONFIG,cfg)
+ if os.environ.get("EVA_TOPOLOGY_NO_SYSTEMD")!="1":subprocess.run(["systemctl","--user","restart","magi-topology.service"],stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL,check=False)
+ print("enabled" if value else "disabled")
+def status():
+ cfg=load();cur=capture();match=profile_for(cfg,cur["fingerprint"]);print(json.dumps({"schema_version":1,"enabled":cfg.get("enabled",False),"current":{"fingerprint":cur["fingerprint"],"kind":cur["kind"],"outputs":len(cur["monitors"])},"matched_profile":match[0] if match else None,"profiles":sorted(cfg["profiles"])}))
+def watch():
+ cfg=load()
+ if not cfg.get("enabled"):print("Topology automation disabled; enable with: magi-topology enable");return
+ runtime=os.environ.get("XDG_RUNTIME_DIR",f"/run/user/{os.getuid()}");sig=os.environ.get("HYPRLAND_INSTANCE_SIGNATURE","");path=Path(runtime)/"hypr"/sig/".socket2.sock"
+ s=socket.socket(socket.AF_UNIX,socket.SOCK_STREAM);s.connect(str(path));pending=0.0
+ while True:
+  ready,_,_=select.select([s],[],[],.25)
+  if ready:
+   data=s.recv(65536)
+   if not data:return
+   if b"monitoradded" in data or b"monitorremoved" in data:pending=time.monotonic()+cfg.get("debounce_ms",1500)/1000
+  if pending and time.monotonic()>=pending:
+   pending=0;cfg=load();p=plan()
+   if cfg.get("enabled") and p.get("action")=="apply":apply_plan(p["profile"],p["plan_id"])
+def main(a):
+ cmd=a[0] if a else "status"
+ if cmd=="status":status()
+ elif cmd=="save" and len(a)==2:save(a[1])
+ elif cmd=="preview":print(json.dumps(plan(a[1] if len(a)>1 else None),indent=2))
+ elif cmd=="apply" and len(a)==4 and a[2]=="--confirm":apply_plan(a[1],a[3])
+ elif cmd=="undo":
+  f=STATE/"last-transaction.json"
+  if not f.exists():raise SystemExit("No topology transaction to undo")
+  restore(json.loads(f.read_text()));f.unlink();print("Prior monitor and window arrangement restored")
+ elif cmd=="enable":set_enabled(True)
+ elif cmd=="disable":set_enabled(False)
+ elif cmd=="watch":watch()
+ else:raise SystemExit("Usage: magi-topology [status|save NAME|preview [NAME]|apply NAME --confirm PLAN_ID|undo|enable|disable|watch]")
+if __name__=="__main__":main(sys.argv[1:])
