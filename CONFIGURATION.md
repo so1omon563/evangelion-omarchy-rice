@@ -9,6 +9,14 @@ gaps, borders, and animation intensity. Settings are stored in the preserved
 and apply when Hyprland is next available. Full usage, preview/undo behavior,
 and precedence are in [VISUAL_CUSTOMIZATION.md](VISUAL_CUSTOMIZATION.md).
 
+## Affinity scenes
+
+Scene definitions live in the preserved `~/.config/omarchy/scenes.json`.
+Use `magi-scene preview SCENE` before applying, `magi-scene undo` to restore
+the preceding coordinated state, and `magi-scene auto` to follow wallpaper
+affinity again. Optional audio remains interlocked and all shipped scenes keep
+the existing sound, ambient, and motion settings. See [SCENES.md](SCENES.md).
+
 ## Core user configuration
 
 The installer creates and then preserves `~/.config/omarchy/evangelion.json`:

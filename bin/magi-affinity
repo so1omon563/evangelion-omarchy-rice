@@ -224,6 +224,9 @@ apply_profile() {
     echo 'Affinity committed, but the live bar did not refresh. Run magi-bar-refresh; if needed, run omarchy restart shell.' >&2
   fi
   coordinate_wallpaper "$profile" "$previous_profile" "$refresh_state"
+  if [[ -z ${MAGI_SCENE_TRANSACTION:-} ]] && command -v magi-scene >/dev/null 2>&1; then
+    magi-scene sync --from-affinity "$profile" >/dev/null 2>&1 || true
+  fi
   printf 'Affinity: %s (%s mode)\n' "$label" "$(cat "$mode_file" 2>/dev/null || echo auto)"
 }
 

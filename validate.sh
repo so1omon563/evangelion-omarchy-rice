@@ -60,6 +60,7 @@ python3 "$root/tests/rice-health.py" >/dev/null && pass "read-only rice health a
 python3 "$root/tests/snapshots.py" >/dev/null && pass "private named selective configuration snapshots" || fail "private named selective configuration snapshots"
 python3 "$root/tests/settings.py" >/dev/null && pass "schema-backed MAGI control center" || fail "schema-backed MAGI control center"
 python3 "$root/tests/visual-customization.py" >/dev/null && pass "bounded visual customization controls" || fail "bounded visual customization controls"
+python3 "$root/tests/scenes.py" >/dev/null && pass "atomic affinity scene coordination" || fail "atomic affinity scene coordination"
 python3 "$root/tests/workspace-names.py" >/dev/null && pass "editable responsive workspace identities" || fail "editable responsive workspace identities"
 if [[ ${EVANGELION_RELEASE_ARTIFACT_NESTED:-0} != 1 ]]; then
   python3 "$root/tests/release-artifact.py" >/dev/null && pass "reproducible complete-suite release artifact" || fail "reproducible complete-suite release artifact"

@@ -1,0 +1,156 @@
+#!/usr/bin/env python3
+"""Preview and atomically coordinate bounded Evangelion affinity scenes."""
+import argparse, fcntl, hashlib, json, os, shutil, subprocess, tempfile, time
+from pathlib import Path
+
+ROOT=Path(__file__).resolve().parents[1]
+HOME=Path(os.environ.get("EVA_SCENE_HOME",Path.home()))
+CONFIG_HOME=Path(os.environ.get("XDG_CONFIG_HOME",HOME/".config"))
+STATE_HOME=Path(os.environ.get("XDG_STATE_HOME",HOME/".local/state"))
+DATA=Path(os.environ.get("EVA_SCENE_DATA",ROOT if (ROOT/"omarchy").is_dir() else HOME/".local/share/evangelion-rice"))
+DEFAULT=Path(os.environ.get("EVA_SCENE_DEFAULT",DATA/"omarchy/scenes.json" if (DATA/"omarchy/scenes.json").is_file() else DATA/"scenes.json"))
+CONFIG=Path(os.environ.get("EVA_SCENE_CONFIG",CONFIG_HOME/"omarchy/scenes.json"))
+EVANGELION=Path(os.environ.get("EVA_SCENE_EVANGELION",CONFIG_HOME/"omarchy/evangelion.json"))
+STATE=Path(os.environ.get("EVA_SCENE_STATE",STATE_HOME/"evangelion-rice/scenes"))
+BACKGROUND=Path(os.environ.get("EVA_SCENE_BACKGROUND",STATE_HOME/"omarchy/current/background"))
+THEME_BACKGROUNDS=Path(os.environ.get("EVA_SCENE_BACKGROUNDS",STATE_HOME/"omarchy/current/theme/backgrounds"))
+SKIP=os.environ.get("EVA_SCENE_SKIP_ACTIVATE")=="1"
+AFFINITIES={"neutral","unit-00-prototype","unit-00-refit","unit-01","unit-02"}
+TERMINALS={"eva-01","magi","engineering","unit-00-prototype","unit-00-refit","unit-02"}
+
+def load(path,default=None):
+ try:return json.loads(path.read_text())
+ except (OSError,json.JSONDecodeError):return default
+def atomic(path,value,mode=0o600):
+ path.parent.mkdir(parents=True,exist_ok=True);fd,name=tempfile.mkstemp(prefix=f".{path.name}.",dir=path.parent)
+ try:
+  with os.fdopen(fd,"w") as stream:json.dump(value,stream,indent=2);stream.write("\n");stream.flush();os.fsync(stream.fileno())
+  os.chmod(name,mode);os.replace(name,path)
+ finally:
+  try:os.unlink(name)
+  except FileNotFoundError:pass
+def schema():
+ value=load(CONFIG) or load(DEFAULT)
+ if not isinstance(value,dict) or value.get("schema_version")!=1 or not isinstance(value.get("scenes"),list):raise SystemExit("Scene configuration is invalid")
+ ids=set()
+ for row in value["scenes"]:
+  if not isinstance(row,dict) or not isinstance(row.get("id"),str) or not row["id"].replace("-","").isalnum() or row["id"] in ids:raise SystemExit("Scene id is invalid or duplicated")
+  ids.add(row["id"])
+  if row.get("affinity") not in AFFINITIES or row.get("terminal") not in TERMINALS:raise SystemExit("Scene affinity or terminal is invalid")
+  if row.get("sound","keep") not in {"keep","enabled","disabled"} or row.get("ambient","keep") not in {"keep","enabled","disabled"} or row.get("motion","keep") not in {"keep","full","reduced","off"}:raise SystemExit("Scene optional behavior is invalid")
+  wallpaper=str(row.get("wallpaper",""))
+  if not wallpaper or Path(wallpaper).name!=wallpaper:raise SystemExit("Scene wallpaper must be a filename")
+ return value
+def scene(scene_id):
+ row=next((x for x in schema()["scenes"] if x["id"]==scene_id),None)
+ if not row:raise SystemExit("Unknown scene")
+ return row
+def run(args,env=None,timeout=12):
+ if SKIP:return subprocess.CompletedProcess(args,0,"","")
+ try:return subprocess.run(args,text=True,capture_output=True,timeout=timeout,env=env,check=False)
+ except (OSError,subprocess.SubprocessError):return None
+def command_value(args,prefix=""):
+ result=run(args)
+ if not result or result.returncode:return None
+ text=result.stdout.strip()
+ return next((x[len(prefix):] for x in text.splitlines() if x.startswith(prefix)),None) if prefix else text
+def current():
+ affinity_mode=command_value(["magi-affinity","status"],"mode=") or "auto"
+ affinity=command_value(["magi-affinity","status"],"active=") or "neutral"
+ ambient=load(EVANGELION,{}) or {};ambient="enabled" if ambient.get("ambient",{}).get("enabled",True) else "disabled"
+ return {"wallpaper":str(BACKGROUND.resolve()) if BACKGROUND.exists() else "", "affinity_mode":affinity_mode,"affinity":affinity,
+  "terminal":command_value(["eva-terminal-profile","status"]) or "magi","sound":command_value(["magi-sound","status"]) or "disabled",
+  "ambient":ambient,"motion":command_value(["magi-motion","status"]) or "full"}
+def audio_authorized():return (STATE/"audio-authorized").is_file()
+def capability(name,target):
+ command={"wallpaper":"omarchy","affinity":"magi-affinity","terminal":"eva-terminal-profile","sound":"magi-sound","ambient":"magi-ambient","motion":"magi-motion"}[name]
+ available=SKIP or shutil.which(command) is not None
+ if name=="wallpaper":available=available and (SKIP or (THEME_BACKGROUNDS/target).is_file())
+ reason="" if available else ("wallpaper is unavailable" if name=="wallpaper" else command+" is unavailable")
+ return {"status":"available" if available else "degraded","reason":reason}
+def planned(row,include_authority=True):
+ actions=[]
+ targets={"wallpaper":row["wallpaper"],"affinity":row["affinity"],"terminal":row["terminal"],"sound":row.get("sound","keep"),"ambient":row.get("ambient","keep"),"motion":row.get("motion","keep")}
+ for name,target in targets.items():
+  cap=capability(name,target);status="keep" if target=="keep" else cap["status"]
+  reason=cap["reason"]
+  if name=="sound" and target=="enabled" and not audio_authorized():status="blocked";reason="audio enable requires explicit scene authorization"
+  actions.append({"component":name,"target":target,"status":status,"reason":reason})
+ return actions
+def preview(scene_id):
+ row=scene(scene_id);before=current();authority=load(STATE/"authority.json",{"mode":"auto","scene":None});before["scene_authority"]=authority.get("mode","auto");before["scene_active"]=authority.get("scene");actions=planned(row)
+ value={"schema_version":1,"scene":row,"before":before,"actions":actions,"authority":"manual","requires_confirmation":True,
+  "warnings":["Unavailable capabilities will be skipped","Audio is never played during scene activation"]}
+ value["plan_id"]=hashlib.sha256(json.dumps(value,sort_keys=True,separators=(",",":")).encode()).hexdigest()[:16]
+ return value
+def restore(before):
+ failures=[];env={**os.environ,"MAGI_SCENE_TRANSACTION":"1"}
+ if before.get("wallpaper") and Path(before["wallpaper"]).is_file():
+  result=run(["omarchy","theme","bg","set",before["wallpaper"]],env)
+  if not result or result.returncode:failures.append("wallpaper")
+ affinity_args=["magi-affinity","auto"] if before.get("affinity_mode")=="auto" else ["magi-affinity","set",before.get("affinity","neutral")]
+ for name,args in (("affinity",affinity_args),("terminal",["eva-terminal-profile",before.get("terminal","magi"),"--no-reload"]),("ambient",["magi-ambient",before.get("ambient","enabled").replace("enabled","enable").replace("disabled","disable")]),("motion",["magi-motion","set",before.get("motion","full")]),("sound",["magi-sound",before.get("sound","disabled").replace("enabled","enable").replace("disabled","disable")])):
+  result=run(args,env);failures.extend([name] if not result or result.returncode else [])
+ return failures
+def execute(row,actions,sync=False):
+ failures=[];applied=[];skipped=[];env={**os.environ,"MAGI_SCENE_TRANSACTION":"1"}
+ for action in actions:
+  name,target,status=action["component"],action["target"],action["status"]
+  if target=="keep" or (sync and name in {"wallpaper","affinity"}) or status!="available":skipped.append(name);continue
+  args={"wallpaper":["omarchy","theme","bg","set",str(THEME_BACKGROUNDS/target)],"affinity":["magi-affinity","set",target],"terminal":["eva-terminal-profile",target,"--no-reload"],"sound":["magi-sound",target.replace("enabled","enable").replace("disabled","disable")],"ambient":["magi-ambient",target.replace("enabled","enable").replace("disabled","disable")],"motion":["magi-motion","set",target]}[name]
+  result=run(args,env)
+  if not result or result.returncode:failures.append(name);break
+  applied.append(name)
+ return applied,skipped,failures
+def apply(scene_id,confirmation=None,sync=False):
+ plan=preview(scene_id)
+ if not sync and confirmation!=plan["plan_id"]:raise SystemExit("Confirmation mismatch; preview again")
+ before=plan["before"];STATE.mkdir(parents=True,exist_ok=True)
+ with (STATE/"transaction.lock").open("a") as lock:
+  fcntl.flock(lock,fcntl.LOCK_EX)
+  applied,skipped,failures=execute(plan["scene"],plan["actions"],sync)
+  if failures:
+   rollback_failures=restore(before);raise SystemExit("Scene apply failed at "+failures[0]+("; rollback incomplete: "+",".join(rollback_failures) if rollback_failures else "; previous state restored"))
+  record={"schema_version":1,"scene":scene_id,"before":before,"applied":applied,"skipped":skipped,"at":int(time.time())};atomic(STATE/"last.json",record)
+  atomic(STATE/"authority.json",{"schema_version":1,"mode":"auto" if sync else "manual","scene":scene_id,"at":int(time.time())})
+  if not SKIP:run(["omarchy-shell","-q","scene-editor","refresh"])
+  return {"schema_version":1,"status":"applied","scene":scene_id,"authority":"auto" if sync else "manual","applied":applied,"skipped":skipped,"undo_available":True}
+def matching(affinity):
+ return next((x["id"] for x in schema()["scenes"] if x["affinity"]==affinity),None)
+def status():
+ authority=load(STATE/"authority.json",{"mode":"auto","scene":None})
+ return {"schema_version":1,"authority":authority.get("mode","auto"),"active_scene":authority.get("scene"),"audio_authorized":audio_authorized(),"current":current(),"scenes":schema()["scenes"],"undo_available":(STATE/"last.json").is_file()}
+def main():
+ p=argparse.ArgumentParser();sub=p.add_subparsers(dest="command",required=True)
+ sub.add_parser("list");sub.add_parser("status")
+ q=sub.add_parser("preview");q.add_argument("scene")
+ a=sub.add_parser("apply");a.add_argument("scene");a.add_argument("--confirm",required=True)
+ sub.add_parser("undo");sub.add_parser("auto")
+ y=sub.add_parser("authorize-audio");y.add_argument("value",choices=["enable","disable"])
+ z=sub.add_parser("sync");z.add_argument("--from-affinity",required=True,choices=sorted(AFFINITIES))
+ args=p.parse_args()
+ if args.command=="list":result={"scenes":schema()["scenes"]}
+ elif args.command=="status":result=status()
+ elif args.command=="preview":result=preview(args.scene)
+ elif args.command=="apply":result=apply(args.scene,args.confirm)
+ elif args.command=="undo":
+  record=load(STATE/"last.json");
+  if not isinstance(record,dict):raise SystemExit("No scene transaction to undo")
+  failures=restore(record["before"])
+  if failures:raise SystemExit("Scene undo incomplete: "+",".join(failures))
+  atomic(STATE/"authority.json",{"schema_version":1,"mode":record["before"].get("scene_authority","auto"),"scene":record["before"].get("scene_active"),"at":int(time.time())})
+  (STATE/"last.json").unlink(missing_ok=True);result={"schema_version":1,"status":"undone","scene":record["scene"]}
+ elif args.command=="auto":
+  atomic(STATE/"authority.json",{"schema_version":1,"mode":"auto","scene":None,"at":int(time.time())})
+  active=current()["affinity"];scene_id=matching(active);result=apply(scene_id,sync=True) if scene_id else {"schema_version":1,"status":"auto","reason":"no matching scene"}
+ elif args.command=="authorize-audio":
+  STATE.mkdir(parents=True,exist_ok=True)
+  if args.value=="enable":(STATE/"audio-authorized").touch(mode=0o600,exist_ok=True)
+  else:(STATE/"audio-authorized").unlink(missing_ok=True)
+  result={"schema_version":1,"audio_authorized":audio_authorized()}
+ else:
+  authority=load(STATE/"authority.json",{"mode":"auto"})
+  scene_id=matching(args.from_affinity)
+  result={"schema_version":1,"status":"held","reason":"manual-authority"} if authority.get("mode")=="manual" else apply(scene_id,sync=True) if scene_id else {"schema_version":1,"status":"degraded","reason":"no matching scene"}
+ print(json.dumps(result,separators=(",",":")));return 0
+if __name__=="__main__":raise SystemExit(main())

@@ -1,0 +1,11 @@
+{
+  "schema_version": 1,
+  "scenes": [
+    {"id":"nerv-command","label":"NERV Command","wallpaper":"1-nerv-command.png","affinity":"neutral","terminal":"magi","sound":"keep","ambient":"keep","motion":"keep"},
+    {"id":"unit-00-prototype","label":"EVA-00 Prototype","wallpaper":"5-eva-unit-00-prototype.png","affinity":"unit-00-prototype","terminal":"unit-00-prototype","sound":"keep","ambient":"keep","motion":"keep"},
+    {"id":"unit-00-refit","label":"EVA-00 Refit","wallpaper":"6-eva-unit-00-refit.png","affinity":"unit-00-refit","terminal":"unit-00-refit","sound":"keep","ambient":"keep","motion":"keep"},
+    {"id":"unit-01","label":"EVA-01 Test Type","wallpaper":"2-eva-unit-01.png","affinity":"unit-01","terminal":"eva-01","sound":"keep","ambient":"keep","motion":"keep"},
+    {"id":"unit-02","label":"EVA-02 Production","wallpaper":"7-eva-unit-02.png","affinity":"unit-02","terminal":"unit-02","sound":"keep","ambient":"keep","motion":"keep"},
+    {"id":"magi-operations","label":"MAGI Operations","wallpaper":"3-magi-tokyo3.png","affinity":"neutral","terminal":"engineering","sound":"keep","ambient":"keep","motion":"keep"}
+  ]
+}

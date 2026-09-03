@@ -41,3 +41,7 @@ magi-settings preview motion.mode reduced
 magi-settings apply motion.mode reduced --confirm PLAN_ID_FROM_PREVIEW
 magi-settings undo
 ```
+
+Press `C` from the Control Center to open the affinity scene editor. Scene
+selection has its own preview, atomic apply, undo, Auto-authority, capability,
+and audio-interlock contract documented in [SCENES.md](SCENES.md).

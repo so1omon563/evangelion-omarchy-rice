@@ -134,6 +134,7 @@ add_file shell "$root/omarchy/performance.json" "$HOME/.config/omarchy/performan
 for file in command-telemetry.json magi-clock.json magi-terminal-context.json motion.json operating-profiles.json shell.json thermal-alerts.json; do add_file shell "$root/omarchy/$file" "$HOME/.config/omarchy/$file" 644; done
 add_file shell "$root/omarchy/workspaces.json" "$HOME/.config/omarchy/workspaces.json" 644 preserve
 add_file shell "$root/omarchy/visual.json" "$HOME/.config/omarchy/visual.json" 644 preserve
+add_file shell "$root/omarchy/scenes.json" "$HOME/.config/omarchy/scenes.json" 644 preserve
 add_tree shell "$root/omarchy/hooks" "$HOME/.config/omarchy/hooks" 755
 for file in bindings.lua hyprland.lua looknfeel.lua; do add_file hypr "$root/hypr/$file" "$HOME/.config/hypr/$file" 644; done
 add_tree start-page "$root/start-page" "$HOME/.local/share/evangelion-rice/start-page" 644

@@ -691,6 +691,12 @@ binding and its Preview (`Enter`), Apply (`A`), and Undo (`U`) workflow. No new
 global shortcut is introduced; select any row in the Visual category. See
 [VISUAL_CUSTOMIZATION.md](VISUAL_CUSTOMIZATION.md).
 
+Press `C` inside the MAGI Control Center, or choose
+`MAGI Command Interface → Affinity Scenes`, to open the scene editor. Its local
+keys are Up/Down to select, Enter to preview, `A` to apply, `U` to undo, `T` to
+restore Auto authority, `R` to refresh, and Escape to close. See
+[SCENES.md](SCENES.md).
+
 ```bash
 omarchy menu keybindings --print  # Print the complete current binding list
 omarchy-menu summon magi          # Open the MAGI interface

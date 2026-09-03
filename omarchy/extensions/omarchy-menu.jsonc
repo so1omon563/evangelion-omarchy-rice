@@ -26,6 +26,12 @@
     "action": "omarchy-shell workspace-names toggle",
     "description": "Edit full workspace names and collision-safe compact bar labels"
   },
+  "magi.scenes": {
+    "icon": "󰏘",
+    "label": "Affinity Scenes",
+    "action": "omarchy-shell scene-editor toggle",
+    "description": "Preview and coordinate wallpaper, palette, terminal, and optional scene behavior"
+  },
   "magi.background": {
     "icon": "󰸉",
     "label": "Visual Environment",
