@@ -1,0 +1,122 @@
+#!/usr/bin/env python3
+"""Export and transactionally import privacy-sanitized machine profiles."""
+import argparse,hashlib,json,os,re,shutil,subprocess,tempfile,time
+from pathlib import Path
+HOME=Path(os.environ.get("HOME",".")); CONFIG=Path(os.environ.get("XDG_CONFIG_HOME",HOME/".config"))/"omarchy"; STATE=Path(os.environ.get("XDG_STATE_HOME",HOME/".local/state"))/"evangelion-rice/machine-profiles"; PLAN=STATE/"import-plan.json"; ROOT=Path(__file__).resolve().parents[1]
+OPERATING=CONFIG/"operating-profiles.json"; TOPOLOGIES=CONFIG/"topologies.json"; HYPR=os.environ.get("EVA_MACHINE_PROFILE_HYPRCTL","hyprctl"); MAX=1024*1024
+NAME=re.compile(r"^[A-Za-z0-9][A-Za-z0-9._ -]{0,47}$"); SAFE_FILE=re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$"); INTERNAL=re.compile(r"^(eDP|LVDS|DSI)-")
+SECRET=re.compile(r"password|secret|token|api.?key|credential|cookie|private.?key",re.I)
+DEFAULT_OP={"docked":{"power_profile":"performance","bar_size":30,"audio_target":"external","wallpaper":"3-magi-tokyo3.png","display_layout":"extend-right"},"mobile":{"power_profile":"balanced","bar_size":26,"audio_target":"internal","wallpaper":"restore","display_layout":"internal"}}
+def atomic(path,value):
+ path.parent.mkdir(parents=True,exist_ok=True);fd,tmp=tempfile.mkstemp(dir=path.parent,prefix=".machine-profile-")
+ try:
+  with os.fdopen(fd,"w") as f:json.dump(value,f,indent=2,sort_keys=True);f.write("\n");f.flush();os.fsync(f.fileno())
+  os.chmod(tmp,0o600);os.replace(tmp,path)
+ finally:
+  if os.path.exists(tmp):os.unlink(tmp)
+def read(path,default):
+ try:return json.loads(path.read_text())
+ except (OSError,json.JSONDecodeError):return default
+def unsafe(value):
+ if isinstance(value,dict):return any(SECRET.search(str(k)) or unsafe(v) for k,v in value.items())
+ if isinstance(value,list):return any(unsafe(v) for v in value)
+ return isinstance(value,str) and (value.startswith(("/","~/","file://","ssh://")) or bool(re.match(r"^[A-Za-z]:\\",value)))
+def monitors():
+ try:v=json.loads(subprocess.run([HYPR,"monitors","-j"],text=True,capture_output=True,check=True).stdout)
+ except Exception:return []
+ return v if isinstance(v,list) else []
+def role_map(ms):
+ inside=sorted((m for m in ms if INTERNAL.match(str(m.get("name","")))),key=lambda m:m["name"]);outside=sorted((m for m in ms if not INTERNAL.match(str(m.get("name","")))),key=lambda m:m["name"]);out={}
+ for i,m in enumerate(inside):out[m["name"]]="internal" if i==0 else f"internal-{i+1}"
+ for i,m in enumerate(outside):out[m["name"]]=f"external-{i+1}"
+ return out
+def capability_report(ms):
+ roles=role_map(ms);search=os.environ.get("EVA_MACHINE_PROFILE_COMMAND_PATH");cmd=lambda x:shutil.which(x,path=search) is not None
+ return {"outputs":{"count":len(ms),"roles":sorted(roles.values())},"power_profiles":cmd("powerprofilesctl"),"audio":cmd("wpctl") or cmd("pactl")}
+def sanitize_operating(value):
+ out={}
+ for name,p in value.items():
+  if not NAME.fullmatch(str(name)) or not isinstance(p,dict):continue
+  wallpaper=p.get("wallpaper","keep");wallpaper=wallpaper if wallpaper in ("keep","restore") or SAFE_FILE.fullmatch(str(wallpaper)) else "keep"
+  out[name]={"power_profile":p.get("power_profile","keep") if p.get("power_profile") in ("keep","balanced","performance","power-saver") else "keep","bar_size":p.get("bar_size",28) if isinstance(p.get("bar_size",28),int) and 16<=p.get("bar_size",28)<=64 else 28,"audio_target":p.get("audio_target","keep") if p.get("audio_target") in ("keep","internal","external") else "keep","wallpaper":wallpaper,"display_layout":p.get("display_layout","keep") if p.get("display_layout") in ("keep","internal","extend-right") else "keep"}
+ return out
+def sanitize_topologies(value):
+ out={};removed={"device_ids":0,"display_descriptions":0,"fingerprints":0,"window_addresses":0,"host_paths":0,"accounts":0,"weather_location":0,"private_state":0};profiles=value.get("profiles",{}) if isinstance(value,dict) else {}
+ for name,p in profiles.items():
+  if not NAME.fullmatch(str(name)) or not isinstance(p,dict):continue
+  roles=role_map(p.get("monitors",[]));rows=[]
+  for m in p.get("monitors",[]):
+   role=roles.get(m.get("name"));
+   if not role:continue
+   rows.append({"role":role,"width":m.get("width"),"height":m.get("height"),"refreshRate":m.get("refreshRate",60),"x":m.get("x",0),"y":m.get("y",0),"scale":m.get("scale",1),"transform":m.get("transform",0)});removed["device_ids"]+=1;removed["display_descriptions"]+=int(bool(m.get("description")))
+  work=[{"workspace":w.get("workspace"),"role":roles.get(w.get("monitor"))} for w in p.get("workspaces",[]) if roles.get(w.get("monitor"))]
+  out[name]={"kind":p.get("kind","unknown"),"monitors":rows,"workspaces":work,"focused_workspace":p.get("focused_workspace"),"surfaces":p.get("surfaces",{})};removed["fingerprints"]+=int("fingerprint" in p);removed["window_addresses"]+=len(p.get("windows",[]))
+ return out,removed
+def export(args):
+ tops,redacted=sanitize_topologies(read(TOPOLOGIES,{"profiles":{}}));ops=sanitize_operating(read(OPERATING,DEFAULT_OP));caps=capability_report(monitors());payload={"schema":"evangelion-machine-profile","schema_version":1,"suite_version":(ROOT/"VERSION").read_text().strip(),"requirements":{"min_outputs":max([len(p["monitors"]) for p in tops.values()] or [1]),"needs_internal":any(any(m["role"].startswith("internal") for m in p["monitors"]) for p in tops.values()),"external_outputs":max([sum(m["role"].startswith("external") for m in p["monitors"]) for p in tops.values()] or [0])},"source_capabilities":caps,"redaction_report":{"removed":redacted,"retained":["semantic output roles","display geometry","workspace numbers","bounded visual preferences"]},"operating_profiles":ops,"topology_templates":tops};atomic(args.output,payload);print(json.dumps({"status":"exported","output":str(args.output),"profiles":len(ops),"topologies":len(tops),"redaction_report":payload["redaction_report"]},indent=2))
+def validate(path):
+ if not path.is_file() or path.stat().st_size>MAX:raise SystemExit("Bundle missing or exceeds 1 MiB")
+ v=read(path,None)
+ if not isinstance(v,dict) or v.get("schema")!="evangelion-machine-profile" or v.get("schema_version")!=1:raise SystemExit("Unsupported machine-profile schema")
+ if set(v)-{"schema","schema_version","suite_version","requirements","source_capabilities","redaction_report","operating_profiles","topology_templates"}:raise SystemExit("Unknown bundle fields")
+ if unsafe(v):raise SystemExit("Bundle contains a secret-like key or host path")
+ ops=sanitize_operating(v.get("operating_profiles",{}));tops=v.get("topology_templates",{})
+ if ops!=v.get("operating_profiles") or not isinstance(tops,dict):raise SystemExit("Invalid operating profiles")
+ for name,p in tops.items():
+  if not NAME.fullmatch(str(name)) or not isinstance(p,dict) or set(p)-{"kind","monitors","workspaces","focused_workspace","surfaces"}:raise SystemExit("Invalid topology template")
+  if p.get("kind") not in ("unknown","laptop","dock","projector","ultrawide","multi-monitor"):raise SystemExit("Invalid topology kind")
+  if p.get("focused_workspace") is not None and (not isinstance(p["focused_workspace"],int) or not 1<=p["focused_workspace"]<=999):raise SystemExit("Invalid focused workspace")
+  surfaces=p.get("surfaces",{});allowed_surfaces={"bar_position","presentation_workspace"}
+  if not isinstance(surfaces,dict) or set(surfaces)-allowed_surfaces or surfaces.get("bar_position") not in (None,"top","bottom","left","right") or (surfaces.get("presentation_workspace") is not None and (not isinstance(surfaces["presentation_workspace"],int) or not 1<=surfaces["presentation_workspace"]<=999)):raise SystemExit("Invalid surface preferences")
+  for m in p.get("monitors",[]):
+   if not isinstance(m,dict) or not re.fullmatch(r"(?:internal(?:-[2-9])?|external-[1-9][0-9]*)",str(m.get("role",""))):raise SystemExit("Invalid semantic output role")
+   for k,lo,hi in (("width",320,16384),("height",200,16384),("refreshRate",1,1000),("x",-32768,32768),("y",-32768,32768),("scale",.25,8),("transform",0,7)):
+    if not isinstance(m.get(k),int|float) or not lo<=m[k]<=hi:raise SystemExit("Invalid display geometry")
+  for w in p.get("workspaces",[]):
+   if not isinstance(w,dict) or set(w)!={"workspace","role"} or not isinstance(w.get("workspace"),int) or not 1<=w["workspace"]<=999 or not re.fullmatch(r"(?:internal(?:-[2-9])?|external-[1-9][0-9]*)",str(w.get("role",""))):raise SystemExit("Invalid workspace")
+ return v
+def fingerprint(ms):
+ rows=[{"connector":m.get("name",""),"model":m.get("description",""),"internal":bool(INTERNAL.match(str(m.get("name","")))),"width":m.get("width",0),"height":m.get("height",0)} for m in ms];return hashlib.sha256(json.dumps(sorted(rows,key=lambda x:x["connector"]),sort_keys=True,separators=(",",":")).encode()).hexdigest()[:16]
+def remap(v):
+ ms=monitors();actual=role_map(ms);reverse={r:n for n,r in actual.items()};caps=capability_report(ms);mapped={};warnings=[]
+ for name,p in v["topology_templates"].items():
+  missing=sorted({m["role"] for m in p.get("monitors",[]) if m["role"] not in reverse})
+  if missing:warnings.append({"profile":name,"status":"skipped","missing_roles":missing});continue
+  lookup={actual[m["name"]]:m for m in ms};rows=[]
+  for m in p.get("monitors",[]):rows.append({"name":reverse[m["role"]],"description":lookup[m["role"]].get("description",""),**{k:m[k] for k in ("width","height","refreshRate","x","y","scale","transform")}})
+  mapped[name]={"fingerprint":fingerprint(ms),"kind":p.get("kind","unknown"),"monitors":rows,"workspaces":[{"workspace":w["workspace"],"monitor":reverse[w["role"]]} for w in p.get("workspaces",[]) if w.get("role") in reverse],"focused_workspace":p.get("focused_workspace"),"surfaces":p.get("surfaces",{})}
+ ops=json.loads(json.dumps(v["operating_profiles"]));changes=[]
+ for name,p in ops.items():
+  if not caps["power_profiles"] and p["power_profile"]!="keep":changes.append({"profile":name,"field":"power_profile","from":p["power_profile"],"to":"keep","reason":"capability unavailable"});p["power_profile"]="keep"
+  if not caps["audio"] and p["audio_target"]!="keep":changes.append({"profile":name,"field":"audio_target","from":p["audio_target"],"to":"keep","reason":"capability unavailable"});p["audio_target"]="keep"
+ return ops,mapped,{"destination":caps,"output_mapping":{role:name for name,role in actual.items()},"changes":changes,"topologies":warnings}
+def preview(args):
+ v=validate(args.input);ops,tops,report=remap(v);current_ops=read(OPERATING,{});current_tops=read(TOPOLOGIES,{"schema_version":1,"enabled":False,"debounce_ms":1500,"profiles":{}});conflicts={"operating_profiles":sorted(set(ops)&set(current_ops)),"topologies":sorted(set(tops)&set(current_tops.get("profiles",{})))};basis={"input_sha256":hashlib.sha256(args.input.read_bytes()).hexdigest(),"read_only":True,"conflicts":conflicts,"capability_remapping":report,"will_import":{"operating_profiles":sorted(ops),"topologies":sorted(tops)}};basis["plan_id"]=hashlib.sha256(json.dumps(basis,sort_keys=True).encode()).hexdigest()[:16];atomic(PLAN,basis);print(json.dumps(basis,indent=2));return basis
+def restore(tx):
+ m=read(tx/"manifest.json",{"files":[]})
+ for row in m["files"]:
+  target=CONFIG/row["name"]
+  if row["existed"]:shutil.copy2(tx/"before"/row["name"],target)
+  else:target.unlink(missing_ok=True)
+ m["status"]="rolled-back";atomic(tx/"manifest.json",m)
+def apply(args):
+ saved=read(PLAN,{})
+ if args.confirm!=saved.get("plan_id") or hashlib.sha256(args.input.read_bytes()).hexdigest()!=saved.get("input_sha256"):raise SystemExit("Confirmation mismatch; preview again")
+ v=validate(args.input);ops,tops,report=remap(v)
+ if report!=saved.get("capability_remapping"):raise SystemExit("Destination capabilities changed; preview again")
+ topcfg=read(TOPOLOGIES,{"schema_version":1,"enabled":False,"debounce_ms":1500,"profiles":{}});topcfg.setdefault("profiles",{}).update(tops);target_values={"operating-profiles.json":{**read(OPERATING,{}),**ops},"topologies.json":topcfg};tx=STATE/"transactions"/(time.strftime("%Y%m%d-%H%M%S")+f"-{os.getpid()}");(tx/"before").mkdir(parents=True);rows=[]
+ try:
+  for name in target_values:
+   target=CONFIG/name;rows.append({"name":name,"existed":target.exists()});
+   if target.exists():shutil.copy2(target,tx/"before"/name)
+  atomic(tx/"manifest.json",{"schema_version":1,"status":"prepared","files":rows})
+  for name,value in target_values.items():atomic(CONFIG/name,value)
+  if os.environ.get("EVANGELION_FORCE_MACHINE_PROFILE_FAILURE")=="1":raise RuntimeError("forced failure")
+  for name,value in target_values.items():
+   if read(CONFIG/name,None)!=value:raise RuntimeError("post-write verification failed")
+  atomic(tx/"manifest.json",{"schema_version":1,"status":"applied","files":rows});print(json.dumps({"status":"imported","transaction":tx.name,"capability_remapping":report},indent=2))
+ except BaseException:restore(tx);raise
+def rollback(args):
+ if not re.fullmatch(r"[0-9]{8}-[0-9]{6}-[0-9]+",args.transaction):raise SystemExit("Invalid transaction")
+ restore(STATE/"transactions"/args.transaction);print("MACHINE PROFILE ROLLED BACK // "+args.transaction)
+p=argparse.ArgumentParser();s=p.add_subparsers(dest="cmd",required=True);q=s.add_parser("export");q.add_argument("output",type=Path);q.set_defaults(func=export);q=s.add_parser("import");q.add_argument("input",type=Path);q.add_argument("--confirm");q.set_defaults(func=lambda a:apply(a) if a.confirm else preview(a));q=s.add_parser("rollback");q.add_argument("transaction");q.set_defaults(func=rollback);a=p.parse_args();a.func(a)

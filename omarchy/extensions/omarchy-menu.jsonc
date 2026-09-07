@@ -55,6 +55,12 @@
     "action": "magi-topology undo",
     "description": "Restore the previous monitor, workspace, window, bar, and presentation arrangement"
   },
+  "magi.machine-profile": {
+    "icon": "󰆓",
+    "label": "Portable Machine Profiles",
+    "action": "omarchy-launch-terminal -- bash -lc 'magi-machine-profile --help; echo; read -rp \"Press Enter to close...\"'",
+    "description": "Export or transactionally import privacy-sanitized cross-machine preferences"
+  },
   "magi.scenes": {
     "icon": "󰏘",
     "label": "Affinity Scenes",

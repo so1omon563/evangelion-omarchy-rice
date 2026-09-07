@@ -5,6 +5,11 @@ identity, saved layouts, read-only previews, stale-plan rejection,
 transactional apply/undo, window preservation, unknown-display fallback, and
 explicit automation controls with a fully mocked Hyprland IPC boundary.
 
+`tests/machine-profiles.py` verifies the portable schema, complete redaction
+report, semantic output and optional-capability remapping, read-only conflict
+preview, exact confirmation, transactional rollback, missing-output fallback,
+and hostile input rejection.
+
 The portable installer has two complementary test layers:
 
 ```bash
