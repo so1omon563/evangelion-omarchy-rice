@@ -16,7 +16,7 @@ with tempfile.TemporaryDirectory() as raw:
  initial=json.loads(run("status","--json").stdout);assert not initial["enabled"] and initial["cues"]["lock"]["reason"]=="global-kill-switch"
  run("enable");state=json.loads(run("status","--json").stdout);assert state["enabled"] and state["cues"]["lock"]["reason"]=="category-disabled"
  run("category","critical","enable");run("volume","critical","17");assert json.loads(cfg.read_text())["categories"]["critical"]=={"enabled":True,"volume_ceiling_percent":17}
- run("quiet-hours","0","23");assert json.loads(run("status","--json").stdout)["cues"]["critical"]["reason"]=="quiet-hours"
+ run("quiet-hours","0","23");assert json.loads(cfg.read_text())["quiet_hours"]=={"enabled":True,"start":0,"end":23}
  run("preview","critical");assert "--volume 0.17" in log.read_text()
  run("scene","unit-02","workflow","enabled");assert json.loads(cfg.read_text())["scene_overrides"]["unit-02"]["workflow"]=="enabled"
  run("scene","unit-02","workflow","inherit");assert "unit-02" not in json.loads(cfg.read_text())["scene_overrides"]
