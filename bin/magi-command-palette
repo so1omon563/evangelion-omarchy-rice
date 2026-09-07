@@ -1,0 +1,73 @@
+#!/usr/bin/env python3
+"""Stable, fuzzy, metadata-backed executor for the global MAGI palette."""
+import argparse,hashlib,json,os,re,subprocess,tempfile,time
+from pathlib import Path
+ROOT=Path(__file__).resolve().parents[1];HOME=Path.home();DATA=Path(os.environ.get("EVA_PALETTE_DATA",ROOT if (ROOT/"omarchy").is_dir() else HOME/".local/share/evangelion-rice"));REGISTRY=Path(os.environ.get("EVA_PALETTE_REGISTRY",DATA/"omarchy/commands.json" if (DATA/"omarchy/commands.json").is_file() else DATA/"commands.json"));STATE=Path(os.environ.get("EVA_PALETTE_STATE",HOME/".local/state/evangelion-rice/command-palette"));PLAN=STATE/"confirmation.json"
+def read(path,default=None):
+ try:return json.loads(path.read_text())
+ except (OSError,json.JSONDecodeError):return default
+def registry():
+ value=read(REGISTRY)
+ if not isinstance(value,dict) or value.get("schema_version")!=1 or not isinstance(value.get("commands"),list):raise SystemExit("Command registry unavailable")
+ rows=[];seen=set()
+ for index,row in enumerate(value["commands"]):
+  if not isinstance(row,dict) or not re.fullmatch(r"[a-z0-9][a-z0-9.-]{1,63}",str(row.get("id",""))) or row["id"] in seen:raise SystemExit("Command registry is invalid")
+  if row.get("danger") not in {"safe","caution","confirm","destructive"} or not isinstance(row.get("action"),list) or not row["action"] or not all(isinstance(x,str) and x for x in row["action"]):raise SystemExit("Command registry is invalid")
+  seen.add(row["id"]);rows.append({**row,"order":index,"source":"registry"})
+ settings=read(DATA/"omarchy/settings-schema.json" if (DATA/"omarchy/settings-schema.json").is_file() else DATA/"settings-schema.json",{}).get("settings",[])
+ for row in settings:
+  key=str(row.get("id",""));rows.append({"id":"setting."+key,"label":"Configure "+str(row.get("label",key)),"category":"Settings","description":"Open "+str(row.get("category","MAGI"))+" settings","aliases":[key,str(row.get("category",""))],"danger":"safe","action":["omarchy-shell","magi-settings","open"],"order":len(rows),"source":"settings"})
+ workspaces=read(HOME/".config/omarchy/workspaces.json",read(DATA/"omarchy/workspaces.json" if (DATA/"omarchy/workspaces.json").is_file() else DATA/"workspaces.json",{})).get("workspaces",[])
+ for row in workspaces:
+  number=row.get("id");label=str(row.get("label") or row.get("name") or f"Workspace {number}")
+  if isinstance(number,int) and 1<=number<=99:rows.append({"id":f"workspace.{number}","label":"Switch to "+label,"category":"Workspaces","description":f"Activate workspace {number}","aliases":["workspace",str(number),label],"danger":"safe","action":["hyprctl","dispatch","workspace",str(number)],"order":len(rows),"source":"workspaces"})
+ return rows
+def tokens(text):return re.findall(r"[a-z0-9]+",text.lower())
+def score(row,query):
+ words=tokens(query)
+ if not words:return 0
+ hay=" ".join([row["label"],row["category"],row.get("description",""),row["id"],*row.get("aliases",[])]).lower();parts=tokens(hay);total=0
+ for word in words:
+  if word in parts:total+=120
+  elif any(part.startswith(word) for part in parts):total+=90
+  elif word in hay:total+=60
+  else:
+   cursor=0
+   for char in word:
+    cursor=hay.find(char,cursor)
+    if cursor<0:return -1
+    cursor+=1
+   total+=max(10,40-len(hay)//20)
+ return total
+def search(query=""):
+ rows=registry();ranked=[(score(row,query),row) for row in rows] if query.strip() else [(0,row) for row in rows];ranked=[x for x in ranked if x[0]>=0];ranked.sort(key=lambda x:(-x[0],x[1]["order"]));return [{k:v for k,v in row.items() if k!="action"}|{"score":points} for points,row in ranked[:40]]
+def get(command_id):
+ row=next((row for row in registry() if row["id"]==command_id),None)
+ if not row:raise SystemExit("Unknown command")
+ return row
+def atomic(value):
+ STATE.mkdir(parents=True,exist_ok=True);fd,name=tempfile.mkstemp(prefix=".confirm.",dir=STATE)
+ try:
+  with os.fdopen(fd,"w") as stream:json.dump(value,stream,separators=(",",":"));stream.write("\n")
+  os.chmod(name,0o600);os.replace(name,PLAN)
+ finally:
+  try:os.unlink(name)
+  except FileNotFoundError:pass
+def prepare(command_id):
+ row=get(command_id);required=row["danger"] in {"confirm","destructive"};result={"schema_version":1,"id":row["id"],"label":row["label"],"category":row["category"],"danger":row["danger"],"description":row["description"],"requires_confirmation":required}
+ if required:
+  result["expires_at"]=int(time.time())+60;result["token"]=hashlib.sha256(json.dumps(result,sort_keys=True).encode()).hexdigest()[:16];atomic(result)
+ return result
+def execute(command_id,confirmation=None):
+ row=get(command_id)
+ if row["danger"] in {"confirm","destructive"}:
+  plan=read(PLAN,{})
+  if plan.get("id")!=command_id or plan.get("token")!=confirmation or plan.get("expires_at",0)<time.time():raise SystemExit("Confirmation missing or expired; prepare again")
+  PLAN.unlink(missing_ok=True)
+ try:result=subprocess.Popen(row["action"],stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL,start_new_session=True)
+ except OSError as error:raise SystemExit("Command provider unavailable") from error
+ return {"schema_version":1,"status":"launched","id":command_id,"pid":result.pid,"danger":row["danger"]}
+def main():
+ parser=argparse.ArgumentParser();sub=parser.add_subparsers(dest="command",required=True);q=sub.add_parser("search");q.add_argument("query",nargs="?",default="");q.add_argument("--json",action="store_true");p=sub.add_parser("prepare");p.add_argument("id");e=sub.add_parser("execute");e.add_argument("id");e.add_argument("--confirm");sub.add_parser("registry")
+ args=parser.parse_args();value={"schema_version":1,"query":args.query,"results":search(args.query)} if args.command=="search" else prepare(args.id) if args.command=="prepare" else execute(args.id,args.confirm) if args.command=="execute" else {"schema_version":1,"commands":[{k:v for k,v in row.items() if k!="action"} for row in registry()]};print(json.dumps(value,separators=(",",":")));return 0
+if __name__=="__main__":raise SystemExit(main())

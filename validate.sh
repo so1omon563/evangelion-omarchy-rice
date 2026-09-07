@@ -69,6 +69,7 @@ python3 "$root/tests/topologies.py" >/dev/null && pass "transactional monitor to
 python3 "$root/tests/machine-profiles.py" >/dev/null && pass "portable privacy-sanitized machine profiles" || fail "portable privacy-sanitized machine profiles"
 python3 "$root/tests/resilience.py" >/dev/null && pass "bounded offline and unavailable surfaces" || fail "bounded offline and unavailable surfaces"
 python3 "$root/tests/sound-policy.py" >/dev/null && pass "opt-in categorized MAGI sound policy" || fail "opt-in categorized MAGI sound policy"
+python3 "$root/tests/command-palette.py" >/dev/null && pass "global deterministic MAGI command palette" || fail "global deterministic MAGI command palette"
 python3 "$root/tests/workspace-names.py" >/dev/null && pass "editable responsive workspace identities" || fail "editable responsive workspace identities"
 if [[ ${EVANGELION_RELEASE_ARTIFACT_NESTED:-0} != 1 ]]; then
   python3 "$root/tests/release-artifact.py" >/dev/null && pass "reproducible complete-suite release artifact" || fail "reproducible complete-suite release artifact"

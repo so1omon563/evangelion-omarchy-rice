@@ -29,6 +29,7 @@ o.bind("SUPER + CTRL + ALT + S", "Open MAGI control center", "omarchy-shell magi
 -- Open the unified MAGI command interface. SUPER + SPACE remains Omarchy's
 -- standard root menu, so both launch paths stay available.
 o.bind("SUPER + M", "MAGI command interface", "omarchy-menu toggle magi")
+o.bind("SUPER + CTRL + ALT + M", "Global MAGI command palette", "omarchy-shell magi-command-palette toggle")
 
 -- Recovery remains CLI/TTY-first; this chord is the convenient live path.
 o.bind("SUPER + ALT + R", "Toggle static MAGI recovery", "magi-recovery toggle")

@@ -8,6 +8,12 @@
     "aliases": ["magi", "nerv", "evangelion"],
     "description": "Applications, system control, backgrounds, and presentation mode"
   },
+  "magi.command-palette": {
+    "icon": "󰘳",
+    "label": "Global Command Palette",
+    "action": "omarchy-shell magi-command-palette open",
+    "description": "Fuzzy-search safe actions, settings, workspaces, diagnostics, help, and confirmed system actions"
+  },
   "magi.apps": {
     "icon": "󰀻",
     "label": "Application Index",

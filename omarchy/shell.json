@@ -59,6 +59,7 @@
     ,{ "id": "evangelion.settings" }
     ,{ "id": "evangelion.workspace-names" }
     ,{ "id": "evangelion.scene-editor" }
+    ,{ "id": "evangelion.command-palette" }
   ],
   "disabledPlugins": [
     "omarchy.lock",

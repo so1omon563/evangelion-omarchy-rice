@@ -9,6 +9,10 @@ Sound authority, category controls, volume ceilings, quiet hours, and scene
 overrides are stored privately in preserved `~/.config/omarchy/sound.json`.
 See [SOUND.md](SOUND.md).
 
+Global palette metadata is versioned in `omarchy/commands.json`; settings and
+workspace destinations are discovered dynamically. See
+[COMMAND_PALETTE.md](COMMAND_PALETTE.md).
+
 ## Suite release channel
 
 `~/.config/omarchy/evangelion-update.json` stores the explicitly selected rice
