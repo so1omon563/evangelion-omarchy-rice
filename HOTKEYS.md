@@ -419,18 +419,20 @@ magi-boot-sequence status    # Print enabled or disabled
 
 ## Interface sound cues
 
-Short procedural tones accompany lock, unlock, NERV Session Control, critical
-battery, and successful MAGI login. They are synthesized locally—no external
-audio assets are bundled—played at 16% stream volume, and rate-limited per cue.
-Missing or unavailable audio services never block the related desktop action.
+Short procedural tones are available for lock, unlock, NERV Session Control,
+critical battery, and successful MAGI login. They ship silent and are
+categorized with independent volume ceilings, quiet hours, scene overrides,
+and a global kill switch. Visual equivalents remain active. See
+[SOUND.md](SOUND.md) for policy and precedence.
 
 Use `MAGI Command Interface → Interface Sound Cues`, or run:
 
 ```bash
-magi-sound test      # Preview all five cues
-magi-sound disable   # Disable every cue globally
-magi-sound enable    # Re-enable cues
-magi-sound status    # Print enabled or disabled
+magi-sound preview all               # Explicitly preview all five cues
+magi-sound enable                    # Enable global authority only
+magi-sound category workflow enable # Opt in one category
+magi-sound kill                      # Immediately silence all cues
+magi-sound status --json             # Explain every effective decision
 ```
 
 ## Command-line access

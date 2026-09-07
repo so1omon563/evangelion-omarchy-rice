@@ -3,8 +3,8 @@
 import argparse,hashlib,json,os,re,shutil,subprocess,tempfile,time
 from pathlib import Path
 ROOT=Path(__file__).resolve().parents[1]; CONFIG=Path(os.environ.get("XDG_CONFIG_HOME",Path.home()/".config"))/"omarchy"; STATE=Path(os.environ.get("XDG_STATE_HOME",Path.home()/".local/state"))/"evangelion-rice/onboarding"; STATUS=STATE/"status.json"; PLAN=STATE/"import-plan.json"
-FILES={"core":"evangelion.json","visual":"visual.json","media":"media.json","workspaces":"workspaces.json","scenes":"scenes.json","updates":"evangelion-update.json"}; SECRET=re.compile(r"password|secret|token|api.?key|credential|cookie|private.?key",re.I)
-ALLOWED={key:set(read) for key,read in {"core":["terminal","editor","shell","shell_integration","project_dir","motion","context","ambient","deployment","presentation"],"visual":["schema_version","density","accent_strength","typography","panel_treatment","blur","opacity","gaps","borders","animation_intensity"],"media":["schema_version","artwork","cava","volume_step_percent"],"workspaces":["schema_version","workspaces"],"scenes":["schema_version","scenes"],"updates":["selected_channel"]}.items()}
+FILES={"core":"evangelion.json","visual":"visual.json","media":"media.json","workspaces":"workspaces.json","scenes":"scenes.json","sound":"sound.json","updates":"evangelion-update.json"}; SECRET=re.compile(r"password|secret|token|api.?key|credential|cookie|private.?key",re.I)
+ALLOWED={key:set(read) for key,read in {"core":["terminal","editor","shell","shell_integration","project_dir","motion","context","ambient","deployment","presentation"],"visual":["schema_version","density","accent_strength","typography","panel_treatment","blur","opacity","gaps","borders","animation_intensity"],"media":["schema_version","artwork","cava","volume_step_percent"],"workspaces":["schema_version","workspaces"],"scenes":["schema_version","scenes"],"sound":["schema_version","enabled","quiet_hours","categories","scene_overrides"],"updates":["selected_channel"]}.items()}
 def atomic(path,value):
  path.parent.mkdir(parents=True,exist_ok=True);fd,tmp=tempfile.mkstemp(prefix="."+path.name+".",dir=path.parent)
  try:

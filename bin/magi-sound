@@ -1,105 +1,111 @@
 #!/usr/bin/env python3
-
-import math
-import os
-import shutil
-import struct
-import subprocess
-import sys
-import time
+"""Privacy-safe, opt-in, category-based procedural MAGI sound controller."""
+from __future__ import annotations
+import argparse, json, math, os, re, shutil, struct, subprocess, tempfile, time
 from pathlib import Path
 
-RATE = 48_000
-SYNTH_LEVEL = 0.55
-STREAM_VOLUME = 0.16
-STATE_DIR = Path(os.environ.get("XDG_STATE_HOME", Path.home() / ".local/state")) / "omarchy"
-DISABLED = STATE_DIR / "evangelion-sounds.disabled"
-runtime_candidate = Path(os.environ.get("XDG_RUNTIME_DIR", "/tmp"))
-RUNTIME = runtime_candidate if runtime_candidate.is_dir() else Path("/tmp")
+RATE=48_000; SYNTH_LEVEL=0.55; HOME=Path.home()
+CONFIG=Path(os.environ.get("EVA_SOUND_CONFIG",HOME/".config/omarchy/sound.json"))
+RUNTIME=Path(os.environ.get("XDG_RUNTIME_DIR","/tmp")); RUNTIME=RUNTIME if RUNTIME.is_dir() else Path("/tmp")
+DEFAULT={"schema_version":1,"enabled":False,"quiet_hours":{"enabled":True,"start":22,"end":7},"categories":{"session":{"enabled":False,"volume_ceiling_percent":12},"system":{"enabled":False,"volume_ceiling_percent":16},"workflow":{"enabled":False,"volume_ceiling_percent":14},"critical":{"enabled":False,"volume_ceiling_percent":20}},"scene_overrides":{}}
+CUES={"lock":("session",[(520,.08),(392,.10),(294,.12)],1.5),"unlock":("session",[(392,.07),(523,.07),(659,.13)],1.5),"power":("system",[(220,.08),(277,.12)],1),"critical":("critical",[(660,.09),(440,.09),(660,.09),(440,.14)],60),"nominal":("workflow",[(392,.07),(494,.07),(587,.15)],5)}
 
-CUES = {
-    "lock": ([(520, 0.08), (392, 0.10), (294, 0.12)], 1.5),
-    "unlock": ([(392, 0.07), (523, 0.07), (659, 0.13)], 1.5),
-    "power": ([(220, 0.08), (277, 0.12)], 1.0),
-    "critical": ([(660, 0.09), (440, 0.09), (660, 0.09), (440, 0.14)], 60.0),
-    "nominal": ([(392, 0.07), (494, 0.07), (587, 0.15)], 5.0),
-}
-
-
+def validate(value):
+ q=value["quiet_hours"]
+ if not isinstance(q.get("enabled"),bool) or not all(isinstance(q.get(k),int) and 0<=q[k]<=23 for k in ("start","end")):raise SystemExit("Invalid quiet-hours policy")
+ for name,row in value["categories"].items():
+  if not isinstance(row.get("enabled"),bool) or not isinstance(row.get("volume_ceiling_percent"),int) or not 0<=row["volume_ceiling_percent"]<=100:raise SystemExit(f"Invalid sound category: {name}")
+ for scene,rows in value["scene_overrides"].items():
+  if not isinstance(scene,str) or not re.fullmatch(r"[a-z0-9][a-z0-9-]{0,63}",scene) or not isinstance(rows,dict):raise SystemExit("Invalid scene sound override")
+  for category,mode in rows.items():
+   if category not in value["categories"] or mode not in {"inherit","enabled","disabled"}:raise SystemExit("Invalid scene sound override")
+ return value
+def config():
+ value=json.loads(json.dumps(DEFAULT))
+ try:supplied=json.loads(CONFIG.read_text())
+ except (OSError,json.JSONDecodeError):supplied={}
+ if not isinstance(supplied,dict) or supplied.get("schema_version")!=1:return value
+ value["enabled"]=supplied.get("enabled") is True
+ if isinstance(supplied.get("quiet_hours"),dict):value["quiet_hours"].update({k:supplied["quiet_hours"][k] for k in ("enabled","start","end") if k in supplied["quiet_hours"]})
+ for name in value["categories"]:
+  if isinstance(supplied.get("categories",{}).get(name),dict):value["categories"][name].update(supplied["categories"][name])
+ value["scene_overrides"]=supplied.get("scene_overrides",{}) if isinstance(supplied.get("scene_overrides",{}),dict) else {}
+ return validate(value)
+def atomic(value):
+ validate(value);CONFIG.parent.mkdir(parents=True,exist_ok=True);fd,name=tempfile.mkstemp(prefix=".sound.",dir=CONFIG.parent)
+ try:
+  with os.fdopen(fd,"w") as stream:json.dump(value,stream,indent=2);stream.write("\n")
+  os.chmod(name,0o600);os.replace(name,CONFIG)
+ finally:
+  try:os.unlink(name)
+  except FileNotFoundError:pass
+def active_scene():
+ try:
+  value=json.loads((HOME/".local/state/evangelion-rice/scenes/authority.json").read_text());return value.get("scene")
+ except (OSError,json.JSONDecodeError):return None
+def quiet_now(value,hour=None):
+ q=value["quiet_hours"]
+ if not q["enabled"]:return False
+ hour=time.localtime().tm_hour if hour is None else hour;start,end=q["start"],q["end"]
+ return start<=hour or hour<end if start>end else start<=hour<end
+def decision(cue,value=None,hour=None):
+ value=value or config();category=CUES[cue][0];row=value["categories"][category];scene=active_scene();override=value["scene_overrides"].get(scene,{}).get(category,"inherit") if scene else "inherit";enabled=row["enabled"] if override=="inherit" else override=="enabled"
+ reason="global-kill-switch" if not value["enabled"] else "category-disabled" if not enabled else "quiet-hours" if quiet_now(value,hour) else "audio-provider-unavailable" if not shutil.which("pw-cat") else "audible"
+ return {"cue":cue,"category":category,"audible":reason=="audible","reason":reason,"volume_ceiling_percent":row["volume_ceiling_percent"],"scene":scene,"scene_override":override,"visual_equivalent_required":True}
 def samples(notes):
-    result = bytearray()
-    phase = 0.0
-    for frequency, duration in notes:
-        count = int(RATE * duration)
-        edge = max(1, int(RATE * min(0.012, duration / 4)))
-        for index in range(count):
-            envelope = min(1.0, index / edge, (count - index - 1) / edge)
-            fundamental = math.sin(phase)
-            harmonic = 0.16 * math.sin(phase * 2)
-            value = int(32767 * SYNTH_LEVEL * envelope * (fundamental + harmonic))
-            result.extend(struct.pack("<h", max(-32768, min(32767, value))))
-            phase += 2 * math.pi * frequency / RATE
-        result.extend(b"\0\0" * int(RATE * 0.018))
-    return bytes(result)
-
-
-def rate_limited(name, seconds):
-    marker = RUNTIME / f"magi-sound-{name}"
-    try:
-        if time.time() - marker.stat().st_mtime < seconds:
-            return True
-    except OSError:
-        pass
-    try:
-        marker.touch()
-    except OSError:
-        return False
-    return False
-
-
-def play(name, force=False):
-    if DISABLED.exists() and not force:
-        return 0
-    if name not in CUES or not shutil.which("pw-cat"):
-        return 0
-    notes, limit = CUES[name]
-    if not force and rate_limited(name, limit):
-        return 0
-    try:
-        subprocess.run(
-            ["pw-cat", "--playback", "--raw", "--rate", str(RATE),
-             "--channels", "1", "--format", "s16", "--volume", str(STREAM_VOLUME), "-"],
-            input=samples(notes), stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
-            check=False, timeout=2,
-        )
-    except (OSError, subprocess.TimeoutExpired):
-        pass
-    return 0
-
-
+ result=bytearray();phase=0.0
+ for frequency,duration in notes:
+  count=int(RATE*duration);edge=max(1,int(RATE*min(.012,duration/4)))
+  for index in range(count):
+   envelope=min(1,index/edge,(count-index-1)/edge);value=int(32767*SYNTH_LEVEL*envelope*(math.sin(phase)+.16*math.sin(phase*2)));result.extend(struct.pack("<h",max(-32768,min(32767,value))));phase+=2*math.pi*frequency/RATE
+  result.extend(b"\0\0"*int(RATE*.018))
+ return bytes(result)
+def rate_limited(name,seconds):
+ marker=RUNTIME/f"magi-sound-{name}"
+ try:
+  if time.time()-marker.stat().st_mtime<seconds:return True
+  marker.touch()
+ except OSError:pass
+ return False
+def play(cue,preview=False):
+ choice=decision(cue)
+ if not preview and not choice["audible"]:return 0
+ category,notes,limit=CUES[cue]
+ if not shutil.which("pw-cat") or (not preview and rate_limited(cue,limit)):return 0
+ volume=config()["categories"][category]["volume_ceiling_percent"]/100
+ try:subprocess.run(["pw-cat","--playback","--raw","--rate",str(RATE),"--channels","1","--format","s16","--volume",str(volume),"-"],input=samples(notes),stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL,check=False,timeout=2)
+ except (OSError,subprocess.TimeoutExpired):pass
+ return 0
+def report():
+ value=config();return {"schema_version":1,"enabled":value["enabled"],"status":"enabled" if value["enabled"] else "disabled","quiet_hours":{**value["quiet_hours"],"active":quiet_now(value)},"categories":value["categories"],"scene":active_scene(),"scene_overrides":value["scene_overrides"],"cues":{cue:decision(cue,value) for cue in CUES},"visual_equivalents":True}
 def main():
-    command = sys.argv[1] if len(sys.argv) > 1 else "status"
-    if command == "enable":
-        STATE_DIR.mkdir(parents=True, exist_ok=True)
-        DISABLED.unlink(missing_ok=True)
-        print("Evangelion sound cues enabled")
-    elif command == "disable":
-        STATE_DIR.mkdir(parents=True, exist_ok=True)
-        DISABLED.touch()
-        print("Evangelion sound cues disabled")
-    elif command == "status":
-        print("disabled" if DISABLED.exists() else "enabled")
-    elif command == "test":
-        for cue in CUES:
-            play(cue, force=True)
-            time.sleep(0.12)
-    elif command in CUES:
-        return play(command)
-    else:
-        print("Usage: magi-sound [lock|unlock|power|critical|nominal|test|enable|disable|status]", file=sys.stderr)
-        return 2
-    return 0
-
-
-if __name__ == "__main__":
-    raise SystemExit(main())
+ parser=argparse.ArgumentParser();sub=parser.add_subparsers(dest="command");sub.add_parser("status").add_argument("--json",action="store_true");sub.add_parser("enable");sub.add_parser("disable");sub.add_parser("kill")
+ for word in ("preview","test"):p=sub.add_parser(word);p.add_argument("cue",choices=[*CUES,"all"],default="all",nargs="?")
+ p=sub.add_parser("category");p.add_argument("name",choices=DEFAULT["categories"]);p.add_argument("mode",choices=["enable","disable"])
+ p=sub.add_parser("volume");p.add_argument("name",choices=DEFAULT["categories"]);p.add_argument("percent",type=int)
+ p=sub.add_parser("quiet-hours");p.add_argument("start",choices=[str(x) for x in range(24)]+["off"]);p.add_argument("end",nargs="?",choices=[str(x) for x in range(24)])
+ p=sub.add_parser("scene");p.add_argument("scene");p.add_argument("category",choices=DEFAULT["categories"]);p.add_argument("mode",choices=["inherit","enabled","disabled"])
+ for cue in CUES:sub.add_parser(cue)
+ args=parser.parse_args();command=args.command or "status"
+ if command=="status":value=report();print(json.dumps(value,separators=(",",":")) if args.json else value["status"]);return 0
+ if command in CUES:return play(command)
+ if command in {"preview","test"}:
+  for cue in CUES if args.cue=="all" else [args.cue]:play(cue,preview=True);time.sleep(.12)
+  return 0
+ value=config()
+ if command=="enable":value["enabled"]=True
+ elif command in {"disable","kill"}:value["enabled"]=False
+ elif command=="category":value["categories"][args.name]["enabled"]=args.mode=="enable"
+ elif command=="volume":
+  if not 0<=args.percent<=100:raise SystemExit("Volume ceiling must be 0-100")
+  value["categories"][args.name]["volume_ceiling_percent"]=args.percent
+ elif command=="quiet-hours":
+  if args.start=="off":value["quiet_hours"]["enabled"]=False
+  elif args.end is None:raise SystemExit("quiet-hours START requires END")
+  else:value["quiet_hours"]={"enabled":True,"start":int(args.start),"end":int(args.end)}
+ elif command=="scene":
+  rows=value["scene_overrides"].setdefault(args.scene,{});rows[args.category]=args.mode
+  if args.mode=="inherit":rows.pop(args.category,None)
+  if not rows:value["scene_overrides"].pop(args.scene,None)
+ atomic(value);print(json.dumps(report(),separators=(",",":")));return 0
+if __name__=="__main__":raise SystemExit(main())

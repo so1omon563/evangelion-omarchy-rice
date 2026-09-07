@@ -6,6 +6,8 @@ Those preferences can be moved between unlike machines using
 [privacy-sanitized machine profiles](MACHINE_PROFILES.md).
 [Optional surfaces remain intentional offline](OFFLINE_RESILIENCE.md), with
 bounded retries, cache-age labels, and privacy-safe unavailable states.
+[MAGI sound cues are opt-in and category controlled](SOUND.md), with quiet
+hours, volume ceilings, scene overrides, visual equivalents, and a kill switch.
 
 [![MAGI Integrity Check](https://github.com/so1omon563/evangelion-omarchy-rice/actions/workflows/validate.yml/badge.svg)](https://github.com/so1omon563/evangelion-omarchy-rice/actions/workflows/validate.yml)
 

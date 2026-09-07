@@ -27,6 +27,7 @@
       ,{"root":"config","path":"omarchy/workspaces.json"}
       ,{"root":"config","path":"omarchy/visual.json"}
       ,{"root":"config","path":"omarchy/scenes.json"}
+      ,{"root":"config","path":"omarchy/sound.json"}
     ]
   }
 }

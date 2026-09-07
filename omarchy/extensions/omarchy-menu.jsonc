@@ -401,7 +401,7 @@
   "magi.sounds.test": {
     "icon": "󰐊",
     "label": "Test Sound Sequence",
-    "action": "setsid -f magi-sound test"
+    "action": "setsid -f magi-sound preview all"
   },
   "magi.sounds.enable": {
     "icon": "󰄬",
@@ -414,6 +414,42 @@
     "label": "Disable Sound Cues",
     "action": "magi-sound disable",
     "checked": "[[ $(magi-sound status) == disabled ]]"
+  },
+  "magi.sounds.kill": {
+    "icon": "󰓛",
+    "label": "Kill All Sound Immediately",
+    "action": "magi-sound kill",
+    "description": "Persistently closes global audio authority"
+  },
+  "magi.sounds.session": {
+    "icon": "󰍃",
+    "label": "Toggle Session Cues",
+    "action": "[[ $(magi-sound status --json | jq -r '.categories.session.enabled') == true ]] && magi-sound category session disable || magi-sound category session enable",
+    "checked": "[[ $(magi-sound status --json | jq -r '.categories.session.enabled') == true ]]"
+  },
+  "magi.sounds.system": {
+    "icon": "󰓅",
+    "label": "Toggle System Cues",
+    "action": "[[ $(magi-sound status --json | jq -r '.categories.system.enabled') == true ]] && magi-sound category system disable || magi-sound category system enable",
+    "checked": "[[ $(magi-sound status --json | jq -r '.categories.system.enabled') == true ]]"
+  },
+  "magi.sounds.workflow": {
+    "icon": "󰄬",
+    "label": "Toggle Workflow Cues",
+    "action": "[[ $(magi-sound status --json | jq -r '.categories.workflow.enabled') == true ]] && magi-sound category workflow disable || magi-sound category workflow enable",
+    "checked": "[[ $(magi-sound status --json | jq -r '.categories.workflow.enabled') == true ]]"
+  },
+  "magi.sounds.critical": {
+    "icon": "󰀪",
+    "label": "Toggle Critical Cues",
+    "action": "[[ $(magi-sound status --json | jq -r '.categories.critical.enabled') == true ]] && magi-sound category critical disable || magi-sound category critical enable",
+    "checked": "[[ $(magi-sound status --json | jq -r '.categories.critical.enabled') == true ]]"
+  },
+  "magi.sounds.quiet": {
+    "icon": "󰒲",
+    "label": "Quiet Hours 22:00–07:00",
+    "action": "[[ $(magi-sound status --json | jq -r '.quiet_hours.enabled') == true ]] && magi-sound quiet-hours off || magi-sound quiet-hours 22 7",
+    "checked": "[[ $(magi-sound status --json | jq -r '.quiet_hours.enabled') == true ]]"
   },
   "magi.power-sequence": {
     "icon": "󰚥",

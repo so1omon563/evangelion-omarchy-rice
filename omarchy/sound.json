@@ -1,0 +1,12 @@
+{
+  "schema_version": 1,
+  "enabled": false,
+  "quiet_hours": { "enabled": true, "start": 22, "end": 7 },
+  "categories": {
+    "session": { "enabled": false, "volume_ceiling_percent": 12 },
+    "system": { "enabled": false, "volume_ceiling_percent": 16 },
+    "workflow": { "enabled": false, "volume_ceiling_percent": 14 },
+    "critical": { "enabled": false, "volume_ceiling_percent": 20 }
+  },
+  "scene_overrides": {}
+}
