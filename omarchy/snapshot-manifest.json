@@ -13,7 +13,8 @@
     ],
     "affinity": [
       {"root":"state","path":"evangelion-rice/affinity-mode"},
-      {"root":"state","path":"evangelion-rice/affinity-manual"}
+      {"root":"state","path":"evangelion-rice/affinity-manual"},
+      {"root":"state","path":"evangelion-rice/theme-variant"}
     ],
     "settings": [
       {"root":"config","path":"omarchy/evangelion.json"},

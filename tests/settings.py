@@ -11,14 +11,14 @@ with tempfile.TemporaryDirectory() as raw:
     config=home/".config/omarchy/evangelion.json"; config.write_text(json.dumps({"ambient":{"enabled":True}}))
     command='''#!/bin/sh
 case "$1" in
- status) case "$(basename "$0")" in magi-affinity) printf 'mode=auto\\nactive=unit-01\\n';; magi-operating-profile) printf 'mode=auto\\n';; *) printf 'full\\n';; esac;;
+ status) case "$(basename "$0")" in magi-affinity) printf 'mode=auto\\nactive=unit-01\\n';; magi-operating-profile) printf 'mode=auto\\n';; magi-theme-variant) printf '{"active":"standard"}\\n';; *) printf 'full\\n';; esac;;
  create) mkdir -p "$EVA_SETTINGS_STATE/fake"; cp "$EVA_SETTINGS_SHELL" "$EVA_SETTINGS_STATE/fake/shell.json";;
  diff) printf '{"plan_id":"restore-plan"}\\n';;
  restore) cp "$EVA_SETTINGS_STATE/fake/shell.json" "$EVA_SETTINGS_SHELL";;
 esac
 exit 0
 '''
-    for name in ("magi-affinity","magi-motion","magi-operating-profile","magi-ambient","magi-sound","magi-snapshot","magi-visual","omarchy-shell","playerctl"):
+    for name in ("magi-affinity","magi-theme-variant","magi-motion","magi-operating-profile","magi-ambient","magi-sound","magi-snapshot","magi-visual","omarchy-shell","playerctl"):
         path=commands/name; path.write_text(command); path.chmod(0o755)
     env={**os.environ,"PATH":str(commands)+":"+os.environ["PATH"],"EVA_SETTINGS_HOME":str(home),"EVA_SETTINGS_DATA":str(ROOT),"EVA_SETTINGS_SCHEMA":str(ROOT/"omarchy/settings-schema.json"),"EVA_SETTINGS_SHELL":str(shell),"EVA_SETTINGS_CONFIG":str(config),"EVA_SETTINGS_STATE":str(home/"state"),"EVA_SETTINGS_SKIP_ACTIVATE":"1"}
     def call(*args,ok=True):
@@ -26,7 +26,7 @@ exit 0
         if ok: assert result.returncode==0,result.stderr
         return result
     status_value=json.loads(call("status").stdout)
-    assert len(status_value["settings"])==18 and len(status_value["categories"])==10
+    assert len(status_value["settings"])==19 and len(status_value["categories"])==10
     privacy=next(x for x in status_value["settings"] if x["id"]=="privacy.indicator")
     assert privacy["read_only"] and privacy["value"]=="always-on"
     before=shell.read_bytes(); plan=json.loads(call("preview","display.bar-position","bottom").stdout)
@@ -47,4 +47,5 @@ for phrase in ("WlrKeyboardFocus.Exclusive","magi-settings", "Key_Up", "Key_Left
 shell_config=json.loads((ROOT/"omarchy/shell.json").read_text())
 assert any(x["id"]=="evangelion.settings" for x in shell_config["plugins"])
 assert "SUPER + CTRL + ALT + S" in (ROOT/"hypr/bindings.lua").read_text()
+assert 'record.get("setting")=="theme.variant"' in BIN.read_text()
 print("PASS  schema-backed control center preview confirmation capability safety and exact undo")

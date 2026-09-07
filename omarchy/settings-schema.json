@@ -2,6 +2,7 @@
   "schema_version": 1,
   "settings": [
     {"id":"affinity.mode","category":"Affinity","label":"EVA affinity authority","values":["auto","neutral","unit-00-prototype","unit-00-refit","unit-01","unit-02"],"command":"magi-affinity","snapshot":"affinity"},
+    {"id":"theme.variant","category":"Affinity","label":"Theme treatment","values":["standard","oled","daylight","high-contrast"],"command":"magi-theme-variant","snapshot":"affinity"},
     {"id":"motion.mode","category":"Motion","label":"Interface motion","values":["full","reduced","off"],"command":"magi-motion","snapshot":"settings"},
     {"id":"profile.mode","category":"Operating Profile","label":"Dock and mobile authority","values":["auto","docked","mobile"],"command":"magi-operating-profile","snapshot":"profiles"},
     {"id":"widgets.cava","category":"Widgets","label":"Cava spectrum widget","values":["enabled","disabled"],"command":"omarchy-shell","snapshot":"layouts"},

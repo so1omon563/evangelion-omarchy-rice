@@ -121,6 +121,7 @@ add_file tools "$root/omarchy/rice-health.json" "$HOME/.local/share/evangelion-r
 add_file tools "$root/omarchy/snapshot-manifest.json" "$HOME/.local/share/evangelion-rice/snapshot-manifest.json" 644
 add_file tools "$root/omarchy/settings-schema.json" "$HOME/.local/share/evangelion-rice/settings-schema.json" 644
 add_file tools "$root/omarchy/commands.json" "$HOME/.local/share/evangelion-rice/commands.json" 644
+add_file tools "$root/omarchy/theme-variants.json" "$HOME/.local/share/evangelion-rice/theme-variants.json" 644
 add_file shell "$root/omarchy/update.json" "$HOME/.config/omarchy/evangelion-update.json" 644 preserve
 add_tree theme "$root/theme" "$HOME/.config/omarchy/themes/evangelion" 644
 add_tree shell "$root/omarchy/plugins" "$HOME/.config/omarchy/plugins" 644

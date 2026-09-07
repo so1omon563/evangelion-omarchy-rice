@@ -716,6 +716,9 @@ magi-affinity status              # Report automatic/manual mode and active unit
 magi-affinity palette             # Report the active bar/icon palette as JSON
 magi-affinity set unit-02         # Hold a manual affinity across wallpapers
 magi-affinity auto                # Resume wallpaper-driven affinity
+magi-theme-variant preview oled   # Temporarily apply OLED treatment
+magi-theme-variant revert         # Restore the pre-preview treatment
+magi-theme-variant apply daylight # Commit a treatment across affinities
 magi-bar-refresh                  # Reapply the active palette without a shell restart
 magi-bar-refresh status           # Report the last refresh result as JSON
 magi-media status                 # Print the active player and track

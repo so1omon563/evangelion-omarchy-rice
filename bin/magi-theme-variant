@@ -1,0 +1,67 @@
+#!/usr/bin/env python3
+"""Resolve and transactionally select shared Evangelion theme treatments."""
+import argparse,json,os,subprocess,tempfile
+from pathlib import Path
+
+ROOT=Path(__file__).resolve().parents[1]; HOME=Path.home()
+DATA=Path(os.environ.get("EVA_VARIANT_DATA",ROOT if (ROOT/"omarchy").is_dir() else HOME/".local/share/evangelion-rice"))
+REGISTRY=Path(os.environ.get("EVA_VARIANT_REGISTRY",DATA/"omarchy/theme-variants.json" if (DATA/"omarchy/theme-variants.json").is_file() else DATA/"theme-variants.json"))
+STATE=Path(os.environ.get("EVA_VARIANT_STATE",Path(os.environ.get("XDG_STATE_HOME",HOME/".local/state"))/"evangelion-rice"))
+ACTIVE=STATE/"theme-variant"; PREVIEW=STATE/"theme-variant-preview.json"
+
+def load():
+ try:data=json.loads(REGISTRY.read_text())
+ except (OSError,json.JSONDecodeError) as error:raise SystemExit(f"Theme variant registry unavailable: {error}")
+ if data.get("schema_version")!=1 or data.get("default") not in data.get("variants",{}):raise SystemExit("Theme variant registry is invalid")
+ return data
+def atomic(path,text):
+ path.parent.mkdir(parents=True,exist_ok=True);fd,name=tempfile.mkstemp(prefix=".variant.",dir=path.parent)
+ try:
+  with os.fdopen(fd,"w") as stream:stream.write(text)
+  os.chmod(name,0o600);os.replace(name,path)
+ finally:
+  try:os.unlink(name)
+  except FileNotFoundError:pass
+def active(data):
+ try:value=ACTIVE.read_text().strip()
+ except OSError:value=data["default"]
+ return value if value in data["variants"] else data["default"]
+def resolve(data,affinity,variant):
+ if affinity not in data["affinities"]:raise SystemExit("Unknown affinity")
+ if variant not in data["variants"]:raise SystemExit("Unknown theme variant")
+ treatment=data["variants"][variant]
+ if treatment.get("extends")!="affinity":raise SystemExit("Variant must extend the shared affinity tokens")
+ tokens={**data["affinities"][affinity],**treatment.get("tokens",{}),**treatment.get("affinity_overrides",{}).get(affinity,{})}
+ return {"schema_version":1,"profile":affinity,"variant":variant,"variant_label":treatment["label"],"mode":treatment["mode"],**tokens}
+def activate(data,variant):
+ before=active(data);atomic(ACTIVE,variant+"\n")
+ result=subprocess.run(["magi-affinity","apply"],text=True,capture_output=True)
+ if result.returncode:
+  atomic(ACTIVE,before+"\n");subprocess.run(["magi-affinity","apply"],stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL)
+  raise SystemExit("Theme variant apply failed; previous variant restored")
+ return before
+def main():
+ parser=argparse.ArgumentParser();sub=parser.add_subparsers(dest="command",required=True)
+ sub.add_parser("list");sub.add_parser("status")
+ r=sub.add_parser("resolve");r.add_argument("affinity");r.add_argument("variant",nargs="?")
+ p=sub.add_parser("preview");p.add_argument("variant")
+ a=sub.add_parser("apply");a.add_argument("variant")
+ sub.add_parser("revert")
+ args=parser.parse_args();data=load();current=active(data)
+ if args.command=="list":
+  print("\n".join(f"{key}\t{row['label']}" for key,row in data["variants"].items()));return 0
+ if args.command=="status":
+  print(json.dumps({"schema_version":1,"active":current,"label":data["variants"][current]["label"],"preview":PREVIEW.is_file()},separators=(",",":")));return 0
+ if args.command=="resolve":print(json.dumps(resolve(data,args.affinity,args.variant or current),separators=(",",":")));return 0
+ if args.command in {"preview","apply"}:
+  if args.variant not in data["variants"]:raise SystemExit("Unknown theme variant")
+  if args.command=="preview" and not PREVIEW.exists():atomic(PREVIEW,json.dumps({"schema_version":1,"previous":current})+"\n")
+  before=activate(data,args.variant)
+  if args.command=="apply":PREVIEW.unlink(missing_ok=True)
+  status="previewed" if args.command=="preview" else "applied"
+  print(json.dumps({"schema_version":1,"status":status,"before":before,"active":args.variant,"revert_available":PREVIEW.is_file()},separators=(",",":")));return 0
+ if not PREVIEW.is_file():raise SystemExit("No theme variant preview to revert")
+ try:previous=json.loads(PREVIEW.read_text())["previous"]
+ except (OSError,json.JSONDecodeError,KeyError):raise SystemExit("Theme variant preview state is invalid")
+ activate(data,previous);PREVIEW.unlink();print(json.dumps({"schema_version":1,"status":"reverted","active":previous},separators=(",",":")));return 0
+if __name__=="__main__":raise SystemExit(main())

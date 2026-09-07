@@ -49,6 +49,11 @@ def current(key):
     if key=="affinity.mode":
         mode=command_value(["magi-affinity","status"],"mode=")
         return "auto" if mode=="auto" else command_value(["magi-affinity","status"],"active=")
+    if key=="theme.variant":
+        value=run(["magi-theme-variant","status"])
+        if not value or value.returncode:return None
+        try:return json.loads(value.stdout)["active"]
+        except (json.JSONDecodeError,KeyError):return None
     if key=="motion.mode": return command_value(["magi-motion","status"])
     if key=="profile.mode": return command_value(["magi-operating-profile","status"],"mode=")
     if key=="widgets.cava": return "enabled" if widget_enabled("evangelion.cava") else "disabled"
@@ -80,6 +85,7 @@ def effects(key,value):
         token=key.split(".",1)[1]
         surfaces="Hyprland and MAGI shell" if token in {"blur","opacity","gaps","borders","animation_intensity"} else "MAGI shell surfaces"
         return [f"Set bounded {token.replace('_',' ')} token to {value}",f"Refresh {surfaces}","Preserve Reduced/Off motion safety overrides"]
+    if key=="theme.variant":return [f"Resolve shared affinity tokens through {value}","Refresh palette, borders, bar, and new terminals","Preserve wallpaper affinity authority"]
     if key in {"widgets.cava","media.widget"}:return [f"Update owned shell layout: {value}","Hot-reload shell layout"]
     if key=="display.bar-position":return [f"Move the primary bar to {value}","Hot-reload shell layout"]
     return [f"Set {key} to {value}","Refresh participating MAGI surfaces"]
@@ -97,6 +103,7 @@ def shell_setting(key,value):
     atomic(SHELL,shell)
 def execute(key,value):
     if key.startswith("visual."):args=["magi-visual","set",key.split(".",1)[1],value]
+    elif key=="theme.variant":args=["magi-theme-variant","apply",value]
     elif key=="affinity.mode":args=["magi-affinity","auto"] if value=="auto" else ["magi-affinity","set",value]
     elif key=="motion.mode":args=["magi-motion","set",value]
     elif key=="profile.mode":args=["magi-operating-profile",value]
@@ -129,6 +136,9 @@ def undo():
     rollback_snapshot(record["snapshot"],record["component"])
     if str(record.get("setting","")).startswith("visual.") and not SKIP:
         run(["magi-visual","set",record["setting"].split(".",1)[1],record["before"]])
+    if record.get("setting")=="theme.variant" and not SKIP:
+        result=run(["magi-affinity","apply"])
+        if not result or result.returncode:raise SystemExit("Theme variant state restored, but live palette refresh failed")
     (STATE/"last.json").unlink(missing_ok=True)
     return {"schema_version":1,"status":"undone","setting":record["setting"],"restored":record["before"]}
 def main():

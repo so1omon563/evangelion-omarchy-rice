@@ -40,6 +40,8 @@ fallback contract.
 the OSD, and collapse into collision-safe labels against the live bar width.
 [MAGI affinity scenes](SCENES.md) coordinate wallpaper, palette, terminal
 identity, and opt-in ambient, motion, or sound behavior as one reversible plan.
+[Theme variants](THEME_VARIANTS.md) layer Standard, OLED, Daylight, or High
+Contrast treatment over every NERV/EVA affinity with preview and one-step revert.
 [MAGI media controls](MEDIA_CONTROLS.md) coordinate multiple MPRIS sources,
 privacy-safe artwork, player detail, and Cava without destabilizing bar geometry.
 [Accessibility standards](ACCESSIBILITY.md) define contrast, scaling, keyboard,

@@ -7,6 +7,7 @@ mode_file="$state_dir/affinity-mode"
 manual_file="$state_dir/affinity-manual"
 active_file="$state_dir/affinity-active"
 background_link="${XDG_STATE_HOME:-$HOME/.local/state}/omarchy/current/background"
+variant_cli="$(cd -- "$(dirname -- "$0")" && pwd)/magi-theme-variant"
 mkdir -p "$state_dir"
 
 motion_mode() {
@@ -24,19 +25,16 @@ detect() {
 }
 
 load_profile() {
-  case "$1" in
-    unit-00-prototype) label="EVA-00 PROTOTYPE"; terminal="unit-00-prototype"; accent=F6C744; accent2=3BA7D8; selection=5B4215; muted=756843; background=120F08; dark=0B0905; darker=060503; lighter=28200D; foreground=F2E9D2; dim=A49370; bar_icon=D8B84E; active=FF8A24 ;;
-    unit-00-refit) label="EVA-00 REFIT"; terminal="unit-00-refit"; accent=55D9FF; accent2=F2F6FF; selection=173D68; muted=526B83; background=08121E; dark=050B12; darker=03070B; lighter=102A43; foreground=E8F1FF; dim=8297AD; bar_icon=79BFE3; active=3E83FF ;;
-    unit-01) label="EVA-01 TEST TYPE"; terminal="eva-01"; accent=9CF23A; accent2=8F4BC8; selection=4B286D; muted=665577; background=120D18; dark=0B0810; darker=060408; lighter=24172F; foreground=E8E1EF; dim=8E809A; bar_icon=B79ACB; active=B76CFF ;;
-    unit-02) label="EVA-02 PRODUCTION"; terminal="unit-02"; accent=FF5A36; accent2=F6A52F; selection=61251C; muted=7D5148; background=160907; dark=0D0504; darker=070302; lighter=32100C; foreground=F5E5DF; dim=A98278; bar_icon=D77A64; active=FF334F ;;
-    neutral) label="NERV / MAGI NEUTRAL"; terminal="magi"; accent=9CF23A; accent2=8F4BC8; selection=4B286D; muted=665577; background=120D18; dark=0B0810; darker=060408; lighter=24172F; foreground=E8E1EF; dim=8E809A; bar_icon=A995B8; active=FF4055 ;;
-    *) printf 'Unknown affinity: %s\n' "$1" >&2; exit 2 ;;
-  esac
+  local payload key value
+  payload=$("$variant_cli" resolve "$1") || exit $?
+  while IFS=$'\t' read -r key value; do printf -v "$key" '%s' "$value"; done < <(
+    jq -r 'to_entries[] | select(.key | IN("label","terminal","mode","accent","accent2","selection","muted","background","dark","darker","lighter","foreground","dim","bar_icon","active","variant","variant_label")) | [(if .key == "mode" then "color_mode" else .key end),.value] | @tsv' <<<"$payload"
+  )
 }
 
 write_colors() {
   cat > "$1/colors.toml" <<EOF
-mode = "dark"
+mode = "$color_mode"
 accent = "#$accent"
 selection = "#$selection"
 muted = "#$muted"
@@ -210,7 +208,8 @@ apply_profile() {
   for file in colors.toml shell.toml; do [[ -f "$theme_dir/$file" ]] && cp "$theme_dir/$file" "$backup/$file"; done
   write_colors "$tmp"
   write_shell "$tmp"
-  if ! install -m 0644 "$tmp/colors.toml" "$theme_dir/colors.toml" || ! install -m 0644 "$tmp/shell.toml" "$theme_dir/shell.toml" || ! EVA_TERMINAL_PROFILE_QUIET=1 eva-terminal-profile "$terminal" --no-reload || ! apply_hypr; then
+  selection_text=FFFFFF; [[ $color_mode == light ]] && selection_text=$foreground
+  if ! install -m 0644 "$tmp/colors.toml" "$theme_dir/colors.toml" || ! install -m 0644 "$tmp/shell.toml" "$theme_dir/shell.toml" || ! EVA_TERMINAL_PROFILE_QUIET=1 EVA_TERMINAL_BACKGROUND="$background" EVA_TERMINAL_FOREGROUND="$foreground" EVA_TERMINAL_MUTED="$muted" EVA_TERMINAL_SELECTION="$selection" EVA_TERMINAL_SELECTION_TEXT="$selection_text" EVA_TERMINAL_ACCENT="$accent" eva-terminal-profile "$terminal" --no-reload || ! apply_hypr; then
     for file in colors.toml shell.toml; do [[ -f "$backup/$file" ]] && install -m 0644 "$backup/$file" "$theme_dir/$file"; done
     EVA_TERMINAL_PROFILE_QUIET=1 eva-terminal-profile "$previous_terminal" --no-reload >/dev/null 2>&1 || true
     echo "$previous_profile" > "$active_file"
@@ -260,13 +259,13 @@ case "$command" in
   palette)
     profile=${2:-$(cat "$active_file" 2>/dev/null || detect "$(readlink -f "$background_link" 2>/dev/null || true)")}
     load_profile "$profile"
-    printf '{"profile":"%s","label":"%s","bar_icon":"#%s","background":"#%s","accent":"#%s","active":"#%s"}\n' "$profile" "$label" "$bar_icon" "$dark" "$accent" "$active"
+    printf '{"profile":"%s","label":"%s","variant":"%s","variant_label":"%s","mode":"%s","bar_icon":"#%s","background":"#%s","accent":"#%s","active":"#%s"}\n' "$profile" "$label" "$variant" "$variant_label" "$color_mode" "$bar_icon" "$dark" "$accent" "$active"
     ;;
   status)
     mode=$(cat "$mode_file" 2>/dev/null || echo auto)
     affinity=$(cat "$active_file" 2>/dev/null || detect "$(readlink -f "$background_link" 2>/dev/null || true)")
     load_profile "$affinity"
-    printf 'mode=%s\nactive=%s\nbar_icon=#%s\nbackground=%s\n' "$mode" "$affinity" "$bar_icon" "$(readlink -f "$background_link" 2>/dev/null || echo unknown)"
+    printf 'mode=%s\nactive=%s\nvariant=%s\nbar_icon=#%s\nbackground=%s\n' "$mode" "$affinity" "$variant" "$bar_icon" "$(readlink -f "$background_link" 2>/dev/null || echo unknown)"
     ;;
   list) printf '%s\n' neutral unit-00-prototype unit-00-refit unit-01 unit-02 ;;
   auto|reset)

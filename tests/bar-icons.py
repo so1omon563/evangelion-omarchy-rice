@@ -50,8 +50,11 @@ for forbidden_chrome in ("Rectangle {", "HoverHandler", "border.color", "stateCo
 assert 'text             = "#B79ACB"' in bar_theme
 affinity = (root / "bin/magi-affinity").read_text()
 assert 'text = "#$bar_icon"' in affinity
-for color in ("A995B8", "D8B84E", "79BFE3", "B79ACB", "D77A64"):
-    assert f"bar_icon={color}" in affinity
+variant_registry = json.loads((root / "omarchy/theme-variants.json").read_text())
+assert {row["bar_icon"] for row in variant_registry["affinities"].values()} == {
+    "A995B8", "D8B84E", "79BFE3", "B79ACB", "D77A64"
+}
+assert '"bar_icon"' in affinity and "magi-theme-variant" in affinity
 
 for forbidden in ("/home/", "so1omon", "Screen.name"):
     assert forbidden not in frame

@@ -86,6 +86,15 @@ case "$profile" in
     ;;
 esac
 
+# Affinity treatments may override the shared profile chroma without changing
+# the profile identity or prompt tag (for example OLED or daylight).
+background=${EVA_TERMINAL_BACKGROUND:-$background}
+foreground=${EVA_TERMINAL_FOREGROUND:-$foreground}
+muted=${EVA_TERMINAL_MUTED:-$muted}
+selection=${EVA_TERMINAL_SELECTION:-$selection}
+selection_text=${EVA_TERMINAL_SELECTION_TEXT:-FFFFFF}
+accent=${EVA_TERMINAL_ACCENT:-$accent}
+
 mkdir -p "$state_dir" "$theme_dir"
 tools_dir="$state_dir/tools"
 mkdir -p "$tools_dir"
@@ -97,7 +106,7 @@ printf '%s\n' \
   "foreground = #$foreground" \
   "cursor-color = #$accent" \
   "selection-background = #$selection" \
-  "selection-foreground = #FFFFFF" \
+  "selection-foreground = #$selection_text" \
   "" \
   "palette = 0=#$background" \
   "palette = 1=#D52032" \
@@ -168,7 +177,7 @@ printf '%s\n' \
 printf '%s\n' \
   "foreground #$foreground" \
   "background #$background" \
-  "selection_foreground #FFFFFF" \
+  "selection_foreground #$selection_text" \
   "selection_background #$selection" \
   "" \
   "cursor #$accent" \
@@ -199,7 +208,7 @@ printf '%s\n' \
   "[colors-dark]" \
   "foreground=$foreground" \
   "background=$background" \
-  "selection-foreground=FFFFFF" \
+  "selection-foreground=$selection_text" \
   "selection-background=$selection" \
   "" \
   "cursor=$background $accent" \

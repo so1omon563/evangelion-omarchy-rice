@@ -31,6 +31,11 @@ and precedence are in [VISUAL_CUSTOMIZATION.md](VISUAL_CUSTOMIZATION.md).
 
 ## Affinity scenes
 
+Theme treatment is an independent inherited dimension. Select Standard, OLED,
+Daylight, or High Contrast in Control Center, or use `magi-theme-variant
+preview`, `revert`, and `apply`. Wallpaper-driven NERV/EVA affinity remains
+authoritative. See [THEME_VARIANTS.md](THEME_VARIANTS.md).
+
 Scene definitions live in the preserved `~/.config/omarchy/scenes.json`.
 Use `magi-scene preview SCENE` before applying, `magi-scene undo` to restore
 the preceding coordinated state, and `magi-scene auto` to follow wallpaper
