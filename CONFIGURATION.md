@@ -1,5 +1,10 @@
 # Configuration reference
 
+Optional-provider timeouts, retry backoff, cache freshness, and persistence
+defaults live in `~/.config/omarchy/resilience.json`; see
+[OFFLINE_RESILIENCE.md](OFFLINE_RESILIENCE.md). The installer preserves local
+changes to this file on upgrades.
+
 ## Suite release channel
 
 `~/.config/omarchy/evangelion-update.json` stores the explicitly selected rice

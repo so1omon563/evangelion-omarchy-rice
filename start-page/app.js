@@ -60,7 +60,8 @@ function paintWeather(weather) {
   $('weather-temp').textContent = weather.available ? (parts[1] || 'Temp --°').replace(/^Temp\s*/i, '') : '--°';
   $('weather-wind').textContent = weather.available ? `WIND // ${(parts[2] || '—').replace(/^Wind\s*/i, '')}` : 'SIGNAL // LOST';
   $('weather-chip').textContent = !weather.available ? 'OFFLINE' : weather.stale ? 'CACHE' : 'LIVE';
-  $('weather-state').textContent = weather.available ? weather.stale ? 'LAST KNOWN READING · UPLINK DEGRADED' : 'SATELLITE FEED · 30 SECOND REFRESH' : 'SET LOCATION WITH OMARCHY WEATHER LOCATION';
+  const age = Number.isFinite(weather.age_seconds) ? ` · AGE ${weather.age_seconds < 60 ? weather.age_seconds + 'S' : Math.floor(weather.age_seconds / 60) + 'M'}` : '';
+  $('weather-state').textContent = weather.available ? weather.stale ? `LAST KNOWN READING${age} · RETRY BOUNDED` : 'SATELLITE FEED · 30 SECOND REFRESH' : 'LINK UNAVAILABLE · RETRY BOUNDED · NO REMOTE DATA STORED';
 }
 
 function health(data) {
@@ -100,7 +101,7 @@ function paintMedia(media) {
   const playing = media.available && media.status.toLowerCase() === 'playing';
   $('audio-card').className = `audio-card ${playing ? 'playing' : media.available ? 'paused' : 'standby'}`;
   $('track').textContent = media.available ? media.title || 'UNTITLED' : 'NO ACTIVE SOURCE';
-  $('artist').textContent = media.available ? media.artist || media.status : 'MPRIS STANDBY';
+  $('artist').textContent = media.available ? media.artist || media.status : `MPRIS ${String(media.state || 'unavailable').toUpperCase()} · LOCAL ONLY`;
   $('audio-chip').textContent = playing ? 'PLAYING' : media.available ? media.status.toUpperCase() : 'STANDBY';
   $('media-toggle').textContent = playing ? 'Ⅱ' : '▶';
   const progress = media.length > 0 ? Math.min(100, media.position / media.length * 100) : 0;

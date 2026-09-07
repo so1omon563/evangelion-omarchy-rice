@@ -5,6 +5,7 @@ import subprocess
 import threading
 import time
 import tomllib
+import sys
 from collections import deque
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
@@ -19,6 +20,13 @@ EVENTS = deque(maxlen=8)
 EVENT_LOCK = threading.Lock()
 PREVIOUS = {}
 ACTIVE_PLAYER = ""
+LIB = Path(__file__).resolve().parent.parent / "lib"
+if not (LIB / "magi_resilience.py").is_file():
+    LIB = HOME / ".local/lib/evangelion-rice"
+sys.path.insert(0, str(LIB))
+from magi_resilience import cache_state, load_policy, retry_delay
+RESILIENCE = load_policy()
+WEATHER_RETRY = {"failures": 0, "next_at": 0}
 
 
 def run(args, timeout=2):
@@ -59,23 +67,36 @@ def ambient_surface():
 
 
 def weather():
-    message = run(["omarchy-weather-status"], 6)
+    now = int(time.time())
+    message = ""
+    if now >= WEATHER_RETRY["next_at"]:
+        message = run(["omarchy-weather-status"], RESILIENCE["request_timeout_seconds"])
     if message and message != "Weather unavailable":
-        data = {"available": True, "message": message, "stale": False, "updated_at": int(time.time())}
+        WEATHER_RETRY.update(failures=0, next_at=0)
+        data = {"available": True, "message": message, "state": "fresh", "stale": False,
+                "age_seconds": 0, "reason": "provider-current", "updated_at": now}
         try:
             WEATHER_CACHE.parent.mkdir(parents=True, exist_ok=True)
             WEATHER_CACHE.write_text(json.dumps(data, separators=(",", ":")))
         except OSError:
             pass
         return data
+    if now >= WEATHER_RETRY["next_at"]:
+        WEATHER_RETRY["failures"] += 1
+        WEATHER_RETRY["next_at"] = now + retry_delay(WEATHER_RETRY["failures"], RESILIENCE["retry_backoff_seconds"])
     try:
         cached = json.loads(WEATHER_CACHE.read_text())
         if cached.get("message"):
-            cached.update(available=True, stale=True)
-            return cached
+            condition = cache_state(cached.get("updated_at"), RESILIENCE["surfaces"].get("weather", {}), now)
+            if condition["state"] != "unavailable":
+                cached.update(available=True, stale=condition["state"] == "stale", **condition,
+                              retry_at=WEATHER_RETRY["next_at"])
+                return cached
     except (OSError, json.JSONDecodeError):
         pass
-    return {"available": False, "message": "Weather link unavailable", "stale": False}
+    return {"available": False, "message": "Weather link unavailable", "state": "unavailable",
+            "stale": False, "age_seconds": None, "reason": "provider-and-cache-unavailable",
+            "retry_at": WEATHER_RETRY["next_at"]}
 
 
 def network():
@@ -84,10 +105,10 @@ def network():
             continue
         try:
             if (interface / "operstate").read_text().strip() == "up":
-                return {"online": True, "interface": interface.name}
+                return {"online": True, "interface": interface.name, "state": "fresh", "reason": "carrier-up"}
         except OSError:
             pass
-    return {"online": False, "interface": "none"}
+    return {"online": False, "interface": "none", "state": "offline", "reason": "no-active-carrier"}
 
 
 def workspace():
@@ -149,8 +170,12 @@ def media():
     except ValueError:
         volume = 0
     players = [item for item in run(["playerctl", "-l"]).splitlines() if item]
+    available = len(fields) >= 3 and any(fields[:3])
     return {
-        "available": len(fields) >= 3,
+        "available": available,
+        "state": "fresh" if available else "unavailable",
+        "reason": "mpris-current" if available else "no-mpris-source",
+        "age_seconds": 0 if available else None,
         "status": fields[0][:16] if fields else "",
         "artist": fields[1][:80] if len(fields) > 1 else "",
         "title": fields[2][:120] if len(fields) > 2 else "",

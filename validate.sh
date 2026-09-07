@@ -67,6 +67,7 @@ python3 "$root/tests/suite-update.py" >/dev/null && pass "guided transactional s
 python3 "$root/tests/onboarding.py" >/dev/null && pass "first-run onboarding and sanitized configuration transfer" || fail "first-run onboarding and sanitized configuration transfer"
 python3 "$root/tests/topologies.py" >/dev/null && pass "transactional monitor topology restoration" || fail "transactional monitor topology restoration"
 python3 "$root/tests/machine-profiles.py" >/dev/null && pass "portable privacy-sanitized machine profiles" || fail "portable privacy-sanitized machine profiles"
+python3 "$root/tests/resilience.py" >/dev/null && pass "bounded offline and unavailable surfaces" || fail "bounded offline and unavailable surfaces"
 python3 "$root/tests/workspace-names.py" >/dev/null && pass "editable responsive workspace identities" || fail "editable responsive workspace identities"
 if [[ ${EVANGELION_RELEASE_ARTIFACT_NESTED:-0} != 1 ]]; then
   python3 "$root/tests/release-artifact.py" >/dev/null && pass "reproducible complete-suite release artifact" || fail "reproducible complete-suite release artifact"

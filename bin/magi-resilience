@@ -1,0 +1,57 @@
+#!/usr/bin/env python3
+"""Inspect the privacy-safe availability contract for optional MAGI surfaces."""
+import json
+import sys
+import time
+from pathlib import Path
+
+LIB = Path(__file__).resolve().parent.parent / "lib"
+if not (LIB / "magi_resilience.py").is_file():
+    LIB = Path.home() / ".local/lib/evangelion-rice"
+sys.path.insert(0, str(LIB))
+from magi_resilience import cache_state, load_policy  # noqa: E402
+
+HOME = Path.home()
+STATE = HOME / ".local/state/evangelion-rice"
+
+
+def timestamp(path, field="updated_at"):
+    try:
+        return json.loads(path.read_text()).get(field)
+    except (OSError, ValueError, TypeError):
+        return None
+
+
+def main():
+    policy = load_policy()
+    sources = {
+        "weather": (HOME / ".cache/evangelion-rice/weather.json", "updated_at"),
+        "context": (STATE / "context/state.json", "observed_at"),
+        "updates": (STATE / "update-operation/state.json", "updated_at"),
+        "communications": (STATE / "communications.json", "updated_at"),
+        "media": (STATE / "media.json", "updated_at"),
+        "artwork": (STATE / "artwork.json", "updated_at"),
+    }
+    surfaces = {}
+    for name, (path, field) in sources.items():
+        surfaces[name] = cache_state(timestamp(path, field), policy["surfaces"].get(name, {}))
+    report = {
+        "schema_version": 1,
+        "generated_at": int(time.time()),
+        "request_timeout_seconds": policy["request_timeout_seconds"],
+        "retry_backoff_seconds": policy["retry_backoff_seconds"],
+        "surfaces": surfaces,
+        "privacy": policy["privacy"],
+    }
+    if "--json" in sys.argv:
+        print(json.dumps(report, separators=(",", ":")))
+    else:
+        print("MAGI RESILIENCE // OPTIONAL SURFACES")
+        for name, value in surfaces.items():
+            age = "--" if value["age_seconds"] is None else f'{value["age_seconds"]}s'
+            print(f'{name.upper():16} {value["state"].upper():11} age {age:>8}  {value["reason"]}')
+        print("PRIVACY // payload persistence disabled; remote artwork opt-in")
+
+
+if __name__ == "__main__":
+    main()

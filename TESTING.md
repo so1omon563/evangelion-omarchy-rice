@@ -1,5 +1,9 @@
 # Clean-user test procedure
 
+Offline and unavailable surface behavior is covered by
+`python3 tests/resilience.py`; see [OFFLINE_RESILIENCE.md](OFFLINE_RESILIENCE.md)
+for the visual degraded-state check.
+
 `tests/topologies.py` exercises privacy-safe topology classification and
 identity, saved layouts, read-only previews, stale-plan rejection,
 transactional apply/undo, window preservation, unknown-display fallback, and

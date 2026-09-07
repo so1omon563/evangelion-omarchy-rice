@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
 set -u
 
+bounded() { timeout "${MAGI_PROVIDER_TIMEOUT_SECONDS:-3}s" "$@"; }
+
 json=false
 [[ ${1:-} == --json ]] && json=true
 
@@ -19,8 +21,8 @@ tailscale_peers=0
 tailscale_name=""
 
 if command -v nmcli >/dev/null 2>&1; then
-  connectivity=$(nmcli -t networking connectivity check 2>/dev/null || echo unknown)
-  active=$(nmcli -t -f DEVICE,TYPE,STATE,CONNECTION device status 2>/dev/null | awk -F: '$3=="connected" && $2!="loopback" {print; exit}')
+  connectivity=$(bounded nmcli -t networking connectivity check 2>/dev/null || echo unknown)
+  active=$(bounded nmcli -t -f DEVICE,TYPE,STATE,CONNECTION device status 2>/dev/null | awk -F: '$3=="connected" && $2!="loopback" {print; exit}')
   if [[ -n $active ]]; then
     IFS=: read -r interface connection_type _ connection <<< "$active"
   fi
@@ -50,7 +52,7 @@ if command -v busctl >/dev/null 2>&1 && busctl --system status org.bluez >/dev/n
 fi
 
 if command -v tailscale >/dev/null 2>&1; then
-  ts=$(tailscale status --json 2>/dev/null || true)
+  ts=$(bounded tailscale status --json 2>/dev/null || true)
   if [[ -n $ts ]]; then
     tailscale=$(jq -r 'if .BackendState == "Running" then "on" else (.BackendState // "off" | ascii_downcase) end' <<< "$ts" 2>/dev/null || echo unavailable)
     tailscale_peers=$(jq -r '[.Peer[]? | select(.Online == true)] | length' <<< "$ts" 2>/dev/null || echo 0)
@@ -67,6 +69,9 @@ elif [[ -n $interface ]]; then link=local
 else link=offline
 fi
 
+state=fresh; reason=provider-current
+[[ $link == offline ]] && state=offline reason=no-active-uplink
+[[ $connectivity == unknown && -z $interface ]] && state=unavailable reason=network-provider-unavailable
 payload=$(jq -cn \
   --arg link "$link" --arg connectivity "$connectivity" \
   --arg connection "$connection" --arg type "$connection_type" \
@@ -74,8 +79,8 @@ payload=$(jq -cn \
   --arg ssid "$ssid" --argjson signal "${signal:--1}" --arg vpn "$vpn" \
   --arg bluetooth "$bluetooth" --argjson bluetooth_devices "$bluetooth_devices" \
   --arg tailscale "$tailscale" --argjson tailscale_peers "$tailscale_peers" \
-  --arg tailscale_name "$tailscale_name" \
-  '{link:$link,connectivity:$connectivity,connection:$connection,type:$type,interface:$interface,gateway:$gateway,ssid:$ssid,signal:$signal,vpn:$vpn,bluetooth:$bluetooth,bluetoothDevices:$bluetooth_devices,tailscale:$tailscale,tailscalePeers:$tailscale_peers,tailscaleName:$tailscale_name}')
+  --arg tailscale_name "$tailscale_name" --arg state "$state" --arg reason "$reason" --argjson updated_at "$(date +%s)" \
+  '{link:$link,state:$state,reason:$reason,ageSeconds:0,updatedAt:$updated_at,connectivity:$connectivity,connection:$connection,type:$type,interface:$interface,gateway:$gateway,ssid:$ssid,signal:$signal,vpn:$vpn,bluetooth:$bluetooth,bluetoothDevices:$bluetooth_devices,tailscale:$tailscale,tailscalePeers:$tailscale_peers,tailscaleName:$tailscale_name,privacy:{persisted:false}}')
 
 if $json; then
   printf '%s\n' "$payload"

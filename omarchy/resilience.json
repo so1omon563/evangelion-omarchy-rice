@@ -1,0 +1,19 @@
+{
+  "schema_version": 1,
+  "request_timeout_seconds": 3,
+  "retry_backoff_seconds": [15, 30, 60, 300],
+  "surfaces": {
+    "weather": { "fresh_seconds": 900, "stale_seconds": 21600 },
+    "context": { "fresh_seconds": 300, "stale_seconds": 1800 },
+    "updates": { "fresh_seconds": 900, "stale_seconds": 86400 },
+    "communications": { "fresh_seconds": 30, "stale_seconds": 300 },
+    "media": { "fresh_seconds": 15, "stale_seconds": 60 },
+    "artwork": { "fresh_seconds": 3600, "stale_seconds": 86400 }
+  },
+  "privacy": {
+    "remote_artwork_default": false,
+    "persist_network_identifiers": false,
+    "persist_media_metadata": false,
+    "persist_context_payloads": false
+  }
+}

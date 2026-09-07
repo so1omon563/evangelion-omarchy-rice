@@ -13,7 +13,7 @@ BarWidget {
   Accessible.name: accessibleName
   Accessible.description: "Open network, VPN, Bluetooth, and Tailscale status"
   property bool popupOpen: false
-  property var status: ({ link: "unknown", connectivity: "unknown", connection: "", type: "unknown", interface: "", gateway: "", ssid: "", signal: -1, vpn: "", bluetooth: "unavailable", bluetoothDevices: 0, tailscale: "unavailable", tailscalePeers: 0, tailscaleName: "" })
+  property var status: ({ link: "unknown", state: "unavailable", reason: "awaiting-provider", connectivity: "unknown", connection: "", type: "unknown", interface: "", gateway: "", ssid: "", signal: -1, vpn: "", bluetooth: "unavailable", bluetoothDevices: 0, tailscale: "unavailable", tailscalePeers: 0, tailscaleName: "" })
 
   readonly property string glyph: status.link === "online" ? "󰖩" : (status.link === "limited" || status.link === "local" ? "󰖪" : "󰖟")
   readonly property color stateColor: status.link === "online" ? Color.accent : (status.link === "offline" ? root.bar.urgent : "#F6D447")
@@ -96,6 +96,7 @@ BarWidget {
 
       Text { text: "NERV // COMMUNICATION LINK"; color: Color.accent; font.family: root.bar.fontFamily; font.pixelSize: Style.font.caption; font.bold: true; font.letterSpacing: 1 }
       Text { text: root.status.link === "online" ? "ALL CHANNELS NOMINAL" : (root.status.link === "offline" ? "UPLINK UNAVAILABLE" : "DEGRADED CONNECTION"); color: root.stateColor; font.family: root.bar.fontFamily; font.pixelSize: Style.font.heading; font.bold: true }
+      Text { text: "STATE // " + String(root.status.state || "unavailable").toUpperCase() + " · " + String(root.status.reason || "unknown").replace(/-/g," ").toUpperCase(); color: Qt.darker(root.bar.foreground, 1.35); font.family: root.bar.fontFamily; font.pixelSize: Style.font.caption }
 
       Rectangle { width: parent.width; height: 1; color: Color.muted; opacity: 0.55 }
 
