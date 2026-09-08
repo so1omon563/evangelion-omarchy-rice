@@ -1,0 +1,105 @@
+#!/usr/bin/env python3
+"""Bounded, privacy-sanitized local notification and MAGI event index."""
+import argparse,fcntl,hashlib,html,json,os,re,shutil,subprocess,tempfile,time
+from pathlib import Path
+HOME=Path.home();CONFIG=Path(os.environ.get("EVA_OPERATIONS_CONFIG",HOME/".config/omarchy/operations-log.json"));STATE=Path(os.environ.get("EVA_OPERATIONS_STATE",HOME/".local/state/evangelion-rice/operations-log"));STORE=STATE/"events.jsonl";LOCK=STATE/"lock";CLEAR=STATE/"clear-confirmation.json"
+DEFAULT={"schema_version":1,"retention":{"max_entries":250,"max_days":14,"max_bytes":1048576},"deduplication_window_seconds":300};CATEGORIES={"notification","system","workflow","security","media","network"}
+ACTIONS={"notifications.show":["omarchy-shell","notifications","showHistory"],"health.open":["omarchy-shell","magi-health","open"],"resilience.open":["omarchy-launch-terminal","--","magi-resilience"],"updates.open":["omarchy-shell","magi-update-operation","open"],"docs.open":["xdg-open","https://github.com/so1omon563/evangelion-omarchy-rice"]}
+def atomic(path,text,mode=0o600):
+ path.parent.mkdir(parents=True,exist_ok=True);fd,name=tempfile.mkstemp(prefix=".operations.",dir=path.parent)
+ try:
+  with os.fdopen(fd,"w") as stream:stream.write(text);stream.flush();os.fsync(stream.fileno())
+  os.chmod(name,mode);os.replace(name,path)
+ finally:
+  try:os.unlink(name)
+  except FileNotFoundError:pass
+def config():
+ value=DEFAULT
+ try:value=json.loads(CONFIG.read_text())
+ except (OSError,json.JSONDecodeError):pass
+ try:r=value["retention"];assert value.get("schema_version")==1 and 50<=r["max_entries"]<=2000 and 1<=r["max_days"]<=90 and 65536<=r["max_bytes"]<=5242880 and 0<=value["deduplication_window_seconds"]<=3600
+ except (KeyError,TypeError,AssertionError):raise SystemExit("Invalid operations-log policy")
+ return value
+def sanitized(value,limit):
+ text=html.unescape(re.sub(r"<[^>]+>"," ",str(value or "")));text=re.sub(r"\s+"," ",text).strip()
+ patterns=[(re.escape(str(HOME)),"~"),(r"(?i)\b(?:password|passwd|secret|token|api[_ -]?key|credential|cookie)\s*[:=]\s*\S+","[REDACTED]"),(r"(?i)\bbearer\s+\S+","[REDACTED]"),(r"\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b","[EMAIL]"),(r"\b(?:\d{1,3}\.){3}\d{1,3}\b","[ADDRESS]")]
+ for pattern,replacement in patterns:text=re.sub(pattern,replacement,text,flags=0 if pattern.startswith(re.escape(str(HOME))) else re.I)
+ return text[:limit]
+def rows():
+ result=[]
+ try:lines=STORE.read_text().splitlines()
+ except OSError:return result
+ for line in lines:
+  try:value=json.loads(line)
+  except json.JSONDecodeError:continue
+  if isinstance(value,dict):result.append(value)
+ return result
+def encode(values):return "".join(json.dumps(x,separators=(",",":"),ensure_ascii=False)+"\n" for x in values)
+def trim(values,policy,now):
+ cutoff=now-policy["retention"]["max_days"]*86400;values=[x for x in values if x.get("last_at",x.get("created_at",0))>=cutoff][-policy["retention"]["max_entries"]:]
+ while values and len(encode(values).encode())>policy["retention"]["max_bytes"]:values.pop(0)
+ return values
+class locked:
+ def __enter__(self):STATE.mkdir(parents=True,exist_ok=True);self.handle=LOCK.open("a+");os.chmod(LOCK,0o600);fcntl.flock(self.handle,fcntl.LOCK_EX);return self
+ def __exit__(self,*_):fcntl.flock(self.handle,fcntl.LOCK_UN);self.handle.close()
+def record(args):
+ if args.category not in CATEGORIES:raise SystemExit("Unknown event category")
+ policy=config();now=int(time.time());summary=sanitized(args.summary,240);detail=sanitized(args.detail,800);source=sanitized(args.source,80);action=args.action if args.action in ACTIONS else ""
+ if not summary:raise SystemExit("Event summary is empty after sanitization")
+ fingerprint=hashlib.sha256((args.category+"\0"+source+"\0"+summary+"\0"+detail+"\0"+(args.dedupe_key or "")).encode()).hexdigest()[:20]
+ with locked():
+  values=rows();prior=next((item for item in reversed(values) if item.get("fingerprint")==fingerprint and now-item.get("last_at",0)<=policy["deduplication_window_seconds"]),None)
+  if prior and prior.get("fingerprint")==fingerprint and now-prior.get("last_at",0)<=policy["deduplication_window_seconds"]:prior["last_at"]=now;prior["count"]=prior.get("count",1)+1;entry=prior
+  else:
+   entry={"id":hashlib.sha256(f"{now}:{time.time_ns()}:{fingerprint}".encode()).hexdigest()[:16],"category":args.category,"source":source,"summary":summary,"detail":detail,"action":action,"created_at":now,"last_at":now,"count":1,"fingerprint":fingerprint};values.append(entry)
+  values=trim(values,policy,now);atomic(STORE,encode(values))
+ return entry
+def search(args):
+ policy=config();now=int(time.time())
+ with locked():
+  values=trim(rows(),policy,now);atomic(STORE,encode(values))
+  needle=(args.query or "").lower();values=[x for x in reversed(values) if (not args.category or x.get("category")==args.category) and (not needle or needle in " ".join(str(x.get(k,"")) for k in ("category","source","summary","detail")).lower())]
+  total=len(values);values=values[:args.limit]
+ return {"schema_version":1,"entries":values,"count":total,"offline":True,"storage_bytes":STORE.stat().st_size if STORE.exists() else 0,"retention":policy["retention"]}
+def clear_plan():
+ with locked():
+  value={"expires_at":int(time.time())+60,"entries":len(rows())};value["token"]=hashlib.sha256(json.dumps(value,sort_keys=True).encode()).hexdigest()[:16];atomic(CLEAR,json.dumps(value)+"\n");return value
+def clear(confirm):
+ try:value=json.loads(CLEAR.read_text())
+ except (OSError,json.JSONDecodeError):raise SystemExit("Clear confirmation missing or expired")
+ if confirm!=value.get("token") or value.get("expires_at",0)<time.time():raise SystemExit("Clear confirmation missing or expired")
+ with locked():atomic(STORE,"");CLEAR.unlink(missing_ok=True)
+ return {"schema_version":1,"status":"cleared","removed":value["entries"]}
+def export(destination):
+ target=Path(destination).expanduser() if destination else HOME/"Downloads/magi-operations-log.json"
+ if target.is_symlink():raise SystemExit("Refusing to export through a symbolic link")
+ with locked():payload={"schema_version":1,"exported_at":int(time.time()),"privacy":"sanitized-local-history","entries":list(reversed(rows()))}
+ atomic(target,json.dumps(payload,indent=2,ensure_ascii=False)+"\n");return {"schema_version":1,"status":"exported","path":str(target),"entries":len(payload["entries"])}
+def invoke(identifier):
+ entry=next((x for x in rows() if x.get("id")==identifier),None)
+ if not entry:raise SystemExit("Operation entry not found")
+ action=entry.get("action");argv=ACTIONS.get(action)
+ if not argv:raise SystemExit("Operation has no available action")
+ if not shutil.which(argv[0]):return {"schema_version":1,"status":"unavailable","action":action,"reason":argv[0]+" unavailable"}
+ subprocess.Popen(argv,start_new_session=True,stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL);return {"schema_version":1,"status":"launched","action":action}
+def retention(args):
+ value=config();value["retention"]={"max_entries":args.entries,"max_days":args.days,"max_bytes":args.bytes};config_value=value
+ # Validate through the same bounds before replacing the preserved policy.
+ if not 50<=args.entries<=2000 or not 1<=args.days<=90 or not 65536<=args.bytes<=5242880:raise SystemExit("Retention values are outside supported bounds")
+ atomic(CONFIG,json.dumps(config_value,indent=2)+"\n");return config_value
+def main():
+ parser=argparse.ArgumentParser();sub=parser.add_subparsers(dest="command",required=True)
+ p=sub.add_parser("record");p.add_argument("category");p.add_argument("summary");p.add_argument("--detail",default="");p.add_argument("--source",default="MAGI");p.add_argument("--action",default="");p.add_argument("--dedupe-key",default="")
+ p=sub.add_parser("search");p.add_argument("query",nargs="?",default="");p.add_argument("--category",choices=sorted(CATEGORIES));p.add_argument("--limit",type=int,default=50,choices=range(1,101))
+ sub.add_parser("status");sub.add_parser("clear-plan");p=sub.add_parser("clear");p.add_argument("--confirm",required=True);p=sub.add_parser("export");p.add_argument("destination",nargs="?");p=sub.add_parser("invoke");p.add_argument("id");p=sub.add_parser("retention");p.add_argument("entries",type=int);p.add_argument("days",type=int);p.add_argument("bytes",type=int)
+ args=parser.parse_args()
+ if args.command=="record":value=record(args)
+ elif args.command=="search":value=search(args)
+ elif args.command=="status":value=search(argparse.Namespace(query="",category=None,limit=1))
+ elif args.command=="clear-plan":value=clear_plan()
+ elif args.command=="clear":value=clear(args.confirm)
+ elif args.command=="export":value=export(args.destination)
+ elif args.command=="invoke":value=invoke(args.id)
+ else:value=retention(args)
+ print(json.dumps(value,separators=(",",":"),ensure_ascii=False))
+if __name__=="__main__":main()

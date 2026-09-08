@@ -166,6 +166,9 @@ Item {
     // captured for the popup card.
     notification.tracked = true
     var snapshot = snapshotOf(notification)
+    Quickshell.execDetached(["magi-operations-log", "record", "notification",
+      snapshot.summary || "Notification", "--detail", snapshot.body || "",
+      "--source", snapshot.app || "unknown", "--action", "notifications.show"])
     liveRefs[snapshot.originalId] = notification
     // Guard the delete: a newer notification may have reused this originalId
     // (freedesktop replaces_id) and taken over the map slot.

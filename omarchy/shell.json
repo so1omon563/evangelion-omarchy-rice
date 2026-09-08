@@ -60,6 +60,7 @@
     ,{ "id": "evangelion.workspace-names" }
     ,{ "id": "evangelion.scene-editor" }
     ,{ "id": "evangelion.command-palette" }
+    ,{ "id": "evangelion.operations-log" }
   ],
   "disabledPlugins": [
     "omarchy.lock",

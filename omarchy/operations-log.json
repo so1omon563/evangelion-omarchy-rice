@@ -1,0 +1,5 @@
+{
+  "schema_version": 1,
+  "retention": {"max_entries": 250, "max_days": 14, "max_bytes": 1048576},
+  "deduplication_window_seconds": 300
+}

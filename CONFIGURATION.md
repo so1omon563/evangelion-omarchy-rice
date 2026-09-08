@@ -13,6 +13,11 @@ Global palette metadata is versioned in `omarchy/commands.json`; settings and
 workspace destinations are discovered dynamically. See
 [COMMAND_PALETTE.md](COMMAND_PALETTE.md).
 
+Operations-log retention is stored in preserved
+`~/.config/omarchy/operations-log.json`; the indexed history itself remains a
+private local state file and is never installed from the repository. See
+[OPERATIONS_LOG.md](OPERATIONS_LOG.md).
+
 ## Suite release channel
 
 `~/.config/omarchy/evangelion-update.json` stores the explicitly selected rice

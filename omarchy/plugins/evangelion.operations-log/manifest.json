@@ -1,0 +1,12 @@
+{
+  "schemaVersion": 1,
+  "id": "evangelion.operations-log",
+  "name": "MAGI Operations Log",
+  "version": "1.0.0",
+  "description": "Searchable privacy-bounded notification and MAGI event history.",
+  "author": "Evangelion Rice",
+  "license": "MIT",
+  "kinds": ["service"],
+  "keepLoaded": true,
+  "entryPoints": {"service": "Service.qml"}
+}

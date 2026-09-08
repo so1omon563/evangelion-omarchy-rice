@@ -10,6 +10,8 @@ bounded retries, cache-age labels, and privacy-safe unavailable states.
 hours, volume ceilings, scene overrides, visual equivalents, and a kill switch.
 The [global MAGI command palette](COMMAND_PALETTE.md) provides deterministic
 fuzzy search across safe actions, settings, workspaces, diagnostics, and help.
+The [private MAGI operations log](OPERATIONS_LOG.md) adds bounded, searchable
+notification and system history with explicit clear/export and safe actions.
 
 [![MAGI Integrity Check](https://github.com/so1omon563/evangelion-omarchy-rice/actions/workflows/validate.yml/badge.svg)](https://github.com/so1omon563/evangelion-omarchy-rice/actions/workflows/validate.yml)
 

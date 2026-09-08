@@ -36,6 +36,17 @@ def run(args, timeout=2):
         return ""
 
 
+def record_operation(category, summary, source="start-page", dedupe_key=""):
+    """Best-effort local audit event; the dashboard must survive an absent index."""
+    command = ["magi-operations-log", "record", category, summary, "--source", source]
+    if dedupe_key:
+        command.extend(["--dedupe-key", dedupe_key])
+    try:
+        subprocess.Popen(command, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    except OSError:
+        pass
+
+
 def key_values(command):
     values = {}
     for line in run(command).splitlines():
@@ -200,11 +211,23 @@ def record_events(snapshot):
     with EVENT_LOCK:
         if not EVENTS:
             EVENTS.appendleft({"time": now, "type": "SYSTEM", "message": "MAGI DASHBOARD LINK ESTABLISHED"})
+            record_operation("system", "MAGI dashboard link established", dedupe_key="dashboard-link")
         for key, (value, event_type, message) in checks.items():
             if key in PREVIOUS and PREVIOUS[key] != value:
-                EVENTS.appendleft({"time": now, "type": event_type, "message": message(value)})
+                rendered = message(value)
+                EVENTS.appendleft({"time": now, "type": event_type, "message": rendered})
+                category = "network" if key == "network" else "media" if key == "media" else "system"
+                record_operation(category, rendered, dedupe_key=key)
             PREVIOUS[key] = value
-        return list(EVENTS)
+        fallback = list(EVENTS)
+    try:
+        result = subprocess.run(["magi-operations-log", "search", "", "--limit", "8"], text=True, capture_output=True, timeout=.5, check=False)
+        entries = json.loads(result.stdout).get("entries", []) if result.returncode == 0 else []
+        if entries:
+            return [{"time": time.strftime("%H:%M:%S", time.localtime(row.get("last_at", 0))), "type": str(row.get("category", "system")).upper(), "message": row.get("summary", "")} for row in entries]
+    except (OSError, subprocess.SubprocessError, json.JSONDecodeError):
+        pass
+    return fallback
 
 
 def status():

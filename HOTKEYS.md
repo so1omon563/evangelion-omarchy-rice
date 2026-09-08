@@ -9,6 +9,7 @@ Omarchy's complete live keybinding reference.
 |---|---|
 | `Super + M` | Open the MAGI Command Interface |
 | `Super + Ctrl + Alt + M` | Open the global fuzzy MAGI command palette |
+| `Super + Ctrl + Alt + O` | Open the searchable MAGI operations log |
 | `Super + Escape` | Open NERV Session Control |
 | Power key | Open NERV Session Control |
 | `Super + Shift + F12` | Toggle the Tokyo-3 presentation layout |

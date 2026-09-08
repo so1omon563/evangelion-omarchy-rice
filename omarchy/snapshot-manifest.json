@@ -30,6 +30,7 @@
       ,{"root":"config","path":"omarchy/scenes.json"}
       ,{"root":"config","path":"omarchy/sound.json"}
       ,{"root":"config","path":"omarchy/activity-modes.json"}
+      ,{"root":"config","path":"omarchy/operations-log.json"}
     ]
   }
 }
