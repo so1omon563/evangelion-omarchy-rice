@@ -220,3 +220,8 @@ JSON reports together as the `validation-results` artifact.
 Physical hardware coverage beyond the reference T480 is not asserted by this
 harness. Responsive layouts have a separate automated matrix, and optional
 community compatibility reports can extend observed physical-hardware coverage.
+The optional `beta-report.sh` protocol records coarse display/capability,
+channel, component, install, validation, and rollback evidence in stable schema
+v2. It requires explicit privacy review and publication consent before creating
+the shareable report. See `COMMUNITY_REPORT_TRIAGE.md`; accepted observations
+enter `compatibility/community-matrix.json` and never become a release gate.

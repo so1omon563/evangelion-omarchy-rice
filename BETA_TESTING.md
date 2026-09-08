@@ -27,7 +27,11 @@ cd evangelion-omarchy-rice
 omarchy theme set evangelion
 ./beta-report.sh validate ~/evangelion-beta
 ./beta-report.sh rollback ~/evangelion-beta
+./beta-report.sh review ~/evangelion-beta
+# Edit review.json: use a broad hardware class, add feedback, and set all
+# three confirmations true only after inspecting every field.
 ./beta-report.sh finalize ~/evangelion-beta
+./beta-report.sh open-issue ~/evangelion-beta
 ```
 
 `prepare` is read-only. `install` performs the explicitly selected installer
@@ -37,9 +41,11 @@ Run those two mutating steps only when you are ready. You may replace
 use the same selection for `prepare` and `install`.
 
 After rollback, confirm that the prior theme, shell, Hyprland configuration,
-services, and shell startup behavior are restored. The bundle's `report.json`
-contains shareable status evidence; the `*.log` files remain local diagnostic
-material.
+services, and shell startup behavior are restored. `review` creates an explicit
+questionnaire and publication attestations. `finalize` refuses to create a
+report until that review is complete and validates the stable v2 schema and
+privacy invariants. `open-issue` uses your default browser and never uploads
+anything automatically. The `*.log` files remain local diagnostic material.
 
 ## Report the result
 
@@ -57,11 +63,10 @@ Privacy rules:
 - Use a generic hardware class; exact serial/model identifiers are unnecessary.
 - Screenshots are optional. Crop them and inspect every visible surface first.
 
-Maintainers can use a report when preflight, install, validation, rollback,
-display/scale, hardware class, chosen components, and feedback are all present.
-Blockers are documented in the issue and either fixed or converted
-into explicit compatibility guidance. The compatibility matrix is updated from
-accepted observations before the final release.
+Maintainers follow [COMMUNITY_REPORT_TRIAGE.md](COMMUNITY_REPORT_TRIAGE.md).
+Accepted observations are added to the versioned
+[`compatibility/community-matrix.json`](compatibility/community-matrix.json);
+reports remain optional evidence and never become a release gate.
 
 ## Release evidence
 

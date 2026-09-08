@@ -1,17 +1,17 @@
 name: Community compatibility report
-description: Report install, validation, and rollback results from an Omarchy environment
+description: Submit a reviewed v2 install, validation, and rollback report from an Omarchy environment
 title: "[compatibility]: "
 labels: [beta]
 body:
   - type: markdown
     attributes:
       value: |
-        Thank you for testing. Do not include usernames, hostnames, serial numbers, addresses, account data, browser history, notification text, private window titles, or unreviewed logs/screenshots.
+        Thank you for testing. Complete the documented `beta-report.sh` workflow and attach only its reviewed `report.json`. Never attach the local logs. Do not include usernames, hostnames, serial numbers, addresses, account data, browser history, notification text, private window titles, or unreviewed screenshots.
   - type: input
     id: candidate
     attributes:
       label: Candidate tag and commit
-      description: Output of `git describe --always --dirty` from the checkout.
+      description: Copy candidate.version and candidate.commit from report.json.
       placeholder: v1.1.0 / abc1234
     validations:
       required: true
@@ -24,11 +24,13 @@ body:
           required: true
         - label: I reviewed this report and any attachments for private information.
           required: true
-  - type: input
-    id: versions
+        - label: I consent to publishing the coarse environment and lifecycle evidence in the repository compatibility matrix.
+          required: true
+  - type: dropdown
+    id: schema
     attributes:
-      label: Omarchy and Hyprland versions
-      placeholder: Omarchy 4.x; Hyprland 0.56.x
+      label: Report schema
+      options: ["2 — evangelion-community-compatibility"]
     validations:
       required: true
   - type: input
@@ -57,8 +59,8 @@ body:
     id: evidence
     attributes:
       label: Evidence summary
-      description: Paste the privacy-safe `report.json` or summarize every status.
-      placeholder: Preflight..., install..., validation..., rollback...
+      description: Paste the complete privacy-reviewed `report.json` or attach it to this issue. Raw logs are not accepted.
+      placeholder: Schema v2 JSON; lifecycle includes preflight, dry_run, install, validation, and rollback.
     validations:
       required: true
   - type: textarea

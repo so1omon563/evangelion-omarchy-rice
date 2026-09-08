@@ -75,6 +75,7 @@ python3 "$root/tests/command-palette.py" >/dev/null && pass "global deterministi
 python3 "$root/tests/workspace-names.py" >/dev/null && pass "editable responsive workspace identities" || fail "editable responsive workspace identities"
 python3 "$root/tests/operations-log.py" >/dev/null && pass "private actionable operations log" || fail "private actionable operations log"
 python3 "$root/tests/progressive-disclosure.py" >/dev/null && pass "progressive telemetry disclosure" || fail "progressive telemetry disclosure"
+python3 "$root/tests/community-compatibility.py" >/dev/null && pass "community compatibility report workflow" || fail "community compatibility report workflow"
 if [[ ${EVANGELION_RELEASE_ARTIFACT_NESTED:-0} != 1 ]]; then
   python3 "$root/tests/release-artifact.py" >/dev/null && pass "reproducible complete-suite release artifact" || fail "reproducible complete-suite release artifact"
   python3 "$root/tests/arch-package.py" >/dev/null && pass "Arch package and explicit user lifecycle" || fail "Arch package and explicit user lifecycle"

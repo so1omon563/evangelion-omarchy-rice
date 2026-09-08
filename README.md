@@ -14,6 +14,8 @@ The [private MAGI operations log](OPERATIONS_LOG.md) adds bounded, searchable
 notification and system history with explicit clear/export and safe actions.
 [Progressive telemetry disclosure](PROGRESSIVE_DISCLOSURE.md) keeps context,
 health, history, and start-page surfaces calm while preserving on-demand detail.
+The [community compatibility workflow](BETA_TESTING.md) produces a reviewed,
+privacy-safe v2 report and a non-gating, maintainer-curated evidence matrix.
 
 [![MAGI Integrity Check](https://github.com/so1omon563/evangelion-omarchy-rice/actions/workflows/validate.yml/badge.svg)](https://github.com/so1omon563/evangelion-omarchy-rice/actions/workflows/validate.yml)
 

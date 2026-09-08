@@ -1,0 +1,43 @@
+#!/usr/bin/env python3
+"""Validate a reviewed v2 report and optionally add it to the public matrix."""
+import argparse,hashlib,json,re,tempfile,os
+from pathlib import Path
+ROOT=Path(__file__).resolve().parents[1];MATRIX=Path(os.environ.get("EVA_COMPATIBILITY_MATRIX",ROOT/"compatibility/community-matrix.json"))
+def require(condition,message):
+ if not condition:raise SystemExit("REPORT INVALID // "+message)
+def valid_display(row):
+ if not isinstance(row,dict):return False
+ if set(row)=={"status"}:return row["status"]=="unavailable"
+ if set(row)!={"width","height","scale","transform"}:return False
+ return isinstance(row["width"],int) and isinstance(row["height"],int) and isinstance(row["scale"],(int,float)) and isinstance(row["transform"],int) and 320<=row["width"]<=16384 and 240<=row["height"]<=16384 and .5<=row["scale"]<=4 and 0<=row["transform"]<=7
+def validate(report):
+ required={"schema_version","report_kind","candidate","environment","selection","lifecycle","all_passed","qualitative","hardware_class","restoration_confirmed","privacy"}
+ require(isinstance(report,dict) and set(report)==required,"top-level schema mismatch");require(report["schema_version"]==2 and report["report_kind"]=="evangelion-community-compatibility","unsupported schema")
+ candidate=report["candidate"];require(isinstance(candidate,dict) and set(candidate)=={"version","commit","channel"},"candidate shape");require(isinstance(candidate["version"],str) and len(candidate["version"])<=80 and re.fullmatch(r"[0-9a-f]{40}",candidate["commit"]) and candidate["channel"] in {"stable","preview","development"},"candidate values")
+ environment=report["environment"];require(isinstance(environment,dict) and set(environment)=={"architecture","session_type","displays","capabilities"},"environment shape");require(environment["architecture"] in {"x86_64","aarch64"} and isinstance(environment["session_type"],str) and len(environment["session_type"])<=30,"environment values")
+ displays=environment["displays"];require(isinstance(displays,list) and 1<=len(displays)<=8,"display count");require(all(valid_display(row) for row in displays),"display values")
+ capabilities=environment["capabilities"];require(isinstance(capabilities,dict) and set(capabilities)=={"battery","thermal","audio","network","terminal_count"} and all(isinstance(capabilities[key],bool) for key in ("battery","thermal","audio","network")) and isinstance(capabilities["terminal_count"],int) and 0<=capabilities["terminal_count"]<=20,"capability values")
+ require(isinstance(report["selection"],list) and 1<=len(report["selection"])<=30 and all(isinstance(item,str) and len(item)<=80 for item in report["selection"]),"selection values")
+ lifecycle=report["lifecycle"];require(isinstance(lifecycle,dict) and set(lifecycle)=={"preflight","dry_run","install","validation","rollback"} and all(isinstance(code,int) and not isinstance(code,bool) for code in lifecycle.values()),"lifecycle values");require(isinstance(report["all_passed"],bool) and report["all_passed"]==all(code==0 for code in lifecycle.values()),"all_passed inconsistency")
+ qualitative=report["qualitative"];require(isinstance(qualitative,dict) and set(qualitative)=={"result","issues","feedback"} and qualitative["result"] in {"pass","pass-with-issues","blocked"} and isinstance(qualitative["issues"],list) and len(qualitative["issues"])<=20 and all(isinstance(item,str) and len(item)<=500 for item in qualitative["issues"]) and isinstance(qualitative["feedback"],str) and len(qualitative["feedback"])<=4000,"qualitative values")
+ require(isinstance(report["hardware_class"],str) and 3<=len(report["hardware_class"])<=120 and report["restoration_confirmed"] is True,"review values")
+ require(report["privacy"]=={"raw_logs_included":False,"unique_machine_identifiers_collected":False,"manual_review_completed":True,"consent_to_publish":True},"privacy attestations")
+ forbidden=re.compile(r"(?:/home/|@|\b(?:\d{1,3}\.){3}\d{1,3}\b|(?:serial|hostname|mac address)\s*[:=])",re.I)
+ require(not forbidden.search(json.dumps(report)),"likely private identifier")
+ return report
+def atomic(path,value):
+ fd,name=tempfile.mkstemp(prefix=".matrix.",dir=path.parent)
+ try:
+  with os.fdopen(fd,"w") as stream:json.dump(value,stream,indent=2,sort_keys=True);stream.write("\n")
+  os.replace(name,path)
+ finally:
+  try:os.unlink(name)
+  except FileNotFoundError:pass
+def main():
+ parser=argparse.ArgumentParser();parser.add_argument("--validate-only",action="store_true");parser.add_argument("report");parser.add_argument("--issue");args=parser.parse_args();report=validate(json.loads(Path(args.report).read_text()))
+ if args.validate_only:print("REPORT VALID // schema v2 and privacy invariants passed");return
+ if not args.issue or not re.fullmatch(r"https://github\.com/so1omon563/evangelion-omarchy-rice/issues/\d+",args.issue):raise SystemExit("--issue must be an accepted repository issue URL")
+ matrix=json.loads(MATRIX.read_text());environment=report["environment"];key=hashlib.sha256((report["candidate"]["commit"]+json.dumps(environment,sort_keys=True)+report["hardware_class"]).encode()).hexdigest()[:16]
+ row={"id":key,"issue":args.issue,"candidate":report["candidate"],"hardware_class":report["hardware_class"],"architecture":environment["architecture"],"displays":environment["displays"],"capabilities":environment["capabilities"],"selection":report["selection"],"lifecycle":report["lifecycle"],"result":report["qualitative"]["result"],"issues":report["qualitative"]["issues"]}
+ matrix["observations"]=[item for item in matrix["observations"] if item["id"]!=key]+[row];atomic(MATRIX,matrix);print(f"MATRIX UPDATED // {key}")
+if __name__=="__main__":main()

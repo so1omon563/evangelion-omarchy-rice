@@ -1,0 +1,1 @@
+{"schema_version":1,"release_gate":false,"policy":"accepted opt-in observations; absence never blocks release","reference":{"hardware_class":"Intel business laptop with integrated graphics and dual battery","architecture":"x86_64","display":"1920x1080 at 1.25x","status":"verified-reference"},"observations":[]}
