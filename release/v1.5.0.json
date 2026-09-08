@@ -1,0 +1,43 @@
+{
+  "schema_version": 1,
+  "release": "v1.5.0",
+  "candidate": "v1.5.0-rc.1",
+  "candidate_commit": "1b0d3f94781de6ea8f27a09cb393aa3439b2458f",
+  "final_release_allowed": true,
+  "scope": "adaptive-operations",
+  "theme_repository_commit": "38b3d2599d78798a2face2495444334b774d2675",
+  "community_testing": {
+    "status": "optional-post-release",
+    "required_reports": 0
+  },
+  "distribution": {
+    "suite": "github-release-exact-tag",
+    "theme": "standalone-export-synchronized",
+    "plugins": "suite-internal-not-standalone",
+    "optional_runtime": "contract-only-not-published"
+  },
+  "completed_children": [
+    "SO1-399",
+    "SO1-408",
+    "SO1-411",
+    "SO1-413",
+    "SO1-414",
+    "SO1-415",
+    "SO1-416",
+    "SO1-417",
+    "SO1-418"
+  ],
+  "gates": {
+    "candidate_ci": "passed-run-34179594611",
+    "candidate_ci_duration": "16m0s",
+    "validation": "passed-242-checks-zero-failures-zero-warnings",
+    "candidate_artifact_sha256": "3322d91ade9ee7871f2e9bad1a86694a5f4762976ccc7cfc0a055b64c516d564",
+    "candidate_artifact": "passed-two-build-byte-comparison-and-offline-verification",
+    "documentation_and_migration": "passed-v1.4.1-to-v1.5.0-preservation-audit",
+    "theme_export": "passed-exact-export-sync-at-theme-commit",
+    "release_artifact": "passed-reproducible-offline-lifecycle",
+    "arch_package": "passed-explicit-user-activation-lifecycle",
+    "cross_channel": "passed-conflict-upgrade-rollback-removal",
+    "privacy": "passed-local-data-and-community-report-sanitization-contracts"
+  }
+}

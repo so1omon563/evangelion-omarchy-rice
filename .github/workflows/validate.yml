@@ -70,6 +70,9 @@ jobs:
       - name: Validate exact v1.4 release evidence
         run: ./tests/release-v1.4.py
 
+      - name: Validate exact v1.5 release evidence
+        run: ./tests/release-v1.5.py
+
       - name: Build and validate reproducible suite artifact
         env:
           EVANGELION_RELEASE_ARTIFACT_REPORT: test-results/release-artifact.json
