@@ -1,0 +1,143 @@
+#!/usr/bin/env python3
+"""Manual, per-action opt-in activity modes with atomic rollback."""
+import argparse,hashlib,json,os,re,shutil,subprocess,tempfile,time
+from pathlib import Path
+HOME=Path.home();ROOT=Path(__file__).resolve().parents[1]
+DEFAULT=Path(os.environ.get("EVA_ACTIVITY_DEFAULT",ROOT/"omarchy/activity-modes.json" if (ROOT/"omarchy/activity-modes.json").is_file() else HOME/".local/share/evangelion-rice/activity-modes.json"))
+CONFIG=Path(os.environ.get("EVA_ACTIVITY_CONFIG",HOME/".config/omarchy/activity-modes.json"));STATE=Path(os.environ.get("EVA_ACTIVITY_STATE",HOME/".local/state/evangelion-rice/activity-mode"));TX=STATE/"last-transaction"
+SHELL=Path(os.environ.get("EVA_ACTIVITY_SHELL",HOME/".config/omarchy/shell.json"));CORE=Path(os.environ.get("EVA_ACTIVITY_CORE",HOME/".config/omarchy/evangelion.json"));SOUND=Path(os.environ.get("EVA_ACTIVITY_SOUND",HOME/".config/omarchy/sound.json"));MOTION=Path(os.environ.get("EVA_ACTIVITY_MOTION",HOME/".config/omarchy/motion.json"))
+ACTIONS=("notifications","motion","audio","power","displays","widgets","context");OPTIONAL_WIDGETS={"evangelion.cava","evangelion.media","evangelion.world-clock","evangelion.mission"}
+ALLOWED={"notifications":{"on","off"},"motion":{"full","reduced","off"},"audio":{"enabled","disabled"},"power":{"performance","balanced","power-saver"},"widgets":{"full","calm"},"context":{"decorative-on","decorative-off"}}
+def read_json(path,default=None):
+ try:return json.loads(path.read_text())
+ except (OSError,json.JSONDecodeError):return default
+def atomic(path,value,mode=0o600):
+ path.parent.mkdir(parents=True,exist_ok=True);fd,name=tempfile.mkstemp(prefix=".activity.",dir=path.parent)
+ try:
+  with os.fdopen(fd,"w") as stream:json.dump(value,stream,indent=2);stream.write("\n");stream.flush();os.fsync(stream.fileno())
+  os.chmod(name,mode);os.replace(name,path)
+ finally:
+  try:os.unlink(name)
+  except FileNotFoundError:pass
+def validate(data):
+ if not isinstance(data,dict) or data.get("schema_version")!=1 or set(data.get("modes",{}))!={"work","focus","gaming","presentation","travel","quiet"}:raise SystemExit("Invalid activity mode schema")
+ for mode,row in data["modes"].items():
+  if set(row.get("actions",{}))!=set(ACTIONS):raise SystemExit(f"Invalid action set: {mode}")
+  for name,item in row["actions"].items():
+   if not isinstance(item.get("enabled"),bool):raise SystemExit("Action enabled flags must be boolean")
+   target=item.get("target")
+   if name=="displays":
+    if target!="keep" and not re.fullmatch(r"profile:[A-Za-z0-9][A-Za-z0-9._ -]{0,47}",str(target)):raise SystemExit("Invalid display target")
+   elif target not in ALLOWED[name]:raise SystemExit(f"Invalid {name} target")
+ return data
+def config():return validate(read_json(CONFIG) or read_json(DEFAULT))
+def run(args,timeout=12):
+ try:return subprocess.run(args,text=True,capture_output=True,timeout=timeout)
+ except (OSError,subprocess.SubprocessError):return None
+def command_value(args):
+ value=run(args);return value.stdout.strip() if value and value.returncode==0 else None
+def capability(name,target):
+ command={"notifications":"omarchy-shell","motion":"magi-motion","audio":"magi-sound","power":"powerprofilesctl","displays":"magi-topology","context":"magi-context"}.get(name)
+ if name=="widgets":return (SHELL.is_file(),"shell layout unavailable" if not SHELL.is_file() else "")
+ if name=="displays" and target=="keep":return (True,"no display mutation configured")
+ if not command or not shutil.which(command):return (False,f"{command} unavailable")
+ if name=="power":
+  rows=command_value([command,"list"]) or "";supported=target in rows
+  return (supported,"" if supported else f"power profile {target} unsupported")
+ return (True,"")
+def plan(mode):
+ data=config();row=data["modes"].get(mode)
+ if not row:raise SystemExit("Unknown activity mode")
+ actions=[]
+ for name in ACTIONS:
+  item=row["actions"][name];available,reason=capability(name,item["target"]);mutates=item["enabled"] and available and not(name=="displays" and item["target"]=="keep")
+  actions.append({"name":name,"enabled":item["enabled"],"target":item["target"],"capability":"available" if available else "unavailable","effect":"apply" if mutates else "skip","reason":reason if not mutates else ""})
+ result={"schema_version":1,"mode":mode,"label":row["label"],"authority":"manual-confirmed","actions":actions,"will_apply":sum(x["effect"]=="apply" for x in actions),"unsupported":sum(x["enabled"] and x["capability"]=="unavailable" for x in actions)}
+ result["plan_id"]=hashlib.sha256(json.dumps(result,sort_keys=True,separators=(",",":")).encode()).hexdigest()[:16];return result
+def copy_state(path,name):
+ if path.is_file():shutil.copy2(path,TX/name);(TX/(name+".existed")).touch()
+def capture(mode):
+ if TX.exists():shutil.rmtree(TX)
+ TX.mkdir(parents=True);copy_state(SHELL,"shell.json");copy_state(CORE,"core.json");copy_state(SOUND,"sound.json");copy_state(MOTION,"motion.json")
+ state={"schema_version":1,"mode":mode,"dnd":command_value(["omarchy-shell","notifications","dndState"]),"power":command_value(["powerprofilesctl","get"]),"display_applied":False,"captured_at":int(time.time())};atomic(TX/"state.json",state)
+def restore_file(path,name):
+ if (TX/(name+".existed")).exists():shutil.copy2(TX/name,path)
+ else:path.unlink(missing_ok=True)
+def restore(keep=False):
+ state=read_json(TX/"state.json");
+ if not isinstance(state,dict):raise SystemExit("No activity-mode transaction to undo")
+ for path,name in ((SHELL,"shell.json"),(CORE,"core.json"),(SOUND,"sound.json"),(MOTION,"motion.json")):restore_file(path,name)
+ if state.get("dnd") in {"on","off"}:run(["omarchy-shell","notifications","setDnd",state["dnd"]])
+ if state.get("power"):run(["powerprofilesctl","set",state["power"]])
+ if state.get("display_applied"):run(["magi-topology","undo"])
+ run(["magi-motion","apply"]);run(["omarchy-shell","shell","rescanPlugins"])
+ if not keep:shutil.rmtree(TX)
+def apply_widgets(target):
+ value=read_json(SHELL)
+ if not isinstance(value,dict):raise RuntimeError("shell layout unavailable")
+ layout=value.get("bar",{}).get("layout",{})
+ if target=="calm":
+  for section,rows in layout.items():
+   if isinstance(rows,list):layout[section]=[x for x in rows if not isinstance(x,dict) or x.get("id") not in OPTIONAL_WIDGETS]
+ else:
+  left=layout.setdefault("left",[]);present={x.get("id") for rows in layout.values() if isinstance(rows,list) for x in rows if isinstance(x,dict)}
+  for widget in ("evangelion.media","evangelion.cava","evangelion.world-clock","evangelion.mission"):
+   if widget not in present:left.append({"id":widget})
+ atomic(SHELL,value,0o644);result=run(["omarchy-shell","shell","rescanPlugins"]);return bool(result and result.returncode==0)
+def mutate(name,target,state):
+ if name=="notifications":
+  result=run(["omarchy-shell","notifications","setDnd",target])
+  return bool(result and result.returncode==0 and result.stdout.strip()==target)
+ elif name=="motion":result=run(["magi-motion","set",target])
+ elif name=="audio":result=run(["magi-sound","enable" if target=="enabled" else "disable"])
+ elif name=="power":result=run(["powerprofilesctl","set",target])
+ elif name=="widgets":return apply_widgets(target)
+ elif name=="context":result=run(["magi-context","decorative","enable" if target=="decorative-on" else "disable"])
+ else:
+  profile=target.split(":",1)[1];preview=run(["magi-topology","preview",profile])
+  if not preview or preview.returncode:return False
+  try:token=json.loads(preview.stdout)["plan_id"]
+  except (json.JSONDecodeError,KeyError):return False
+  result=run(["magi-topology","apply",profile,"--confirm",token],30)
+  if result and result.returncode==0:state["display_applied"]=True;atomic(TX/"state.json",state)
+ return bool(result and result.returncode==0)
+def apply(mode,confirmation):
+ selected=plan(mode)
+ if confirmation!=selected["plan_id"]:raise SystemExit("Confirmation mismatch; preview again and use the current plan_id")
+ capture(mode);state=read_json(TX/"state.json");applied=[];skipped=[]
+ try:
+  for row in selected["actions"]:
+   if row["effect"]!="apply":skipped.append({"name":row["name"],"reason":row["reason"] or "not opted in"});continue
+   if not mutate(row["name"],row["target"],state):raise RuntimeError(row["name"])
+   applied.append(row["name"])
+ except Exception as error:
+  restore(keep=True);raise SystemExit(f"Activity mode failed at {error}; previous state restored")
+ atomic(STATE/"active.json",{"schema_version":1,"mode":mode,"applied_at":int(time.time()),"actions":applied})
+ return {"schema_version":1,"status":"applied","mode":mode,"actions":applied,"skipped":skipped,"undo_available":True}
+def configure(mode,action,enabled):
+ data=config()
+ if mode not in data["modes"]:raise SystemExit("Unknown activity mode")
+ names=ACTIONS if action=="all" else (action,)
+ for name in names:
+  if name not in ACTIONS:raise SystemExit("Unknown activity action")
+  data["modes"][mode]["actions"][name]["enabled"]=enabled
+ atomic(CONFIG,data);return plan(mode)
+def target(mode,action,value):
+ data=config()
+ if mode not in data["modes"] or action not in ACTIONS:raise SystemExit("Unknown mode or action")
+ data["modes"][mode]["actions"][action]["target"]=value;validate(data);atomic(CONFIG,data);return plan(mode)
+def main():
+ parser=argparse.ArgumentParser();sub=parser.add_subparsers(dest="command",required=True);sub.add_parser("list");sub.add_parser("status");sub.add_parser("undo")
+ for word in ("preview","enable","disable"):p=sub.add_parser(word);p.add_argument("mode");p.add_argument("action",nargs="?",default="all")
+ p=sub.add_parser("target");p.add_argument("mode");p.add_argument("action");p.add_argument("value")
+ p=sub.add_parser("apply");p.add_argument("mode");p.add_argument("--confirm",required=True)
+ args=parser.parse_args();data=config()
+ if args.command=="list":print("\n".join(f"{name}\t{row['label']}" for name,row in data["modes"].items()));return
+ if args.command=="status":print(json.dumps({"schema_version":1,"active":read_json(STATE/"active.json"),"undo_available":(TX/"state.json").is_file(),"automatic":False},separators=(",",":")));return
+ if args.command=="preview":value=plan(args.mode)
+ elif args.command in {"enable","disable"}:value=configure(args.mode,args.action,args.command=="enable")
+ elif args.command=="target":value=target(args.mode,args.action,args.value)
+ elif args.command=="apply":value=apply(args.mode,args.confirm)
+ else:restore();(STATE/"active.json").unlink(missing_ok=True);value={"schema_version":1,"status":"undone"}
+ print(json.dumps(value,separators=(",",":")))
+if __name__=="__main__":main()

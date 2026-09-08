@@ -22,6 +22,13 @@ Preview and Development require explicit risk acceptance. Use
 
 ## Visual customization
 
+## Activity modes
+
+Work, Focus, Gaming, Presentation, Travel, and Quiet recommendations are stored
+in preserved `~/.config/omarchy/activity-modes.json`. Every subsystem is
+individually opted in, every apply requires an exact preview plan, and one-step
+undo restores the full transaction. See [ACTIVITY_MODES.md](ACTIVITY_MODES.md).
+
 Use the Visual category in the MAGI Control Center to adjust bounded density,
 accent strength, typography, panel treatment, compositor blur, window opacity,
 gaps, borders, and animation intensity. Settings are stored in the preserved

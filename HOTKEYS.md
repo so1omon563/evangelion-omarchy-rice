@@ -719,6 +719,9 @@ magi-affinity auto                # Resume wallpaper-driven affinity
 magi-theme-variant preview oled   # Temporarily apply OLED treatment
 magi-theme-variant revert         # Restore the pre-preview treatment
 magi-theme-variant apply daylight # Commit a treatment across affinities
+magi-activity-mode preview focus  # Show exact coordinated changes and skips
+magi-activity-mode enable focus motion # Opt one subsystem into a mode
+magi-activity-mode undo           # Restore the preceding coordinated state
 magi-bar-refresh                  # Reapply the active palette without a shell restart
 magi-bar-refresh status           # Report the last refresh result as JSON
 magi-media status                 # Print the active player and track

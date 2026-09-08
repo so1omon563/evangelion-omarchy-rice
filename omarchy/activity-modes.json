@@ -1,0 +1,11 @@
+{
+  "schema_version": 1,
+  "modes": {
+    "work": {"label":"Work","actions":{"notifications":{"enabled":false,"target":"off"},"motion":{"enabled":false,"target":"full"},"audio":{"enabled":false,"target":"disabled"},"power":{"enabled":false,"target":"balanced"},"displays":{"enabled":false,"target":"keep"},"widgets":{"enabled":false,"target":"full"},"context":{"enabled":false,"target":"decorative-on"}}},
+    "focus": {"label":"Focus","actions":{"notifications":{"enabled":false,"target":"on"},"motion":{"enabled":false,"target":"reduced"},"audio":{"enabled":false,"target":"disabled"},"power":{"enabled":false,"target":"balanced"},"displays":{"enabled":false,"target":"keep"},"widgets":{"enabled":false,"target":"calm"},"context":{"enabled":false,"target":"decorative-off"}}},
+    "gaming": {"label":"Gaming","actions":{"notifications":{"enabled":false,"target":"on"},"motion":{"enabled":false,"target":"off"},"audio":{"enabled":false,"target":"disabled"},"power":{"enabled":false,"target":"performance"},"displays":{"enabled":false,"target":"keep"},"widgets":{"enabled":false,"target":"calm"},"context":{"enabled":false,"target":"decorative-off"}}},
+    "presentation": {"label":"Presentation","actions":{"notifications":{"enabled":false,"target":"on"},"motion":{"enabled":false,"target":"reduced"},"audio":{"enabled":false,"target":"disabled"},"power":{"enabled":false,"target":"balanced"},"displays":{"enabled":false,"target":"keep"},"widgets":{"enabled":false,"target":"calm"},"context":{"enabled":false,"target":"decorative-off"}}},
+    "travel": {"label":"Travel","actions":{"notifications":{"enabled":false,"target":"off"},"motion":{"enabled":false,"target":"reduced"},"audio":{"enabled":false,"target":"disabled"},"power":{"enabled":false,"target":"power-saver"},"displays":{"enabled":false,"target":"keep"},"widgets":{"enabled":false,"target":"calm"},"context":{"enabled":false,"target":"decorative-on"}}},
+    "quiet": {"label":"Quiet","actions":{"notifications":{"enabled":false,"target":"on"},"motion":{"enabled":false,"target":"off"},"audio":{"enabled":false,"target":"disabled"},"power":{"enabled":false,"target":"power-saver"},"displays":{"enabled":false,"target":"keep"},"widgets":{"enabled":false,"target":"calm"},"context":{"enabled":false,"target":"decorative-off"}}}
+  }
+}

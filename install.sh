@@ -122,6 +122,7 @@ add_file tools "$root/omarchy/snapshot-manifest.json" "$HOME/.local/share/evange
 add_file tools "$root/omarchy/settings-schema.json" "$HOME/.local/share/evangelion-rice/settings-schema.json" 644
 add_file tools "$root/omarchy/commands.json" "$HOME/.local/share/evangelion-rice/commands.json" 644
 add_file tools "$root/omarchy/theme-variants.json" "$HOME/.local/share/evangelion-rice/theme-variants.json" 644
+add_file tools "$root/omarchy/activity-modes.json" "$HOME/.local/share/evangelion-rice/activity-modes.json" 644
 add_file shell "$root/omarchy/update.json" "$HOME/.config/omarchy/evangelion-update.json" 644 preserve
 add_tree theme "$root/theme" "$HOME/.config/omarchy/themes/evangelion" 644
 add_tree shell "$root/omarchy/plugins" "$HOME/.config/omarchy/plugins" 644
@@ -135,6 +136,7 @@ add_file shell "$root/omarchy/extensions/omarchy-menu.jsonc" "$HOME/.config/omar
 add_file shell "$root/omarchy/evangelion.json" "$HOME/.config/omarchy/evangelion.json" 644 preserve
 add_file shell "$root/omarchy/resilience.json" "$HOME/.config/omarchy/resilience.json" 644 preserve
 add_file shell "$root/omarchy/sound.json" "$HOME/.config/omarchy/sound.json" 600 preserve
+add_file shell "$root/omarchy/activity-modes.json" "$HOME/.config/omarchy/activity-modes.json" 600 preserve
 add_file shell "$root/omarchy/performance.json" "$HOME/.config/omarchy/performance.json" 644 preserve
 for file in command-telemetry.json magi-clock.json magi-terminal-context.json motion.json operating-profiles.json shell.json thermal-alerts.json; do add_file shell "$root/omarchy/$file" "$HOME/.config/omarchy/$file" 644; done
 add_file shell "$root/omarchy/topologies.json" "$HOME/.config/omarchy/topologies.json" 644 preserve
