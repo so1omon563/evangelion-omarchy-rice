@@ -98,12 +98,15 @@ with tempfile.TemporaryDirectory() as directory:
     old = temp / "old"
     home = temp / "home"
     state = temp / "state"
-    old.mkdir(); home.mkdir()
+    empty_sys = temp / "empty-sys"
+    empty_commands = temp / "empty-commands"
+    old.mkdir(); home.mkdir(); empty_sys.mkdir(); empty_commands.mkdir()
     subprocess.run(["git", "archive", "--format=tar", f"--output={archive}", "v1.3.0"], cwd=ROOT, check=True)
     subprocess.run(["tar", "-xf", archive, "-C", old], check=True)
     env = os.environ | {"HOME": str(home), "XDG_STATE_HOME": str(state), "EVANGELION_SKIP_ACTIVATE": "1",
                         "EVANGELION_RELEASE_131_NESTED": "1", "EVANGELION_RELEASE_ARTIFACT_NESTED": "1",
-                        "EVANGELION_CROSS_CHANNEL_NESTED": "1"}
+                        "EVANGELION_CROSS_CHANNEL_NESTED": "1", "EVA_SYS_ROOT": str(empty_sys),
+                        "MAGI_CONTEXT_COMMAND_PATH": str(empty_commands)}
     def install(source):
         subprocess.run([str(source / "install.sh"), "--apply", "--preset", "default", "--yes"], env=env,
                        check=True, stdout=subprocess.DEVNULL)
