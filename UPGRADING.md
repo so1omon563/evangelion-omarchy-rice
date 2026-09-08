@@ -35,6 +35,47 @@ blocks additional migrations. Inspect `magi-migrate status --json`, then run
 restoring anything and returns all touched files to their pre-apply state.
 Static desktop recovery remains separately available through `magi-recovery`.
 
+## Upgrade from v1.4.1 to v1.5
+
+Download and verify the v1.5.0 archive, then preview both the configuration
+migration and the same installer selection used for v1.4.1:
+
+```bash
+sha256sum --check evangelion-omarchy-rice-1.5.0.tar.gz.sha256
+tar -xzf evangelion-omarchy-rice-1.5.0.tar.gz
+cd evangelion-omarchy-rice-1.5.0
+./scripts/build-release verify-root .
+magi-migrate preview
+./install.sh --dry-run --preset default
+./install.sh --apply --preset default
+snapshot=$(cat ~/.local/state/evangelion-rice/last-install-backup)
+./validate.sh
+```
+
+Replace `default` with the prior preset or component list. The installer
+preserves affinity, operating profile, resilience, sound, activity-mode,
+disclosure, operations-log policy, performance, topology, media, workspace,
+visual, scene, and core user configuration. History remains local state and is
+not overwritten. New sound categories, coordinated activity actions, and
+context automation remain disabled until explicitly opted in.
+
+Confirm compact defaults with `magi-disclosure status`, inspect the new private
+archive with `magi-operations-log status`, and preview—not apply—an activity
+mode with `magi-activity-mode preview focus`. To return to the exact pre-v1.5
+filesystem state:
+
+```bash
+./rollback.sh "$snapshot"
+omarchy restart shell
+systemctl --user restart magi-start-page.service
+hyprctl reload
+hyprctl configerrors
+```
+
+Rollback restores the files owned by this transaction and removes newly
+created v1.5 files; it does not delete pre-existing local history or unrelated
+configuration.
+
 ## Upgrade from v1.3.1 to v1.4
 
 v1.4 preserves the v1.3.1 desktop behavior while adding distribution metadata,

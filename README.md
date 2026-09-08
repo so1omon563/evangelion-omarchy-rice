@@ -19,6 +19,14 @@ privacy-safe v2 report and a non-gating, maintainer-curated evidence matrix.
 
 [![MAGI Integrity Check](https://github.com/so1omon563/evangelion-omarchy-rice/actions/workflows/validate.yml/badge.svg)](https://github.com/so1omon563/evangelion-omarchy-rice/actions/workflows/validate.yml)
 
+> **v1.5.0:** Adaptive Operations keeps the v1.4 presentation and authority
+> baseline while adding private operations history, a global command palette,
+> inherited theme treatments, manual activity modes, offline resilience,
+> categorized opt-in sound, portable machine profiles, progressive telemetry
+> disclosure, and privacy-reviewed community compatibility evidence. New
+> automation remains disabled by default and every mutable workflow is bounded,
+> explicit, reversible, or both.
+
 > **v1.4.0:** the distribution release adds a standalone gallery-ready
 > theme, reproducible complete-suite archives, explicit Arch user activation,
 > cross-channel conflict/rollback tests, and clear selection and maintainer
@@ -115,9 +123,9 @@ the [latest GitHub release](https://github.com/so1omon563/evangelion-omarchy-ric
 verify them, extract, and run from an active Omarchy Hyprland session:
 
 ```bash
-sha256sum --check evangelion-omarchy-rice-1.4.1.tar.gz.sha256
-tar -xzf evangelion-omarchy-rice-1.4.1.tar.gz
-cd evangelion-omarchy-rice-1.4.1
+sha256sum --check evangelion-omarchy-rice-1.5.0.tar.gz.sha256
+tar -xzf evangelion-omarchy-rice-1.5.0.tar.gz
+cd evangelion-omarchy-rice-1.5.0
 ./scripts/build-release verify-root .
 ./preflight.py
 ./install.sh --dry-run --preset default

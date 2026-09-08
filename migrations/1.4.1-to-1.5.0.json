@@ -5,6 +5,17 @@
   "target_version": "1.5.0",
   "preserved": [
     "omarchy/evangelion.json",
+    "omarchy/resilience.json",
+    "omarchy/sound.json",
+    "omarchy/activity-modes.json",
+    "omarchy/disclosure.json",
+    "omarchy/operations-log.json",
+    "omarchy/performance.json",
+    "omarchy/topologies.json",
+    "omarchy/media.json",
+    "omarchy/workspaces.json",
+    "omarchy/visual.json",
+    "omarchy/scenes.json",
     "evangelion-rice affinity state",
     "evangelion-rice context state",
     "unrelated user files"

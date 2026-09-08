@@ -1,5 +1,39 @@
 # Release notes
 
+## v1.5.0 — Adaptive Operations
+
+v1.5 turns the v1.4 distribution baseline into a calmer, more adaptable daily
+environment without silently changing user authority. The searchable MAGI
+command palette, private operations log, and progressive telemetry disclosure
+make deep controls and evidence available on demand while preserving compact
+default geometry. Work, Focus, Gaming, Presentation, Travel, and Quiet modes
+coordinate only explicitly enabled subsystems through previewed transactions
+with exact rollback. Context automation remains disabled by default.
+
+Every EVA/NERV affinity now inherits Standard, OLED, Daylight, and High
+Contrast treatments independently of wallpaper identity. Categorized sound
+cues remain opt-in, quiet-hour aware, volume-bounded, and visually equivalent.
+Offline services use bounded retry/cache state, and portable machine profiles
+move only privacy-sanitized preferences between unlike systems.
+
+Notification and MAGI history is stored locally in a size/day/count-bounded,
+mode-0600 archive. Sensitive fields are removed before persistence; repeated
+events coalesce; clear/export require explicit action; only allowlisted actions
+can be invoked. The start page projects the same local evidence and remains
+functional when the index is unavailable.
+
+Community testing now produces strict schema-v2 compatibility reports with
+coarse displays/capabilities, release channel, lifecycle outcomes, and reviewed
+qualitative feedback. Nothing uploads automatically. Maintainers accept only
+privacy-reviewed GitHub issues into a versioned, explicitly non-gating matrix.
+
+Upgrade from v1.4.1 with `magi-migrate preview` and the same component selection
+used previously. Existing settings are preserved, all new activity actions and
+sound categories remain off until opted in, and the transactional installer
+prints the exact rollback snapshot. See [UPGRADING.md](UPGRADING.md),
+[PROGRESSIVE_DISCLOSURE.md](PROGRESSIVE_DISCLOSURE.md), and
+[BETA_TESTING.md](BETA_TESTING.md).
+
 ## v1.4.1 — documentation and distribution metadata correction
 
 v1.4.1 corrects the incomplete documentation transition in v1.4.0. The README

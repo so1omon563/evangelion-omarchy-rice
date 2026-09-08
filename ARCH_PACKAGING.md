@@ -17,12 +17,12 @@ Hyprland, or contact an active desktop session.
 Build locally after producing an approved tagged archive:
 
 ```bash
-./scripts/build-release build --tag v1.4.1
-./scripts/build-arch-package build/release/evangelion-omarchy-rice-1.4.1.tar.gz
+./scripts/build-release build --tag v1.5.0
+./scripts/build-arch-package build/release/evangelion-omarchy-rice-1.5.0.tar.gz
 cd build/arch
 makepkg --printsrcinfo > .SRCINFO
 makepkg --cleanbuild
-namcap PKGBUILD evangelion-omarchy-rice-1.4.1-1-any.pkg.tar.zst
+namcap PKGBUILD evangelion-omarchy-rice-1.5.0-1-any.pkg.tar.zst
 ```
 
 The generated PKGBUILD expects the archive at the matching GitHub Release URL.
