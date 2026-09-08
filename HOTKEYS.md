@@ -31,6 +31,12 @@ to undo the last applied change, `R` to refresh capabilities, and Escape to
 close. Press `W` to open the workspace identity editor. No control-center
 change is applied without a preview and confirmation.
 
+Inside the MAGI context inspector or operations log, press `D` to toggle
+remembered diagnostic detail. System Health exposes the same 44-pixel Details
+control through Tab and Enter/Space; the start page provides a Details button
+and a matching `/` palette command. Safety and warning state always remains
+visible in Compact mode.
+
 ## Developer performance overlay
 
 Press `Super + Ctrl + Alt + F` to opt into or disengage the developer overlay. It is

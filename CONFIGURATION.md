@@ -18,6 +18,10 @@ Operations-log retention is stored in preserved
 private local state file and is never installed from the repository. See
 [OPERATIONS_LOG.md](OPERATIONS_LOG.md).
 
+Compact/Details choices for dense telemetry are bounded and preserved in
+`~/.config/omarchy/disclosure.json`. See
+[PROGRESSIVE_DISCLOSURE.md](PROGRESSIVE_DISCLOSURE.md).
+
 ## Suite release channel
 
 `~/.config/omarchy/evangelion-update.json` stores the explicitly selected rice

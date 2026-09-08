@@ -75,6 +75,7 @@ footer{margin-top:18px;font-size:11px;letter-spacing:.1em}
 .telemetry-foot,.audio-foot{display:flex;justify-content:space-between;margin-top:12px;padding-top:8px;border-top:1px solid var(--selection);color:var(--muted);font-size:7px;letter-spacing:.09em}
 .telemetry-foot em{color:var(--accent);font-style:normal}
 .telemetry-card.warning{--accent:var(--red)}
+.disclosure-toggle{min-width:72px;min-height:44px;border:1px solid var(--accent);background:color-mix(in srgb,var(--selection) 40%,var(--dark));color:var(--accent);font:700 8px ui-monospace,monospace;letter-spacing:.1em;cursor:pointer}.disclosure-toggle:hover,.disclosure-toggle:focus-visible{background:var(--accent);color:var(--dark);outline:2px solid var(--fg);outline-offset:2px}.telemetry-details{display:grid;grid-template-columns:1fr 1fr;gap:6px 12px;margin-top:10px;padding:10px;border:1px solid color-mix(in srgb,var(--accent) 45%,transparent);background:color-mix(in srgb,var(--dark) 82%,transparent)}.telemetry-details[hidden]{display:none}.telemetry-details div{display:flex;justify-content:space-between;gap:8px;color:var(--muted);font-size:7px;letter-spacing:.08em}.telemetry-details b{color:var(--fg);text-align:right;overflow:hidden;text-overflow:ellipsis}
 
 .audio-card{padding-bottom:12px}
 .audio-spectrum{height:29px;display:flex;gap:4px;align-items:center;margin:-3px 0 2px;opacity:.45}
@@ -123,4 +124,4 @@ body[data-density="command"] main{max-width:1500px;padding-left:3vw;padding-righ
 @keyframes alert-flash{50%{background:#951525}}
 @keyframes alert-mark{50%{opacity:.35}}
 @media(prefers-reduced-motion:reduce){.weather-card:before,.weather-radar i,.magi-card:after,.magi>div:before,.signal i,.audio-spectrum i,.ready-light i,.alert-strip,.alert .mark{animation:none}.boot-sequence{display:none}}
-@media(max-width:850px){main{padding-top:3vh}.status-rail{grid-template-columns:1fr 1fr 1fr}.status-rail button{min-height:34px}section{grid-template-columns:1fr}.hero,.operations-card{grid-column:auto}.mark{display:none}.event-log{grid-template-columns:1fr}.minute-ring{width:42px;height:42px}.footer-hint{display:none}}
+@media(max-width:850px){main{padding-top:3vh}.status-rail{grid-template-columns:1fr 1fr 1fr}.status-rail button{min-height:34px}section{grid-template-columns:1fr}.hero,.operations-card{grid-column:auto}.mark{display:none}.event-log,.telemetry-details{grid-template-columns:1fr}.minute-ring{width:42px;height:42px}.footer-hint{display:none}}

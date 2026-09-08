@@ -15,6 +15,7 @@ const demoData = {
   profile: 'engineering',
   context: {schema_version: 1, active: true, status: 'mobile', freshness: 'fresh', reason_code: 'mobile-operations', label: 'Mobile operations', facts: {display_mode: 'mobile'}},
   ambient: {schema_version: 1, active: true, band: 'evening', mission: 'work', focus: false, quiet: false, copy: 'MISSION IN PROGRESS', scene_offset: 2},
+  disclosure: {mode: 'compact', bounded: true},
   uptime: 273720,
   events: [
     {time: '19:01:28', type: 'SYSTEM', message: 'MAGI DASHBOARD LINK ESTABLISHED'},
@@ -95,6 +96,14 @@ function paintTelemetry(data) {
   $('telemetry-card').className = `telemetry-card ${warning ? 'warning' : 'nominal'}`;
   $('system-chip').textContent = warning ? 'WARN' : 'NOMINAL';
   $('system-state').textContent = warning ? 'ATTENTION REQUIRED' : 'BUS STABLE';
+  const detailed = data.disclosure?.mode === 'details';
+  $('telemetry-details').hidden = !detailed;
+  $('telemetry-disclosure').textContent = detailed ? 'LESS' : 'DETAILS';
+  $('telemetry-disclosure').setAttribute('aria-expanded', String(detailed));
+  $('thermal-tier').textContent = String(data.thermal.tier || (data.thermal.available ? 'NOMINAL' : 'UNAVAILABLE')).toUpperCase();
+  $('network-detail').textContent = `${String(data.network.state || (data.network.online ? 'FRESH' : 'OFFLINE')).toUpperCase()} // ${String(data.network.reason || 'LOCAL').toUpperCase()}`;
+  $('profile-detail').textContent = String(data.profile || 'UNAVAILABLE').toUpperCase();
+  $('context-detail').textContent = `${String(data.context?.status || 'UNAVAILABLE').toUpperCase()} // ${String(data.context?.freshness || 'UNKNOWN').toUpperCase()}`;
 }
 
 function paintMedia(media) {
@@ -188,6 +197,12 @@ async function mediaAction(action) {
   setTimeout(sync, 250);
 }
 
+async function toggleTelemetryDetails() {
+  if (demoMode) { demoData.disclosure.mode = demoData.disclosure.mode === 'details' ? 'compact' : 'details'; paintTelemetry(demoData); return; }
+  const response = await fetch('/api/disclosure/toggle', {method: 'POST'});
+  if (response.ok) setTimeout(sync, 50);
+}
+
 function cycleDensity() {
   const modes = ['compact', 'standard', 'command'];
   densityIndex = (densityIndex + 1) % modes.length;
@@ -205,6 +220,7 @@ const paletteCommands = [
   {name: 'MEDIA NEXT', hint: 'MPRIS', run: () => mediaAction('next')},
   {name: 'CYCLE DISPLAY DENSITY', hint: 'LOCAL UI', run: cycleDensity},
   {name: 'REFRESH TELEMETRY', hint: 'LOCAL API', run: sync},
+  {name: 'TOGGLE TELEMETRY DETAILS', hint: 'REMEMBERED LOCAL UI', run: toggleTelemetryDetails},
 ];
 let paletteSelection = 0;
 
@@ -228,6 +244,7 @@ $('player-cycle').addEventListener('click', async () => {
   setTimeout(sync, 200);
 });
 $('density-toggle').addEventListener('click', cycleDensity);
+$('telemetry-disclosure').addEventListener('click', toggleTelemetryDetails);
 $('palette-close').addEventListener('click', closePalette);
 $('palette-input').addEventListener('input', () => { paletteSelection = 0; renderPalette(); });
 $('palette-results').addEventListener('click', event => { const button = event.target.closest('[data-command]'); if (button) { paletteCommands[button.dataset.command].run(); closePalette(); } });

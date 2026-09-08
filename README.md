@@ -12,6 +12,8 @@ The [global MAGI command palette](COMMAND_PALETTE.md) provides deterministic
 fuzzy search across safe actions, settings, workspaces, diagnostics, and help.
 The [private MAGI operations log](OPERATIONS_LOG.md) adds bounded, searchable
 notification and system history with explicit clear/export and safe actions.
+[Progressive telemetry disclosure](PROGRESSIVE_DISCLOSURE.md) keeps context,
+health, history, and start-page surfaces calm while preserving on-demand detail.
 
 [![MAGI Integrity Check](https://github.com/so1omon563/evangelion-omarchy-rice/actions/workflows/validate.yml/badge.svg)](https://github.com/so1omon563/evangelion-omarchy-rice/actions/workflows/validate.yml)
 

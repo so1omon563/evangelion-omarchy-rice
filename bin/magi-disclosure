@@ -1,0 +1,26 @@
+#!/usr/bin/env python3
+"""Bounded, persistent progressive-disclosure preference controller."""
+import argparse,json,os,tempfile
+from pathlib import Path
+HOME=Path.home();CONFIG=Path(os.environ.get("EVA_DISCLOSURE_CONFIG",HOME/".config/omarchy/disclosure.json"));SURFACES=("context","health","operations-log","start-page");MODES=("compact","details");DEFAULT={"schema_version":1,"surfaces":{name:"compact" for name in SURFACES}}
+def load():
+ try:value=json.loads(CONFIG.read_text())
+ except (OSError,json.JSONDecodeError):value=json.loads(json.dumps(DEFAULT))
+ if value.get("schema_version")!=1 or set(value.get("surfaces",{}))!=set(SURFACES) or any(mode not in MODES for mode in value["surfaces"].values()):raise SystemExit("Invalid disclosure policy")
+ return value
+def save(value):
+ CONFIG.parent.mkdir(parents=True,exist_ok=True);fd,name=tempfile.mkstemp(prefix=".disclosure.",dir=CONFIG.parent)
+ try:
+  with os.fdopen(fd,"w") as stream:json.dump(value,stream,indent=2);stream.write("\n");stream.flush();os.fsync(stream.fileno())
+  os.chmod(name,0o600);os.replace(name,CONFIG)
+ finally:
+  try:os.unlink(name)
+  except FileNotFoundError:pass
+def result(value,surface=None):return {"schema_version":1,"surface":surface,"mode":value["surfaces"].get(surface) if surface else None,"surfaces":value["surfaces"],"bounded":True}
+def main():
+ parser=argparse.ArgumentParser();sub=parser.add_subparsers(dest="command",required=True);p=sub.add_parser("status");p.add_argument("surface",nargs="?",choices=SURFACES);p=sub.add_parser("set");p.add_argument("surface",choices=SURFACES);p.add_argument("mode",choices=MODES);p=sub.add_parser("toggle");p.add_argument("surface",choices=SURFACES);sub.add_parser("reset");args=parser.parse_args();value=load()
+ if args.command=="set":value["surfaces"][args.surface]=args.mode;save(value)
+ elif args.command=="toggle":value["surfaces"][args.surface]="details" if value["surfaces"][args.surface]=="compact" else "compact";save(value)
+ elif args.command=="reset":value=json.loads(json.dumps(DEFAULT));save(value)
+ print(json.dumps(result(value,getattr(args,"surface",None)),separators=(",",":")))
+if __name__=="__main__":main()

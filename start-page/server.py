@@ -77,6 +77,15 @@ def ambient_surface():
     return {key: value.get(key, baseline[key]) for key in baseline} if value.get("schema_version") == 1 else baseline
 
 
+def disclosure_surface():
+    try:
+        value = json.loads(run(["magi-disclosure", "status", "start-page"]))
+    except json.JSONDecodeError:
+        value = {}
+    mode = value.get("mode", "compact")
+    return {"mode": mode if mode in {"compact", "details"} else "compact", "bounded": True}
+
+
 def weather():
     now = int(time.time())
     message = ""
@@ -258,6 +267,7 @@ def status():
         "profile": profile.get("active", profile.get("effective", "unknown")),
         "context": context_surface(),
         "ambient": ambient_surface(),
+        "disclosure": disclosure_surface(),
         "uptime": round(float(Path("/proc/uptime").read_text().split()[0])),
     }
     snapshot["events"] = record_events(snapshot)
@@ -322,6 +332,14 @@ class Handler(SimpleHTTPRequestHandler):
                 return
             ACTIVE_PLAYER = player
             self.json_response({"ok": True, "player": player})
+            return
+        if self.path == "/api/disclosure/toggle":
+            try:
+                result = subprocess.run(["magi-disclosure", "toggle", "start-page"], text=True, capture_output=True, timeout=2)
+                payload = json.loads(result.stdout) if result.returncode == 0 else {"mode": "compact"}
+                self.json_response({"ok": result.returncode == 0, "mode": payload.get("mode", "compact")})
+            except (OSError, subprocess.SubprocessError, json.JSONDecodeError):
+                self.json_response({"ok": False, "mode": "compact"}, 503)
             return
         self.json_response({"ok": False}, 404)
 

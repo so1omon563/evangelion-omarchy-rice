@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width">
   <title>NERV Central Command</title>
-  <link rel="stylesheet" href="style.css?v=20260831.2">
+  <link rel="stylesheet" href="style.css?v=20260831.3">
 </head>
 <body data-density="standard" data-affinity="neutral">
 <div class="boot-sequence" id="boot-sequence"><div><b>NERV</b><span id="boot-copy">INITIALIZING MAGI INTERFACE</span><i></i></div></div>
@@ -47,10 +47,11 @@
       </nav>
     </article>
     <article class="telemetry-card" id="telemetry-card">
-      <div class="instrument-head"><label>SYSTEM TELEMETRY</label><span class="instrument-chip" id="system-chip">POLL</span></div>
+      <div class="instrument-head"><label>SYSTEM TELEMETRY</label><button class="disclosure-toggle" id="telemetry-disclosure" aria-expanded="false">DETAILS</button><span class="instrument-chip" id="system-chip">POLL</span></div>
       <div class="telemetry-row"><span>BATTERY</span><div class="meter"><i id="battery-meter"></i></div><b id="battery">—</b></div>
       <div class="telemetry-row"><span>THERMAL</span><div class="meter"><i id="thermal-meter"></i></div><b id="thermal">—</b></div>
       <div class="telemetry-row"><span>NETWORK</span><div class="signal" id="network-signal"><i></i><i></i><i></i><i></i><i></i></div><b id="network">—</b></div>
+      <div class="telemetry-details" id="telemetry-details" hidden><div><span>THERMAL TIER</span><b id="thermal-tier">UNKNOWN</b></div><div><span>UPLINK STATE</span><b id="network-detail">UNKNOWN</b></div><div><span>OPERATING PROFILE</span><b id="profile-detail">UNKNOWN</b></div><div><span>CONTEXT LINK</span><b id="context-detail">UNKNOWN</b></div></div>
       <div class="telemetry-foot"><span>SYS-01 // LOCAL HARDWARE BUS</span><em id="system-state">ACQUIRING</em></div>
     </article>
     <article class="audio-card" id="audio-card">
@@ -81,6 +82,6 @@
 <div class="command-palette" id="command-palette" hidden>
   <div class="palette-dialog"><div class="palette-head"><label>MAGI COMMAND SEARCH</label><button id="palette-close">ESC</button></div><input id="palette-input" autocomplete="off" placeholder="TYPE A COMMAND…"><div id="palette-results"></div><footer>↑↓ NAVIGATE · ENTER EXECUTE · ESC CLOSE</footer></div>
 </div>
-<script src="app.js?v=20260831.2"></script>
+<script src="app.js?v=20260831.3"></script>
 </body>
 </html>

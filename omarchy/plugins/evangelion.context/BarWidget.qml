@@ -14,6 +14,7 @@ BarWidget {
   Accessible.name: accessibleName
   Accessible.description: "Open contextual status, evidence, and recommendations"
   property bool popupOpen: false
+  property bool detailed: false
   Localization.I18n { id:i18n }
   property var context: ({
     derived_state: ({ status: "unknown", summary: "No context has been published", freshness: ({ status: "unknown" }) }),
@@ -33,6 +34,8 @@ BarWidget {
   function read() { if (!statusProbe.running && !refreshProbe.running) statusProbe.running = true }
   function refresh() { if (!refreshProbe.running) refreshProbe.running = true }
   function togglePopup() { popupOpen = !popupOpen; if (popupOpen) refresh() }
+  function toggleDetails() { if (!disclosureProbe.running) { disclosureProbe.command=["magi-disclosure","toggle","context"]; disclosureProbe.running=true } }
+  function acceptDisclosure(payload) { try { detailed=JSON.parse(String(payload)).mode==="details" } catch(error) { detailed=false } }
   function accept(line) { try { context = JSON.parse(String(line)) } catch (error) {} }
   function reason() { return context.reasons?.length ? context.reasons[0] : ({ code:"awaiting-observations", summary:"No observations are available", facts:({}), signals:[] }) }
   function factRows() {
@@ -84,7 +87,8 @@ BarWidget {
 
   Process { id: statusProbe; command:["magi-context","status","--json","--compact"]; stdout:SplitParser { onRead:function(line) { root.accept(line) } } }
   Process { id: refreshProbe; command:["magi-context","refresh","--json","--compact"]; stdout:SplitParser { onRead:function(line) { root.accept(line) } } }
-  Component.onCompleted: read()
+  Process { id:disclosureProbe; command:["magi-disclosure","status","context"]; stdout:StdioCollector{onStreamFinished:root.acceptDisclosure(text)} }
+  Component.onCompleted: { read(); disclosureProbe.running=true }
   IpcHandler {
     target: "magi-context-inspector"
     function toggle(): string { root.togglePopup(); return root.popupOpen ? "open" : "closed" }
@@ -114,6 +118,7 @@ BarWidget {
     FocusScope {
       id:panelFocus; anchors.fill:parent
       Keys.onEscapePressed:root.close()
+      Keys.onPressed:function(event){if(event.key===Qt.Key_D){root.toggleDetails();event.accepted=true}}
       Flickable {
         anchors.fill:parent; contentWidth:width; contentHeight:contentColumn.implicitHeight; clip:true
         boundsBehavior:Flickable.StopAtBounds; flickableDirection:Flickable.VerticalFlick
@@ -128,21 +133,21 @@ BarWidget {
           Rectangle { width:parent.width; height:1; color:root.stateColor; opacity:.55 }
 
           Text { text:i18n.tr("context.conclusion",{code:String(root.reason().code||"unknown")}).toUpperCase(); color:root.stateColor; font.family:root.bar.fontFamily; font.pixelSize:Style.font.caption; font.bold:true }
-          Repeater { model:root.factRows(); delegate:Row { required property var modelData; width:contentColumn.width
+          Repeater { model:root.detailed?root.factRows():[]; delegate:Row { required property var modelData; width:contentColumn.width
             Text { width:parent.width*.48; text:String(modelData.key).replace(/_/g," ").toUpperCase(); color:Qt.darker(root.bar.foreground,1.35); font.family:root.bar.fontFamily; font.pixelSize:Style.font.caption }
             Text { width:parent.width*.52; text:String(modelData.value).toUpperCase(); elide:Text.ElideRight; color:root.bar.foreground; font.family:root.bar.fontFamily; font.pixelSize:Style.font.caption; font.bold:true }
           } }
-          Text { visible:root.factRows().length===0; text:i18n.tr("context.no_facts").toUpperCase(); color:Qt.darker(root.bar.foreground,1.35); font.family:root.bar.fontFamily; font.pixelSize:Style.font.caption }
+          Text { visible:root.detailed&&root.factRows().length===0; text:i18n.tr("context.no_facts").toUpperCase(); color:Qt.darker(root.bar.foreground,1.35); font.family:root.bar.fontFamily; font.pixelSize:Style.font.caption }
 
           Rectangle { width:parent.width; height:1; color:Color.muted; opacity:.35 }
-          Text { text:i18n.tr("context.signals").toUpperCase(); color:Color.accent; font.family:root.bar.fontFamily; font.pixelSize:Style.font.caption; font.bold:true }
-          Grid { width:parent.width; columns:2; rowSpacing:Style.space(4); columnSpacing:Style.space(8)
+          Text { visible:root.detailed; text:i18n.tr("context.signals").toUpperCase(); color:Color.accent; font.family:root.bar.fontFamily; font.pixelSize:Style.font.caption; font.bold:true }
+          Grid { visible:root.detailed; width:parent.width; columns:2; rowSpacing:Style.space(4); columnSpacing:Style.space(8)
             Repeater { model:root.signalRows(); delegate:Text { required property var modelData; width:(contentColumn.width-Style.space(8))/2; text:String(modelData.name).replace(/_/g," ").toUpperCase()+" // "+String(modelData.availability).toUpperCase()+" · "+String(modelData.freshness).toUpperCase(); elide:Text.ElideRight; color:modelData.freshness==="stale"?"#F6D447":Qt.darker(root.bar.foreground,1.25); font.family:root.bar.fontFamily; font.pixelSize:Style.font.caption } }
           }
 
           Rectangle { width:parent.width; height:1; color:Color.muted; opacity:.35 }
-          Text { text:i18n.tr("context.suppressed").toUpperCase(); color:Color.accent; font.family:root.bar.fontFamily; font.pixelSize:Style.font.caption; font.bold:true }
-          Text { width:parent.width; text:(root.context.policy_state?.suppressed_reason_codes || []).length ? root.context.policy_state.suppressed_reason_codes.join("  ·  ").toUpperCase() : "NONE"; wrapMode:Text.Wrap; color:Qt.darker(root.bar.foreground,1.3); font.family:root.bar.fontFamily; font.pixelSize:Style.font.caption }
+          Text { visible:root.detailed; text:i18n.tr("context.suppressed").toUpperCase(); color:Color.accent; font.family:root.bar.fontFamily; font.pixelSize:Style.font.caption; font.bold:true }
+          Text { visible:root.detailed; width:parent.width; text:(root.context.policy_state?.suppressed_reason_codes || []).length ? root.context.policy_state.suppressed_reason_codes.join("  ·  ").toUpperCase() : "NONE"; wrapMode:Text.Wrap; color:Qt.darker(root.bar.foreground,1.3); font.family:root.bar.fontFamily; font.pixelSize:Style.font.caption }
 
           Rectangle { width:parent.width; height:1; color:Color.muted; opacity:.35 }
           Text { text:i18n.tr("context.recommended",{count:root.safeRecommendations().length}).toUpperCase(); color:Color.accent; font.family:root.bar.fontFamily; font.pixelSize:Style.font.caption; font.bold:true }
@@ -167,7 +172,8 @@ BarWidget {
               Keys.onPressed:function(event){ if(event.key===Qt.Key_Return||event.key===Qt.Key_Enter||event.key===Qt.Key_Space){ root.close(); event.accepted=true } }
             }
           }
-          Text { width:parent.width; elide:Text.ElideRight; text:i18n.tr("context.automation",{state:root.automationLabel(),count:String((root.context.automatic_actions||[]).length)}).toUpperCase(); color:Qt.darker(root.bar.foreground,1.4); font.family:root.bar.fontFamily; font.pixelSize:Style.font.caption }
+          BorderSurface { width:parent.width; height:Style.space(44); activeFocusOnTab:true; color:Style.normalFillFor(root.bar.foreground,Color.accent); borderSpec:Border.controlSpec(activeFocus?"focus":"normal",root.bar.foreground,Color.accent); Accessible.role:Accessible.Button; Accessible.name:(root.detailed?"Hide":"Show")+" context details"; Text{anchors.centerIn:parent;text:(root.detailed?"LESS":"DETAILS")+" // D";color:Color.accent;font.family:root.bar.fontFamily;font.pixelSize:Style.font.caption;font.bold:true} MouseArea{anchors.fill:parent;cursorShape:Qt.PointingHandCursor;onClicked:root.toggleDetails()} Keys.onPressed:function(event){if(event.key===Qt.Key_Return||event.key===Qt.Key_Enter||event.key===Qt.Key_Space){root.toggleDetails();event.accepted=true}} }
+          Text { visible:root.detailed; width:parent.width; elide:Text.ElideRight; text:i18n.tr("context.automation",{state:root.automationLabel(),count:String((root.context.automatic_actions||[]).length)}).toUpperCase(); color:Qt.darker(root.bar.foreground,1.4); font.family:root.bar.fontFamily; font.pixelSize:Style.font.caption }
         }
       }
     }
