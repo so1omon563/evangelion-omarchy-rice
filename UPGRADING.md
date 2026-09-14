@@ -1,5 +1,25 @@
 # Upgrade, rollback, and removal
 
+## Upgrade from v1.5.0 to v1.5.1
+
+Download the v1.5.1 archive and checksum from GitHub Releases, then verify and
+install using the same preset or component selection as before:
+
+```bash
+sha256sum --check evangelion-omarchy-rice-1.5.1.tar.gz.sha256
+tar -xzf evangelion-omarchy-rice-1.5.1.tar.gz
+cd evangelion-omarchy-rice-1.5.1
+./scripts/build-release verify-root .
+./install.sh --dry-run --preset default
+./install.sh --apply --preset default
+```
+
+This patch needs no configuration-schema migration. It preserves workspace
+names and user preferences. Reload the shell with `omarchy restart shell` if
+the updated labels are not visible, then check `magi-presentation` twice to
+launch and dismiss the layout. Restore the printed installer snapshot with
+`./rollback.sh <snapshot>` if needed.
+
 ## Guided migration into v1.5
 
 The v1.5 suite includes a versioned configuration migration assistant. Preview

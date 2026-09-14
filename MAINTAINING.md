@@ -51,11 +51,11 @@ After CI is green, create and verify the signed/annotated exact tag, then build
 twice and compare checksums:
 
 ```bash
-git tag --verify v1.5.0
-./scripts/build-release build --tag v1.5.0 --output build/one
-./scripts/build-release build --tag v1.5.0 --output build/two
+git tag --verify v1.5.1
+./scripts/build-release build --tag v1.5.1 --output build/one
+./scripts/build-release build --tag v1.5.1 --output build/two
 cmp build/one/*.tar.gz build/two/*.tar.gz
-./scripts/build-release verify build/one/evangelion-omarchy-rice-1.5.0.tar.gz
+./scripts/build-release verify build/one/evangelion-omarchy-rice-1.5.1.tar.gz
 ```
 
 Inspect the archive manifest and provenance, publish the archive and checksum

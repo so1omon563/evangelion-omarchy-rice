@@ -71,25 +71,24 @@ BarWidget {
   function widthFor(id) {
     if (root.vertical) return root.barSize
     if (root.minimalBar) return 30
-    if (id >= 1 && id <= 5) return root.compactBar ? 48 : Math.min(130, Math.max(70, 26 + root.identity(id).label.length * 7))
-    return 34
+    // WidgetButton measures its actual font and includes horizontal padding.
+    // Fixed character-count estimates let long labels paint into adjacent slots.
+    return -1
   }
 
   function focusWorkspace(id) {
     if (!root.bar) return
-    root.bar.run("hyprctl dispatch " + Util.shellQuote("hl.dsp.focus({ workspace = \\\"" + id + "\\\" })"))
+    root.bar.run("hyprctl dispatch " + Util.shellQuote('hl.dsp.focus({ workspace = "' + id + '" })'))
   }
 
   readonly property real trailingGap: root.vertical ? 0 : Style.spaceReal(1.5)
   implicitWidth: grid.implicitWidth + trailingGap
   implicitHeight: grid.implicitHeight
 
-  GridLayout {
+  Grid {
     id: grid
-    anchors.fill: parent
-    anchors.rightMargin: root.trailingGap
     columns: root.vertical ? 1 : root.workspaceIds().length
-    columnSpacing: root.vertical ? 0 : 1
+    columnSpacing: root.vertical ? 0 : Style.space(2)
     rowSpacing: root.vertical ? Style.space(2) : 0
 
     Repeater {
@@ -107,7 +106,7 @@ BarWidget {
         active: focused
         activeColor: workspaceAccent
         opacity: occupied || focused ? 1 : 0.42
-        horizontalMargin: 5
+        horizontalMargin: 8
         verticalPadding: 6
         fixedWidth: root.widthFor(modelData)
         fixedHeight: root.barSize

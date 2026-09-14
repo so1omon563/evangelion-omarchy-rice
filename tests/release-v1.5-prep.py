@@ -3,8 +3,9 @@
 import json
 from pathlib import Path
 ROOT=Path(__file__).resolve().parents[1]
-assert (ROOT/"VERSION").read_text().strip()=="1.5.0"
-assert json.loads((ROOT/"omarchy/rice-health.json").read_text())["suite_version"]=="1.5.0"
+version=(ROOT/"VERSION").read_text().strip()
+assert version.startswith("1.5.")
+assert json.loads((ROOT/"omarchy/rice-health.json").read_text())["suite_version"]==version
 assert json.loads((ROOT/"packaging/theme/manifest.json").read_text())["derived_from_suite"]=="v1.5.0"
 notes=(ROOT/"RELEASE_NOTES.md").read_text();assert "v1.5.0 — Adaptive Operations" in notes
 for token in ("command palette","operations log","progressive telemetry disclosure","Work, Focus","OLED","quiet-hour","machine profiles","schema-v2","disabled by default","rollback"):
@@ -17,5 +18,5 @@ allow=set(line for line in (ROOT/"packaging/release/allowlist.txt").read_text().
 for item in ("COMMAND_PALETTE.md","OPERATIONS_LOG.md","PROGRESSIVE_DISCLOSURE.md","ACTIVITY_MODES.md","THEME_VARIANTS.md","SOUND.md","OFFLINE_RESILIENCE.md","MACHINE_PROFILES.md","COMMUNITY_REPORT_TRIAGE.md","schemas/","compatibility/","tools/accept-compatibility-report"):
  assert item in allow,item
 for path in ("README.md","RELEASE_ARTIFACTS.md","DISTRIBUTION_GUIDE.md","ARCH_PACKAGING.md","MAINTAINING.md"):
- text=(ROOT/path).read_text();assert "1.5.0" in text,path
+ text=(ROOT/path).read_text();assert version in text,path
 print("PASS  coherent v1.5 version notes migration distribution and public artifact surface")

@@ -1,5 +1,22 @@
 # Release notes
 
+## v1.5.1 — Workspace and presentation fixes
+
+Workspace buttons now measure their labels and retain padding in a grid that
+does not compress adjacent buttons. This fixes crowded names and overlapping
+active indicators. Workspace-click command quoting is also corrected.
+
+The MAGI presentation launcher now uses Hyprland Lua dispatchers with explicit
+window selectors and absolute geometry. Floating is enabled with the action
+supported by Hyprland 0.56.2, rather than accidentally toggled. Missing
+terminals and placement failures now exit with cleanup instead of reporting
+a successful presentation. Dismissal releases the presentation motion hold.
+
+Upgrade from v1.5.0 using the same installer preset or component selection;
+no configuration-schema migration is required. Existing workspace names and
+preferences are preserved. See [UPGRADING.md](UPGRADING.md). The standalone
+theme payload is unchanged and retains its v1.5.0 provenance.
+
 ## v1.5.0 — Adaptive Operations
 
 v1.5 turns the v1.4 distribution baseline into a calmer, more adaptable daily

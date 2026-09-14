@@ -46,7 +46,8 @@ artifacts = (ROOT / "RELEASE_ARTIFACTS.md").read_text()
 maintaining = (ROOT / "MAINTAINING.md").read_text()
 assert "v1.5.0 — Adaptive Operations" in notes
 assert "Upgrade from v1.4.1 to v1.5" in upgrade
-assert "evangelion-omarchy-rice-1.5.0.tar.gz" in artifacts
+version = (ROOT / "VERSION").read_text().strip()
+assert f"evangelion-omarchy-rice-{version}.tar.gz" in artifacts
 assert "wait for the exact candidate CI run to pass" in maintaining
 assert "publish the archive and checksum" in maintaining
 

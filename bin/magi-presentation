@@ -1,6 +1,6 @@
 #!/bin/bash
 
-set -euo pipefail
+set -Eeuo pipefail
 
 presentation_prefix="org.omarchy.magi."
 
@@ -131,6 +131,12 @@ for _ in {1..60}; do
   sleep 0.1
 done
 
+if [[ -z ${fastfetch_address:-} || -z ${btop_address:-} ]]; then
+  echo 'Presentation terminals did not appear before the launch timeout.' >&2
+  cleanup_failed
+  exit 1
+fi
+
 if [[ -n ${fastfetch_address:-} && -n ${btop_address:-} ]]; then
   monitor=$(hyprctl monitors -j | jq -c 'map(select(.focused))[0] // .[0]')
   geometry=$(geometry_for_monitor "$monitor" "$side" "$width_pct" "$top_height_pct")
@@ -141,10 +147,14 @@ if [[ -n ${fastfetch_address:-} && -n ${btop_address:-} ]]; then
   bottom_height=$(jq -r '.btop.height' <<<"$geometry")
   bottom_top=$(jq -r '.btop.y' <<<"$geometry")
 
-  hyprctl dispatch resizewindowpixel "exact $panel_width $top_height,address:$fastfetch_address" >/dev/null
-  hyprctl dispatch movewindowpixel "exact $left $top,address:$fastfetch_address" >/dev/null
-  hyprctl dispatch resizewindowpixel "exact $panel_width $bottom_height,address:$btop_address" >/dev/null
-  hyprctl dispatch movewindowpixel "exact $left $bottom_top,address:$btop_address" >/dev/null
+  for address in "$fastfetch_address" "$btop_address"; do
+    hyprctl dispatch "hl.dsp.window.float({ action = \"enable\", window = \"address:$address\" })" >/dev/null
+    hyprctl dispatch "hl.dsp.window.move({ workspace = \"$workspace\", follow = false, window = \"address:$address\" })" >/dev/null
+  done
+  hyprctl dispatch "hl.dsp.window.resize({ x = $panel_width, y = $top_height, relative = false, window = \"address:$fastfetch_address\" })" >/dev/null
+  hyprctl dispatch "hl.dsp.window.move({ x = $left, y = $top, relative = false, window = \"address:$fastfetch_address\" })" >/dev/null
+  hyprctl dispatch "hl.dsp.window.resize({ x = $panel_width, y = $bottom_height, relative = false, window = \"address:$btop_address\" })" >/dev/null
+  hyprctl dispatch "hl.dsp.window.move({ x = $left, y = $bottom_top, relative = false, window = \"address:$btop_address\" })" >/dev/null
 fi
 
 omarchy-notification-send -g "󱚣" "MAGI PRESENTATION" "Workspace $(printf '%02d' "$workspace") · $layout_name layout initialized"
